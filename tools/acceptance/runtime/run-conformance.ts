@@ -111,6 +111,40 @@ async function loadPackageBinder(href: string): Promise<{
   }
 }
 
+async function loadWorkspaceBinder(href: string): Promise<{
+  bindConformance: (
+    harness: ConformanceHarness,
+    request: {
+      readonly command: string
+      readonly contracts: readonly string[] | 'all'
+      readonly providers: readonly string[]
+    },
+  ) => Promise<{ readonly contracts: readonly string[]; readonly providers: readonly string[] }>
+}> {
+  return (await import(href)) as {
+    bindConformance: (
+      harness: ConformanceHarness,
+      request: {
+        readonly command: string
+        readonly contracts: readonly string[] | 'all'
+        readonly providers: readonly string[]
+      },
+    ) => Promise<{ readonly contracts: readonly string[]; readonly providers: readonly string[] }>
+  }
+}
+
+function workspaceProviderRequested(providers: readonly string[]): boolean {
+  return providers.some(
+    (providerId) =>
+      providerId === 'default' ||
+      providerId === 'reference' ||
+      providerId === 'agh.default/workspace' ||
+      providerId === 'agh.default/files' ||
+      providerId === 'agh.reference/workspace' ||
+      providerId === 'agh.reference/files',
+  )
+}
+
 function packageProviderRequested(providers: readonly string[]): boolean {
   return providers.some(
     (providerId) =>
@@ -146,6 +180,21 @@ async function registerRequestedContracts(
     const href = new URL('./platform/packages.ts', import.meta.url).href
     const binder = await loadPackageBinder(href)
     await binder.bindPackageContracts(harness, options.command, options.providers, { source, resolver })
+  }
+  // Temporary until the conformance runner discovers platform binders by file name.
+  // Delete this block when that discovery lands.
+  const workspace =
+    options.contracts === 'all' ||
+    options.contracts.includes('agh.workspace') ||
+    options.contracts.includes('agh.files')
+  if (workspace && workspaceProviderRequested(options.providers)) {
+    const href = new URL('./platform/workspace-conformance.ts', import.meta.url).href
+    const binder = await loadWorkspaceBinder(href)
+    await binder.bindConformance(harness, {
+      command: options.command,
+      contracts: options.contracts,
+      providers: options.providers,
+    })
   }
 }
 
