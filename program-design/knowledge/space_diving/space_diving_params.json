@@ -1,0 +1,27 @@
+{
+  "description": "Problem domain parameters and empirical baselines for 2023 Space Diving (GM-A-131) physical modeling.",
+  "mass_total_kg": 190,
+  "safety_constraints": {
+    "acceleration_tolerance_G": 5.0,
+    "acceleration_tolerance_duration_s": 5.0,
+    "peak_overload_short_g": 10.0,
+    "peak_overload_short_duration_s": 0.1
+  },
+  "baumgartner_benchmark": {
+    "initial_altitude_km": 39.0,
+    "entry_mach": 0.8,
+    "exit_mach": 1.25,
+    "max_velocity_m_s": 467.7343,
+    "max_accel_m_s2": 9.6841,
+    "min_accel_m_s2": -5.1594
+  },
+  "aerodynamic_coefficients": {
+    "subsonic_CD": 1.0,
+    "transonic_CD": 5.0,
+    "final_subsonic_CD": 1.2,
+    "cross_sectional_area_subsonic_m2": 0.18,
+    "cross_sectional_area_supersonic_m2": 0.2
+  },
+  "atmosphere_data_source": "NRLMSIS (2.0) Atmospheric Model / API",
+  "method_template_ref": "program-design/knowledge/atmosphere-drag-ode.md"
+}
