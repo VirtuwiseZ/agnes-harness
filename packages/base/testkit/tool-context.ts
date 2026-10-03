@@ -45,6 +45,8 @@ export type FakeToolContextOpts = {
   exec?: ExecFn
   invoke?: (name: string, args: JsonValue) => Promise<ToolResult>
   timeoutMs?: number
+  /** The preset-wide default a tool may use when the caller asks for no time; omitted leaves the field absent. */
+  defaultTimeoutMs?: number
   /** The `tools.output_max_bytes` a tool sees; a test that needs a small page or cut sets it. */
   outputMaxBytes?: number
   /** Makes `artifacts.put` fail, which is how a tool's behaviour with no artifact store is tested. */
@@ -56,6 +58,8 @@ export type FakeToolContextOpts = {
    * real user walks.
    */
   readErrors?: Record<string, { code?: string; message?: string }>
+  /** The same, for `fs.write`: a file whose content was readable but may not be replaced. */
+  writeErrors?: Record<string, { code?: string; message?: string }>
   /** The same, for `fs.list`: a directory a listing tool is refused rather than handed. */
   listErrors?: Record<string, { code?: string; message?: string }>
   /**
@@ -98,6 +102,7 @@ export function fakeToolContext(opts: FakeToolContextOpts = {}): FakeToolContext
   const stored = new Map<string, Uint8Array>()
   const runExec: ExecFn = opts.exec ?? (() => ({ code: 0, stdout: '', stderr: '' }))
   const readErrors = new Map(Object.entries(opts.readErrors ?? {}).map(([k, v]) => [abs(k), v]))
+  const writeErrors = new Map(Object.entries(opts.writeErrors ?? {}).map(([k, v]) => [abs(k), v]))
   const listErrors = new Map(Object.entries(opts.listErrors ?? {}).map(([k, v]) => [abs(k), v]))
   const extraEntries = new Map(Object.entries(opts.entries ?? {}).map(([k, v]) => [abs(k), v]))
 
@@ -132,6 +137,8 @@ export function fakeToolContext(opts: FakeToolContextOpts = {}): FakeToolContext
         return b.subarray(from, o.limit === undefined ? undefined : from + o.limit)
       },
       async write(p: string, data: Uint8Array | string): Promise<void> {
+        const fail = writeErrors.get(abs(p))
+        if (fail) throw Object.assign(new Error(fail.message ?? 'write failed'), { code: fail.code })
         mem.files.set(abs(p), typeof data === 'string' ? enc.encode(data) : data)
       },
       async list(p: string) {
@@ -227,6 +234,7 @@ export function fakeToolContext(opts: FakeToolContextOpts = {}): FakeToolContext
     progress: () => undefined,
     signal: new AbortController().signal,
     timeoutMs: opts.timeoutMs ?? 120000,
+    ...(opts.defaultTimeoutMs === undefined ? {} : { defaultTimeoutMs: opts.defaultTimeoutMs }),
     outputMaxBytes: opts.outputMaxBytes ?? DEFAULT_OUTPUT_MAX_BYTES,
     lease: { expiresAt: '2999-01-01T00:00:00Z', scope: {}, budget: { remaining: 1e9 } },
     log: { debug() {}, info() {}, warn() {}, error() {} },

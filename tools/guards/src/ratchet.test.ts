@@ -260,7 +260,7 @@ const INITIAL_CEILING: Record<string, number> = {
   'packages/host/src/adapters/powershell-file': 47,
   'packages/host/src/adapters/powershell-temporary': 43,
   'packages/host/src/adapters/process-identity-win32': 18,
-  'packages/host/src/adapters/exec-win32': 78,
+  'packages/host/src/adapters/exec-win32': 84,
   'packages/host/src/adapters/exec-output': 32,
   'packages/host/src/adapters/secrets-win32': 25,
   // WIN-TITLE-REPAIR: +3 for peer-only rejection backoff; no counting exclusions changed.
@@ -940,7 +940,18 @@ const INITIAL_CEILING: Record<string, number> = {
   // Configurable request output allowance and durable truncation stop. Measured +20, exact allocation.
   // Configurable tool output limit: the Preset key `tools.output_max_bytes` resolved and handed to each
   // tool as `ctx.outputMaxBytes`. Measured 25723 (+8), exact cap without spare allocation.
-  'packages/core/src': 25723,
+  // A mutating tool cut short by its deadline or a cancel names that cause in its unknown-outcome result
+  // text instead of reading as a lost transport. Measured 25741 (+18), exact cap.
+  // The soft deadline handed to a tool is a grace short of the kernel cut-off. Measured 25742 (+1), exact cap.
+  // The preset-wide default timeout reaches a tool as ctx.defaultTimeoutMs. Measured 25751 (+9), exact cap.
+  // A cancel that lands before the turn opens is recorded once it does, and a cancel that cuts a
+  // fail-closed hook ends the turn aborted. Measured 25769 (+18 over the preceding cap), exact cap.
+  // Compaction: a summary route that cannot work is retried at growing intervals, and stops the turn
+  // with the reason once the window is nearly full (+34); the kept tail is sized net of the fixed
+  // prefix, so the first request after a compaction lands below the threshold (+8).
+  // Measured 25811, exact cap.
+  // The approval card's summary line is built by summarizeCall (new file). Measured 25861 (+50), exact cap.
+  'packages/core/src': 25861,
   // 2026-09-15: DeepSeek V4 Pro/Flash ship a known-thinking-corrections table (new file) so the
   // product corrects pi-ai's verified-wrong reasoning_effort data out of the box, instead of
   // requiring every deployment to hand-edit thinkingEfforts once they notice. Measured 3347.
@@ -1170,7 +1181,9 @@ const INITIAL_CEILING: Record<string, number> = {
   // descriptor guards. Exact merged countLines() total; no spare allocation.
   // PLUGIN-HELPER: measured 4191 -> 4192; approved feature scope, no spare allocation.
   // The Kernel receives the spawned-child turn admission. Measured 4193, exact, no spare (+1).
-  'packages/host/src/assemble': 4193,
+  // A returning package must not be served a cached generation bound to revoked leases (+7), and the
+  // full-access read-only roots reach the fence from the assembly (+7). Measured 4207, exact.
+  'packages/host/src/assemble': 4207,
   // P1: generated-schema validators and duplicate projection-name refusal; measured exact cap.
   // F1 adds Surface JSON/identity validation and lock snapshot validation.
   // PM4 adds strict management DTO validation and method permission/identity contracts; exact total.
@@ -1363,7 +1376,9 @@ const INITIAL_CEILING: Record<string, number> = {
   // exported. Measured 978, exact, no spare (+41).
   // `ToolContext.outputMaxBytes` and the three bounds of the Preset key `tools.output_max_bytes`,
   // exported as constants. Measured 981 (+3), exact, no spare.
-  'packages/extension-api/src': 981, // SKILL-INSTALL-CORE: optional request port and bounded DTO, no admin grant.
+  // Optional ExecResult.timedOut and the soft-deadline note on timeoutMs. Measured 987 (+6), exact cap.
+  // Optional ToolContext.defaultTimeoutMs. Measured 988 (+1), exact cap.
+  'packages/extension-api/src': 988, // SKILL-INSTALL-CORE: optional request port and bounded DTO, no admin grant.
   // Optional author fixture entry; no production runtime code belongs here.
   // B1-A: measured 229 lines on the shared tree; public transport contract, config and wiring/testkit.
   // B1 review repair: exact measured 246; startup cancellation / cwd contract coverage.
@@ -1793,7 +1808,9 @@ const INITIAL_CEILING: Record<string, number> = {
   // libuv aborts on a directory watched by its 8.3 short name; measured 26451, exact, no spare (+11).
   // TRACE-INSPECTION-20260925: owner-gated detail dispatch; measured 26495, exact.
   // Windows discovery retry adds six counted lines; measured 26501, exact.
-  'packages/daemon/src': 26505,
+  // A cancel that arrived before the worker run began is forwarded after it. Measured 26536 (+2), exact.
+  // An approval request carries the tool's ACP kind and name. Measured 26542 (+6), exact cap.
+  'packages/daemon/src': 26542,
   'packages/daemon/src/packages/admin-session': 46,
   // 2026-09-14: whole-branch review fix wave (Finding 1) adds the two missing
   // 'pins/inspect'/'pins/release' entries to the ACTIONS BFF route allowlist, which had been left
@@ -2039,7 +2056,8 @@ const INITIAL_CEILING: Record<string, number> = {
   // UI integration merge: the three UI lines moved most of this scope into packages/web-ui/src,
   // which carries its own key. Re-measured with countLines() on the merged tree: 13120, exact.
   // Output-limit and rate-limit presentation adds four counted lines, exact allocation.
-  'packages/web/src': 13411,
+  // The live approval card's wording, preview and session-choice rule (new file). Measured 13463 (+52), exact cap.
+  'packages/web/src': 13463,
   // 2026-09-17 web-client-modules frontend track (rebased onto L0/permission-picker main): re-measured exact value below.
   // 2026-09-14: Task 7 orphaned-pin-cleanup adds the orphan-pins section to PluginAdminPage — the
   // #orphanPins/#orphanPinsList/#orphanPinsStatus/#orphanPinsReleaseAll element bindings, the
@@ -2147,7 +2165,9 @@ const INITIAL_CEILING: Record<string, number> = {
   // workspace `.agh/hooks.json` fallback path. Prompt-submit result memo adds 41 counted lines.
   // Context-first exit 2 reuses the before_step prompt verdict. A workspace/policy-scoped memo
   // prevents cross-sandbox verdict reuse. Re-measured 1007, exact cap.
-  'packages/base/extensions/hooks-runner': 1007,
+  // PreCompact observer wrapper: before_compact always hands the decision back to the built-in
+  // compaction (+21 counted lines, measured 1028, exact cap).
+  'packages/base/extensions/hooks-runner': 1028,
   // MCP rows step 4 (design 2026-09-21-resource-rows-design.md §3.9, D122): agnes/mcp-client was
   // retired. Its shared MCP library (connect.ts, register.ts, index-table.ts, the McpServerConfig type)
   // moved here unchanged apart from import paths; the profile-preset reader (config.ts's
@@ -2163,7 +2183,10 @@ const INITIAL_CEILING: Record<string, number> = {
   // Single-resident-worker P2: catalogInfoOf now also returns the sorted tool list, reused by both a row's ready status and resourceMcpTools pagination. Re-measured: 872, exact.
   // MCP catalog validation skips each tool the model cannot be shown and reports it in the catalog
   // info instead of failing the server. Measured 932, exact, no spare (+60).
-  'packages/base/src/mcp': 932,
+  // MCP result text is capped at what read can give back (4 MiB per call) and a stored multi-block
+  // set carries its whole locator. Stdio transport errors no longer count as a disconnect (+2).
+  // Measured 982, exact, no spare (+50).
+  'packages/base/src/mcp': 982,
   // 2026-09-12: I7 Base Tasks 34/35 introduce the privacy extension. Its first slice measures 214
   // counted lines; the universal fixed extension ceiling remains 800 rather than growing Base.
   'packages/base/extensions/privacy': 800,
@@ -2511,7 +2534,11 @@ const INITIAL_CEILING: Record<string, number> = {
   // Measured 38084, exact, no spare (+3).
   // Import provenance marker: createSession forwards the in-process imported option.
   // Measured 38101 (+2).
-  'packages/host/src': 38297,
+  // The executor reports a cancel that came first as the cause, not a timeout (exec, exec-win32). Measured 38306 (+9).
+  // Generation views are pruned before each candidate builds its session views (+13). Installation state stays
+  // read-only under full file access: the fence guard, the roots helper and their wiring (+40).
+  // Measured 38359, exact.
+  'packages/host/src': 38359,
   'packages/host/src/ext-host/service-invocation': 247,
   // T5.2's permission projector is kept independently bounded so later extension-host work cannot
   // hide in the package-wide increment. Measured source: 86 lines.
@@ -2675,7 +2702,10 @@ const INITIAL_CEILING: Record<string, number> = {
   // exact, no spare (+11).
   // Cancelling a child's creation also settles its execution state in the same statement. Measured
   // 5017, exact, no spare (+3).
-  'packages/host/src/adapters': 5025,
+  // First-cause timedOut in exec and exec-win32. Measured 5034 (+9), exact cap.
+  // The fence refuses writes to the installation's own state under full file access. Measured 5053,
+  // exact, no spare (+19).
+  'packages/host/src/adapters': 5053,
 
   // C1b Task 5 persists child creation attempts and deferred recovery; exact total, no spare.
   // Task 17 review: sqlite_master scan + table-name refuse. Re-measured: 674, exact.
@@ -2730,7 +2760,7 @@ const EXTENSION_CEILING_EXCEPTIONS = new Map([
   // CORDIS-C1b Task 6 adds invocation-scoped workspace hook snapshots and descendant draining.
   // 2026-09-21 AGH namespace rename, +1 approved by the user: the AGH_DIR import for the workspace
   // `.agh/hooks.json` fallback path. Context-first prompt denial and scoped memo; measured 1007.
-  ['hooks-runner', 1007],
+  ['hooks-runner', 1028],
   ['computer-use', 1786],
   // 2026-09-23 user-approved: dsh-compatible Skill discovery. Measured 899.
   // SKILL-CATALOG-CLEAN-REWRITE: same reviewed exact total as the catalog/name activation budget above.
