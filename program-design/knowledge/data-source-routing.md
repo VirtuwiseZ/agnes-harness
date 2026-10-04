@@ -136,6 +136,54 @@ a fixed JSON field.
    agent-unilaterally-decidable, quality tradeoff. Log the user's choice as
    `anomalies[-1].user_choice` once they respond.
 
+   **Fixed message template for this pause** — the agent only fills in the
+   bracketed fields, the rest of the wording is fixed and must not be
+   freely paraphrased (same design principle as the §4 permission-stop
+   message in `SKILL.md`, so a reviewer can grep for the exact header
+   string to confirm this stop actually happened in the prescribed form):
+
+   ```
+   ⏸ DATA SOURCE REQUIRED — analysis stopped at Node 1.5 (data-source routing).
+
+   The recommendation for this problem's data requirement is:
+   - Recommended source: {recommended source name + access method, e.g.
+     "US Standard Atmosphere 1976 analytical layer equations"}
+   - Why this level (Level 0/1/2/3): {one-line rationale}
+   - Why it cannot be fetched by me right now: {paywall / API down /
+     no public mirror / out-of-stated-validity-range / no live connection}
+
+   Please choose one of the following two options. I will not resume Node
+   2b until you respond to this stop message:
+
+   [A] Manual fetch + handoff — I will now give you a concrete, step-by-step
+       retrieval guide below, and I will wait for you to supply the data:
+       - Exact URL / dataset name / table citation: {cite}
+       - Expected file format and column layout: {format}
+       - Exact span / step values to extract: {z_min, z_max, Δz}
+       - Where to drop the numbers back into: {which field / artifact slot in
+         problem_state.json}
+
+   [B] Proceed on a documented analytical/model approximation instead — the
+       final answer's epistemic status changes from "validated against real
+       data" to "validated against an approximation"; the approximation used
+       in place of the missing source will be: {name of approximation, its
+       stated validity range, and which part of the required span falls
+       outside that range if any}.
+       This is a deliberate, user-confirmed downgrade, not a silent one —
+       you are explicitly confirming you want to accept this reduced confidence
+       level rather than wait for Option A's data.
+
+   If [B]'s approximation does not cover the required span at all (proceeding
+   would mean fabricating a result), I will not offer [B] as a viable option
+   and will instead stop here with a plain explanation of why no option is
+   currently usable.
+   ```
+
+   The agent must not resume Node 2b on its own after emitting this message,
+   and must not mix "I paused but continued anyway" — resumption happens only
+   on the user's explicit Option A data handoff or Option B confirmation, in
+   which case that choice is logged as `anomalies[-1].user_choice`.
+
    If *even the analytical fallback in Option B is inadequate* (e.g. the
    required span falls entirely outside the approximation's stated validity
    range, so proceeding would be a fabricated result), the agent MUST
