@@ -7,7 +7,9 @@
     "peak_overload_short_g": 10.0,
     "peak_overload_short_duration_s": 0.1
   },
-  "baumgartner_benchmark": {
+  "candidate_verification_baseline": {
+    "note": "Runtime confirmation target for Node 1.5 Data-Source Routing; not treated as settled input by the ODE code itself",
+    "source_name": "Baumgartner 2012 39 km space jump",
     "initial_altitude_km": 39.0,
     "entry_mach": 0.8,
     "exit_mach": 1.25,
@@ -22,6 +24,9 @@
     "cross_sectional_area_subsonic_m2": 0.18,
     "cross_sectional_area_supersonic_m2": 0.2
   },
-  "atmosphere_data_source": "NRLMSIS (2.0) Atmospheric Model / API",
+  "candidate_atmosphere_data_source": {
+    "note": "Runtime confirmation target for Node 1.5 Data-Source Routing; the ODE code must not reference this by name",
+    "source_name": "NRLMSIS 2.0 Atmospheric Model / API"
+  },
   "method_template_ref": "program-design/knowledge/atmosphere-drag-ode.md"
 }
