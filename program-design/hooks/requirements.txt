@@ -1,0 +1,7 @@
+# Dependencies for program-design hooks
+# All hooks are standalone scripts; no changes to the AGH host repository.
+
+sympy>=1.12
+pint>=0.22
+numpy>=1.26
+scipy>=1.11
