@@ -19,7 +19,7 @@ handing off. No other file or chat context may be the authoritative copy.
 | `audit_logs` | array | Append-only audit records (see `audit_log.py`); only `audit_log.append_record` may mutate this |
 | `anomalies` | array | Log of failures / boundary violations / annealing triggers encountered this run |
 | `verification` | object | Empirical benchmark comparison result (model vs. real data, e.g. Baumgartner) with quantified error |
-| `report` | object | Node 3 output: conclusion text + `traceability` map (claim -> `artifact_id`) |
+| `report` | object | Node 3 output: conclusion text + `traceability` map (claim -> `artifact_id`). The full incremental markdown research report is a separate file on disk: `program-design/runtime/report_<task-slug>.md` — the schema's `report` field holds only the conclusion + traceability index; the narrative itself lives in that file, which Node 4 consumes directly. |
 
 ## Quota & Annealing (per consensus §2.3)
 
@@ -46,6 +46,7 @@ handing off. No other file or chat context may be the authoritative copy.
 | `anomalies` | Node 2b (append-only, never rewritten) |
 | `verification` | Node 2b |
 | `report` | Node 3 |
+| `report_<task-slug>.md` (separate file, not a field in this JSON) | Node 3 (append incrementally at every node boundary; Node 4 reads it read-only) |
 
 Nodes never rewrite fields owned by earlier nodes; they only append to
 `audit_logs` / `anomalies` and update their own owned fields.
