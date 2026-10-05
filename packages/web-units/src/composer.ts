@@ -1,4 +1,4 @@
-import type { ModelSettings, UsageView } from '@agnes/protocol'
+import type { ModelSettings, UIPendingInput, UsageView } from '@agnes/protocol'
 import { ModelSettingsDialog } from '@agnes/web-ui'
 import {
   type ComponentType,
@@ -14,8 +14,15 @@ import {
   useState,
 } from 'react'
 import { flushSync } from 'react-dom'
+import type { Translate } from './locales/index.js'
 
-export type ModelPickerOption = { id: string; route: string; label?: string }
+export type ModelPickerOption = {
+  id: string
+  route: string
+  label?: string
+  /** 模型声明的「档位 → provider 取值」映射；缺省表示任意合法档位都接受。 */
+  thinkingLevelMap?: Record<string, string>
+}
 export type ModelPickerState = {
   accessibleName: string
   disabled: boolean
@@ -37,6 +44,8 @@ export type PermissionPicker = {
 
 /** DOM helpers remain host adapters so this package has no dependency on the Web application. */
 export interface ComposerDependencies {
+  /** Locale-bound translate (host injects `LocaleService#t`); called during render, never cached. */
+  translate: Translate
   createModelPicker(options: {
     trigger: HTMLButtonElement
     onError(error: unknown): void
@@ -47,11 +56,14 @@ export interface ComposerDependencies {
     onError(error: unknown): void
     onSelect(mode: PermissionMode): Promise<boolean>
   }): PermissionPicker
-  createUsagePanel(parent: HTMLElement): ((usage: UsageView | undefined, connected: boolean) => void) & {
+  createUsagePanel(
+    parent: HTMLElement,
+    t?: Translate,
+  ): ((usage: UsageView | undefined, connected: boolean) => void) & {
     dispose?(): void
   }
   /** Component injection keeps production usage in the composer root; factories remain compatible. */
-  UsagePanel?: ComponentType<{ usage: UsageView | undefined; connected: boolean }>
+  UsagePanel?: ComponentType<{ usage: UsageView | undefined; connected: boolean; t?: Translate }>
   isSubmitShortcut(event: {
     key: string
     shiftKey: boolean
@@ -79,6 +91,7 @@ export interface ComposerView {
     thinkingLevelMap?: Record<string, string> | undefined
   }
   permission: PermissionPickerState
+  queue?: { items: readonly UIPendingInput[]; disabled: boolean; sending?: string; error?: string }
   sending: boolean
   send: { disabled: boolean; label: string; mode: 'idle' | 'busy' | 'pending'; title: string }
   stopping: boolean
@@ -103,6 +116,7 @@ export interface ComposerRegionOptions {
   onModelSettingsChange?(settings: ModelSettings): Promise<boolean>
   onPermissionSelect(mode: PermissionMode): Promise<boolean>
   onSubmit(): void
+  onSendNow?(itemId: string): void
   onWorkspace(): void
 }
 
@@ -118,26 +132,26 @@ export interface ComposerSlots {
 }
 
 const INITIAL_VIEW: ComposerView = {
-  cancel: { disabled: true, hidden: true, label: '停止' },
+  cancel: { disabled: true, hidden: true, label: 'Stop' },
   connected: false,
   configured: false,
   hasSession: false,
-  hint: { kind: 'state', text: '连接后台后开始' },
-  input: { disabled: true, placeholder: '描述你想完成的事…' },
+  hint: { kind: 'state', text: 'Connect to the backend to start' },
+  input: { disabled: true, placeholder: 'Describe what you want to do…' },
   loading: false,
   model: {
-    accessibleName: '选择当前会话模型',
+    accessibleName: 'Select the model for this session',
     disabled: true,
-    label: '选择模型',
+    label: 'Select model',
     options: [],
     pending: false,
   },
   permission: { disabled: true, pending: false, selected: 'workspace' },
   sending: false,
-  send: { disabled: true, label: '发送', mode: 'idle', title: '发送（Enter）' },
+  send: { disabled: true, label: 'Send', mode: 'idle', title: 'Send (Enter)' },
   stopping: false,
   usage: undefined,
-  workspace: { disabled: true, label: '选择工作区', title: '选择工作区' },
+  workspace: { disabled: true, label: 'Select workspace', title: 'Select workspace' },
 }
 
 interface ComposerProps extends ComposerRegionOptions {
@@ -158,6 +172,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     onModelSettingsChange,
     onPermissionSelect,
     onSubmit,
+    onSendNow,
     onWorkspace,
     slots,
   }: ComposerProps,
@@ -209,7 +224,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       onError,
       onSelect: onPermissionSelect,
     })
-    if (!dependencies.UsagePanel) renderUsage.current = dependencies.createUsagePanel(usage.current)
+    if (!dependencies.UsagePanel)
+      renderUsage.current = dependencies.createUsagePanel(usage.current, dependencies.translate)
     return () => {
       modelPicker.current?.destroy()
       permissionPicker.current?.destroy()
@@ -241,10 +257,66 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       },
     },
     slots?.overlay,
+    view.queue && (view.queue.items.length > 0 || view.queue.error)
+      ? createElement(
+          'section',
+          { className: 'composer-queue', 'aria-label': dependencies.translate('composer.queue.label') },
+          createElement(
+            'p',
+            { className: 'composer-queue-count', 'aria-live': 'polite' },
+            dependencies.translate('composer.queue.count', { count: view.queue.items.length }),
+          ),
+          createElement(
+            'ol',
+            null,
+            view.queue.items.map((item, index) =>
+              createElement(
+                'li',
+                { key: item.itemId, 'data-queue-item': item.itemId },
+                createElement(
+                  'div',
+                  { className: 'composer-queue-row' },
+                  createElement(
+                    'span',
+                    { className: 'composer-queue-preview', title: item.preview },
+                    item.preview || dependencies.translate('composer.queue.attachment'),
+                  ),
+                  createElement(
+                    'button',
+                    {
+                      type: 'button',
+                      disabled: view.queue?.disabled || !onSendNow,
+                      'aria-label': dependencies.translate('composer.queue.sendAccessible', {
+                        index: index + 1,
+                      }),
+                      title: dependencies.translate('composer.queue.sendTitle'),
+                      'aria-busy': view.queue?.sending === item.itemId,
+                      onClick: () => {
+                        onSendNow?.(item.itemId)
+                        prompt.current?.focus()
+                      },
+                    },
+                    dependencies.translate(
+                      view.queue?.sending === item.itemId ? 'composer.queue.sending' : 'composer.queue.send',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          view.queue.error
+            ? createElement('p', { className: 'composer-queue-error', role: 'alert' }, view.queue.error)
+            : null,
+        )
+      : null,
     createElement(
       'div',
       { className: 'composer-writing' },
-      createElement('label', { className: 'visually-hidden', htmlFor: 'prompt' }, '任务内容'),
+      createElement(
+        'label',
+        { className: 'visually-hidden', htmlFor: 'prompt' },
+        dependencies.translate('composer.input.label'),
+      ),
       createElement('textarea', {
         ref: prompt,
         id: 'prompt',
@@ -323,8 +395,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           type: 'button',
           'aria-haspopup': 'listbox',
           'aria-expanded': false,
-          'aria-label': '选择本会话权限',
-          title: '工作区内修改',
+          'aria-label': dependencies.translate('composer.permission.accessible'),
+          title: dependencies.translate('composer.permission.workspace'),
           disabled: view.permission.disabled,
         },
         createElement(
@@ -334,7 +406,11 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             d: 'M12 3 5 6.5v5.2c0 4.4 2.9 8.4 7 9.8 4.1-1.4 7-5.4 7-9.8V6.5L12 3zm0 2.1 5 2.5v4.1c0 3.4-2.2 6.5-5 7.7-2.8-1.2-5-4.3-5-7.7V7.6l5-2.5z',
           }),
         ),
-        createElement('span', { 'data-permission-label': true }, '工作区内修改'),
+        createElement(
+          'span',
+          { 'data-permission-label': true },
+          dependencies.translate('composer.permission.workspace'),
+        ),
         createElement(
           'svg',
           {
@@ -380,6 +456,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             ...view.modelSettings,
             disabled: view.model.disabled || view.model.pending,
             onApply: onModelSettingsChange,
+            t: dependencies.translate,
           })
         : undefined,
       createElement(
@@ -387,13 +464,14 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         {
           ref: usage,
           id: 'session-usage',
-          'aria-label': '上下文用量',
+          'aria-label': dependencies.translate('composer.usage.label'),
           hidden: dependencies.UsagePanel ? !view.usage : true,
         },
         dependencies.UsagePanel
           ? createElement(dependencies.UsagePanel, {
               usage: view.usage,
               connected: view.connected,
+              t: dependencies.translate,
             })
           : undefined,
       ),

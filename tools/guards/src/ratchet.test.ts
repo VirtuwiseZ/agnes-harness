@@ -1,3 +1,14 @@
+// TITLE-LOCALE / FOLLOW-UP-RUNNER: exact reviewed totals for prompt-based title language, FIFO wake-up and run serialization.
+// Core +20, Protocol +1, SDK +14, daemon +96, Web/app +4, Host +13; no spare allocation.
+// QUEUE-VIEW-SEND-NOW: persisted queue projection, atomic priority/cancellation, replay refusal cleanup,
+// worker handoff reservation and accessible queue actions. Exact measured totals; no spare allocation.
+// Core +46, Protocol +2, SDK +20, daemon +70, Web +76/app +74, Web-units +65.
+// QUEUE-REVIEW: exact measured Core +7 for locked input claims, SDK +11 for stale replay cleanup,
+// daemon +16 for serialized receipt recovery and current ownership/generation checks; no spare allocation.
+// FIRST-SEND-REVIEW: Web/app +2 to report sidebar refresh failure separately; queue row wrapper +4.
+// Synchronize JSON limits and static ceilings to the exact reviewed totals, without spare allocation.
+// TITLE-PRIORITY: explicit priority, trusted fallback and descriptive titles replace assistant context;
+// one model call selects language before title, with format-only JSON parsing. Host +13 lines, exact.
 // FULL-FILE-ACCESS: measured session-scoped file access, external checkpoints and authoritative UI permission
 // projection/synchronization. Exact countLines() caps after review; no exclusions or spare allocation.
 // PERMISSION-RECONNECT: measured Web +48 lines for fresh permission gating and interrupted submission guards.
@@ -42,6 +53,8 @@
 // 2026-09-23 local-examples-catalog agnes.plugins support (hot-tool/agent-automation/compaction-policy/
 // skins-builtin/supply-rescue dropped, hot-service/hot-tool-plugin/hook-context-note/hook-runner-
 // takeover added): packages/package-manager/src 5611->5674, remeasured after biome --write.
+// I18N-20261003: exact merged feature totals after locale catalogs and UI wiring; measured with countLines,
+// no exclusions or spare allocation. See the 2026-10-03 internationalization PR review fixes.
 import {
   existsSync,
   mkdirSync,
@@ -176,6 +189,16 @@ describe('ratchet key path-boundary matching (regression: sibling-prefix false m
 // See execution/2026-09-17-codex-oauth.md; no scan exclusions or spare budget added.
 // 2026-09-18 Computer Use PR integration: values touched by the two diverged histories were
 // remeasured against the resolved tree with this guard's own countLines() implementation.
+// I18N-20261003: user-requested exact rebaseline after the internationalization PR review; update
+// each cap only to the measured tree total. No scan exclusions or spare allocation were added.
+// I18N-20261003R: remeasured after the PR-review fixes (native picker escaping, rename-dialog
+// re-translation, Web copy migration, removal of the dead picker thinking-level fields and keys).
+// Measured with this guard's countLines(): web-ui/src 6626, web/src 15977, web/src/settings 900,
+// cli/launch 1110, web/src/app 2016, web-units/src 5532. Both files set to the measured value.
+// I18N-20261004: restored the settings language card and the Computer Use / search markers that the
+// origin/main merge dropped, and removed the destructive settings-shell re-render on locale change
+// (it replaced the pane hosts and left the content area blank). The model pane still re-renders because
+// it is a React component with no data-i18n nodes. web/src remeasured at 15977; the other keys are exact.
 const INITIAL_CEILING: Record<string, number> = {
   // 2026-09-22 M11 browser effect-command closure: exact measured deltas for the explicit
   // authorization facade, private BFF/RPC, durable journal reuse, and cross-platform test repair.
@@ -219,13 +242,17 @@ const INITIAL_CEILING: Record<string, number> = {
   // 2026-09-22 Web Plugins parity: row-scoped client services and stable web-unit contracts. Exact.
   // CU-ARTIFACT-RETENTION-GC-INDEX C8: measured 1714, exact, no spare (+9). ClientResourceReclaimedError
   // thrown on a 410 artifact_reclaimed read.
-  'packages/web-client/src': 1714,
+  // Locale catalogs on LocaleService. Measured 1745, exact, no spare (+31).
+  'packages/web-client/src': 1749,
   'packages/web-slots/src': 605,
   // Failed shell calls read as their exit code (+19 lines); measured 4891, exact cap.
-  'packages/web-ui/src': 4891,
+  // Approval reasons: the approval card label reads the decision reason (+22). Measured 6651, exact cap.
+  'packages/web-ui/src': 6651,
   // W8a-3: retire the native tool renderer in favor of one compatibility root; measured 4630.
-  'packages/web-units/src': 4646,
-  'packages/base/extensions/tools-core': 800,
+  'packages/web-units/src': 5609,
+  // Write staleness guard: a per-session table of what each file looked like when read, checked by
+  // `write` (+55 counted lines, measured 855, exact cap).
+  'packages/base/extensions/tools-core': 855,
   // MCP-ROWS stage 2b, steps 1-2 (D118): connection supervisor, catalog hub, and the per-server
   // extension row wiring them together. New extension at the shared default cap; measured 276.
   'packages/base/extensions/mcp-server': 800,
@@ -327,7 +354,7 @@ const INITIAL_CEILING: Record<string, number> = {
   // and explicit controls. v2 adds accessible compact composer state; exact measured allocation; evidence is tracked with the UI execution.
   // 2026-09-20: map the already-sanitized turn AUTH category to a reconnect instruction. Exact.
   // Output-limit and rate-limit failures render actionable guidance. Measured +4, exact allocation.
-  'packages/web/src/presentation': 121,
+  'packages/web/src/presentation': 138,
   'packages/web/src/markdown': 48,
   // Phase03 Web workbench: separate settings controller, stable keyed timeline, run receipts,
   // and client integration. Each component is bounded independently; no execution state
@@ -388,11 +415,11 @@ const INITIAL_CEILING: Record<string, number> = {
   // Measured 1825, exact (+1).
   // UI integration merge: the default React transcript now receives the inline card claim callback,
   // which lands on top of the diagnostics wiring above. Re-measured with countLines(): 1827, exact.
-  'packages/web/src/app': 1990,
+  'packages/web/src/app': 2096,
   // 2026-09-22 UI plugin management: inject the embedded pane's client runtime reconciler.
   // 2026-09-25 UI refactor: permission options now render through the React region contract.
   // Re-measured with countLines(): 215, exact, no spare.
-  'packages/web/src/permission-picker': 219,
+  'packages/web/src/permission-picker': 248,
   // 2026-09-17 WEB-RUN-TRACE: new panel renderer. Measured 130; exact cap, no spare.
   // 2026-09-17 DSH parity: gantt + event list + inspector. Measured 411.
   // 2026-09-17 DSH layout: idle-compressed gantt. Measured 445.
@@ -402,10 +429,10 @@ const INITIAL_CEILING: Record<string, number> = {
   // @agnes/web-admin-frame, so this file only keeps its own state machine and rendering.
   // 2026-09-25 UI refactor: model options now render through the React region contract.
   // Re-measured with countLines(): 274, exact, no spare.
-  'packages/web/src/model-picker': 278,
+  'packages/web/src/model-picker': 284,
   // 2026-09-25 UI refactor: settings-owned element construction uses the shared UI host boundary.
   // Re-measured with countLines(): 754, exact, no spare.
-  'packages/web/src/settings': 848,
+  'packages/web/src/settings': 900,
   // 2026-09-17 rebase 后的重新实测：timeline.ts 的详情弹窗管线已在 WEB-UI-ALIGN-DSH 中删除
   // （原 427 是旧实现的实测值），删码后未跟着收紧会留下 55 行富余，故收到实测精确值 372。
   // 2026-09-24 WEB-INCREMENTAL-PROJECTION-TRACE-INDEX C6 (Web incremental wiring) and its review fixes,
@@ -418,28 +445,29 @@ const INITIAL_CEILING: Record<string, number> = {
   // much was lost. Measured 678, exact, no spare (+4).
   // Merge of CHUNK-LEDGER-SLIM (lost-text marker, +4) with the streaming-smoothness quick fixes (727):
   // sampled fingerprints also carry lostChars. Re-measured on the merged tree: 731, exact, no spare.
-  'packages/web/src/timeline': 748,
+  // Approval reasons: the approval card label reads the decision reason (+10). Measured 796, exact cap.
+  'packages/web/src/timeline': 796,
   // 2026-09-17：navigation.ts 的 folderIcon 换成客户端 AgnesProjectFolderIcon 两态字形
   // （两条 path + folderSvg 构造器），展开/收起由 CSS 的 [aria-expanded] 切换。实测 108。
   // SESSION-ACTIONS integrated with b/main: exact increment +43.
   // 2026-09-17 SESSION-MENU: 会话行菜单从 navigation.ts 抽到 session-menu.ts（面板改挂 body、
   // 补 Escape/外部指针/滚动重算），navigation 只留调用点。实测 125，收紧到精确值。
   // 2026-09-17 SESSION-ROW-BG: 行上加 `data-active`（选中底色改由行承载）新增 1 行，实测 126。
-  'packages/web/src/navigation': 148,
+  'packages/web/src/navigation': 183,
   // 2026-09-17 SESSION-MENU: 新建 session-menu.ts —— 触发按钮、三项菜单、portal 到 body 的
   // 生命周期与关闭路径，外加行状态（`data-menu-open`，替代不可靠的 `:has()` 重算）。
   // 实测 115，精确值无富余。
-  'packages/web/src/session-menu': 115,
+  'packages/web/src/session-menu': 124,
   // 2026-09-17：shell.ts 的 SETTINGS 表允许一个面板挂多个 rail 入口（技能 / MCP 共用
   // #resource-settings-pane），showSettingsPane 改按 aria-selected 决定哪一条高亮。实测 89。
   // SESSION-ACTIONS integrated with b/main: exact increment +1.
-  'packages/web/src/shell': 106,
+  'packages/web/src/shell': 107,
   // 2026-09-17 rebase 后的重新实测：turns.ts 把过程摘要搬进过程行、用量面板只留关键项、
   // 运行中页脚整行隐藏（原 432 是旧实现的实测值），收紧到实测精确值 399。
   'packages/web/src/turns': 407,
   // 2026-09-24 WEB-INCREMENTAL-PROJECTION-TRACE-INDEX C6 (Web incremental wiring) and its review fixes,
   // rebased onto main after C0-C2: merged tree re-measured with countLines(): 99, exact.
-  'packages/web/src/view': 99,
+  'packages/web/src/view': 116,
   // Approval ownership handoff and Host expiry share existing services; no protocol fork.
   'packages/web/src/session-binding': 31,
   // 2026-09-24 SHARED-SESSION-IDLE-CLOSE C2-C5 and review fixes (user-approved raise for the perf
@@ -550,7 +578,7 @@ const INITIAL_CEILING: Record<string, number> = {
   // so the packaged worker resolves its home the same way the daemon does. Re-measured on the tree
   // rebased onto 9a3d70ed (which itself reached 936): 937, exact cap.
   // 2026-09-22 Web Plugins parity: package asset and service BFF launcher integration. Exact.
-  'packages/cli/launch': 1113, // SKILL-INSTALL-CORE: preserve request-only port in packaged Host options.
+  'packages/cli/launch': 1110, // SKILL-INSTALL-CORE: preserve request-only port in packaged Host options.
   // 2026-09-14: whole-branch review fix wave (Finding 1), same as above. Measured 90, exact --
   // unaffected by the workspace-picker change (different file, same aggregate prefix).
   // 2026-09-14: Task 4 profile-command-plan wires packages.trustWorkspace into invoke()'s switch --
@@ -581,7 +609,7 @@ const INITIAL_CEILING: Record<string, number> = {
   // SEA reuses that exact directory. Measured build-local total: 203; exact cap.
   // W5a merges pinned XMarkdown CSS and ships its MIT license with the local Web assets.
   // Measured with countLines(): 287, exact cap.
-  'packages/cli/tools/build-local': 287,
+  'packages/cli/tools/build-local': 292,
   // The PM5 bootstrap fallback retains the existing scoped owner/data-dir contract when a selected
   // Profile has not yet been materialized. The final recovery retry admits only an explicit
   // E_LOCK_MISMATCH path and re-resolves with an empty package lock; this is exact compatibility
@@ -601,7 +629,7 @@ const INITIAL_CEILING: Record<string, number> = {
   // override a model's reasoning capability when the installed pi-ai catalogue is incomplete or
   // wrong), landing independently of WIN-12c's own +2. Re-measured on the merged tree directly
   // (never summed): 911; exact cap, no spare.
-  'packages/host/src/configuration': 1219,
+  'packages/host/src/configuration': 1230,
   'packages/host/src/configuration-lock': 39,
   'packages/daemon/src/supervisor/configuration': 45,
   // S5 service workers reload the profile hash and its immutable snapshot path as one value.
@@ -951,7 +979,10 @@ const INITIAL_CEILING: Record<string, number> = {
   // prefix, so the first request after a compaction lands below the threshold (+8).
   // Measured 25811, exact cap.
   // The approval card's summary line is built by summarizeCall (new file). Measured 25861 (+50), exact cap.
-  'packages/core/src': 25861,
+  // Guardian-decided approvals no longer reopen a parked continuation (+2), a Stop on a running mutating
+  // call is recorded as cancelled once it has stopped (+54), and approval decisions keep their reason (+82).
+  // Measured 26071 with all three merged on top of main 25934, exact cap; each alone is lower.
+  'packages/core/src': 26071,
   // 2026-09-15: DeepSeek V4 Pro/Flash ship a known-thinking-corrections table (new file) so the
   // product corrects pi-ai's verified-wrong reasoning_effort data out of the box, instead of
   // requiring every deployment to hand-edit thinkingEfforts once they notice. Measured 3347.
@@ -1260,7 +1291,7 @@ const INITIAL_CEILING: Record<string, number> = {
   // TRACE-INSPECTION-20260925: readToolDetail method types; measured 2201, exact.
   // Response metadata on cost/ledger: ResponseMeta root type export. Re-measured on the rebased
   // tree: 2201, exact.
-  'packages/protocol/src': 2204,
+  'packages/protocol/src': 2207,
   'packages/cli/src/tui': 4000,
   // 2026-09-16: first registration of packages/cli-tui — it matched none of the (then) 113 ratchet
   // keys, so the cli-progress-surface plan's Tasks 1-4 (Loader hide/restart/stop, formatTurnSummary,
@@ -1342,7 +1373,7 @@ const INITIAL_CEILING: Record<string, number> = {
   // WEB-INCREMENTAL-PROJECTION-TRACE-INDEX C3: projection.ts is now a re-export of the SDK engine.
   // measured 4238 (-534), exact, lowered to the measured value.
   // CHUNK-LEDGER-SLIM final tree: the TUI live line reads merged previews. Measured 4232, exact, no spare (-6).
-  'packages/cli-tui/src': 4232,
+  'packages/cli-tui/src': 4737,
   // Initial ceilings for the remaining packages, registered all at once so that each parallel lane
   // does not have to edit these two files separately. The sdk ceiling of 2500 was newly set by
   // estimate: 404 lines today, plus roughly 360 for the three transports, plus roughly 1650 for the
@@ -1449,7 +1480,7 @@ const INITIAL_CEILING: Record<string, number> = {
   // CHUNK-LEDGER-SLIM final tree: the stream keep-alive and its sizing are gone. Measured 5013, exact, no spare (-61).
   // Permission cancellation distinction on the merged tree: measured 5051, no spare.
   // TRACE-INSPECTION-20260925: bounded, abortable paged detail read; measured 5127, exact.
-  'packages/sdk/src': 5130,
+  'packages/sdk/src': 5175,
   'packages/sdk/src/extensions.node': 21,
   'packages/sdk/src/package-admin.node': 147,
   'packages/sdk/src/surface.browser': 3,
@@ -1810,7 +1841,8 @@ const INITIAL_CEILING: Record<string, number> = {
   // Windows discovery retry adds six counted lines; measured 26501, exact.
   // A cancel that arrived before the worker run began is forwarded after it. Measured 26536 (+2), exact.
   // An approval request carries the tool's ACP kind and name. Measured 26542 (+6), exact cap.
-  'packages/daemon/src': 26542,
+  // Approval reasons: the prompter router answers with a reason (+18). Measured 26758 (combined tree), exact cap.
+  'packages/daemon/src': 26758,
   'packages/daemon/src/packages/admin-session': 46,
   // 2026-09-14: whole-branch review fix wave (Finding 1) adds the two missing
   // 'pins/inspect'/'pins/release' entries to the ACTIONS BFF route allowlist, which had been left
@@ -2057,7 +2089,8 @@ const INITIAL_CEILING: Record<string, number> = {
   // which carries its own key. Re-measured with countLines() on the merged tree: 13120, exact.
   // Output-limit and rate-limit presentation adds four counted lines, exact allocation.
   // The live approval card's wording, preview and session-choice rule (new file). Measured 13463 (+52), exact cap.
-  'packages/web/src': 13463,
+  // Approval reasons: the approval card label reads the decision reason (+22). Measured 16081 (combined tree), exact cap.
+  'packages/web/src': 16081,
   // 2026-09-17 web-client-modules frontend track (rebased onto L0/permission-picker main): re-measured exact value below.
   // 2026-09-14: Task 7 orphaned-pin-cleanup adds the orphan-pins section to PluginAdminPage — the
   // #orphanPins/#orphanPinsList/#orphanPinsStatus/#orphanPinsReleaseAll element bindings, the
@@ -2100,7 +2133,7 @@ const INITIAL_CEILING: Record<string, number> = {
   // 240, exact.
   // Task 11 tree/get|list|apply|rollback client routes. Re-measured: 293, exact.
   // 2026-09-25 C-line: countLines 314 (biome import organization grew the header block).
-  'packages/web/src/admin/plugins/api': 314,
+  'packages/web/src/admin/plugins/api': 322,
   // 2026-09-22 UI plugin management: browser runtime phase labels and safe failure messages.
   // Re-measured: 112, exact cap.
   'packages/web/src/admin/plugins/presentation': 112,
@@ -2538,7 +2571,8 @@ const INITIAL_CEILING: Record<string, number> = {
   // Generation views are pruned before each candidate builds its session views (+13). Installation state stays
   // read-only under full file access: the fence guard, the roots helper and their wiring (+40).
   // Measured 38359, exact.
-  'packages/host/src': 38359,
+  // Approval reasons: the Prompter type may answer with a reason (+2). Measured 38398 (combined tree), exact cap.
+  'packages/host/src': 38398,
   'packages/host/src/ext-host/service-invocation': 247,
   // T5.2's permission projector is kept independently bounded so later extension-host work cannot
   // hide in the package-wide increment. Measured source: 86 lines.
@@ -2705,7 +2739,8 @@ const INITIAL_CEILING: Record<string, number> = {
   // First-cause timedOut in exec and exec-win32. Measured 5034 (+9), exact cap.
   // The fence refuses writes to the installation's own state under full file access. Measured 5053,
   // exact, no spare (+19).
-  'packages/host/src/adapters': 5053,
+  // Approval reasons: the Prompter type may answer with a reason (+2). Measured 5055, exact cap.
+  'packages/host/src/adapters': 5055,
 
   // C1b Task 5 persists child creation attempts and deferred recovery; exact total, no spare.
   // Task 17 review: sqlite_master scan + table-name refuse. Re-measured: 674, exact.
@@ -2766,6 +2801,8 @@ const EXTENSION_CEILING_EXCEPTIONS = new Map([
   // SKILL-CATALOG-CLEAN-REWRITE: same reviewed exact total as the catalog/name activation budget above.
   // Skill description bounds and paged reads. Measured 1121, exact.
   ['skills', 1121],
+  // Write staleness guard (per-session table of observed file versions, checked by write). Measured 855, exact.
+  ['tools-core', 855],
 ])
 
 describe('bundled extension line budgets (default ≤ 800, named reviewed exceptions)', () => {

@@ -74,6 +74,12 @@ vi.mock('@agnes/sdk/browser', async (importOriginal) => ({
   },
   memoryJournal: sdk.memoryJournal,
 }))
+
+// i18n: the workbench defaults to English; these tests assert the zh-CN catalog,
+// so the locale preference is pinned before each app start.
+beforeEach(() => {
+  localStorage.setItem('agnes-locale', 'zh-CN')
+})
 vi.mock('../src/session-binding.js', () => ({
   bindWebSession: binding.bindWebSession,
   loadWebSession: binding.loadWebSession,
@@ -95,6 +101,7 @@ type SessionDouble = {
   detach: ReturnType<typeof vi.fn>
   events: ReturnType<typeof vi.fn>
   followUp: ReturnType<typeof vi.fn>
+  sendNow: ReturnType<typeof vi.fn>
   onPermissionRequest: ReturnType<typeof vi.fn>
   onPreview: ReturnType<typeof vi.fn>
   projectUI: ReturnType<typeof vi.fn>
@@ -174,6 +181,7 @@ function session(id: string, projectUI: () => Promise<UITimeline>): SessionDoubl
         totalNodes: timeline.nodes.length,
         opState: timeline.opState,
         ...(timeline.yolo === undefined ? {} : { yolo: timeline.yolo }),
+        ...(timeline.pendingInputs === undefined ? {} : { pendingInputs: timeline.pendingInputs }),
         changes: timeline.nodes.map((node, index) => ({ op: 'upsert' as const, index, node })),
         turnChanges: timeline.turns.map((turn, index) => ({ op: 'upsert' as const, index, turn })),
         ...(timeline.usage ? { usage: timeline.usage } : {}),
@@ -196,6 +204,7 @@ function session(id: string, projectUI: () => Promise<UITimeline>): SessionDoubl
       }),
     })),
     followUp: vi.fn(async () => undefined),
+    sendNow: vi.fn(async () => 1),
     onPermissionRequest: vi.fn(() => vi.fn()),
     onPreview: vi.fn(() => vi.fn()),
     projectUI: vi.fn(projectUI),
@@ -227,6 +236,7 @@ function installPublicFixture(): void {
   history.replaceState(null, '', '/?session=old#test-launcher-token')
   sessionStorage.clear()
   localStorage.clear()
+  localStorage.setItem('agnes-locale', 'zh-CN')
   vi.stubGlobal(
     'fetch',
     vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ available: false }), { status: 200 })),
@@ -237,6 +247,18 @@ function submit(text: string): void {
   const composer = document.getElementById('prompt') as HTMLTextAreaElement
   composer.value = text
   document.getElementById('composer')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+}
+
+/** The model trigger opens the complete flat model list. */
+function openModelList(): void {
+  if (!document.querySelector('#model-listbox')) throw new Error('model picker did not open')
+}
+
+/** The model list is rendered directly in the picker. */
+function modelMenu(): HTMLElement {
+  const found = document.querySelector<HTMLElement>('#model-listbox')
+  if (!found) throw new Error('model picker did not open')
+  return found
 }
 
 afterEach(async () => {
@@ -450,7 +472,9 @@ describe('web permission synchronization', () => {
       await vi.waitFor(() => expect(label()).toBe(before ? '工作区内修改' : '完全权限'))
       old.prompt.mockClear()
       submit('use the current permission')
-      await vi.waitFor(() => expect(old.prompt).toHaveBeenCalledWith('use the current permission'))
+      await vi.waitFor(() =>
+        expect(old.prompt).toHaveBeenCalledWith('use the current permission', { titleLocale: 'zh-CN' }),
+      )
       expect.soft(pendingLabel).toBe('请选择权限')
       expect.soft(renderedLabel).toBe('请选择权限')
       expect.soft(failedLabel).toBe('请选择权限')
@@ -550,7 +574,9 @@ describe('web permission synchronization', () => {
     applied.resolve({ effectiveFromSeq: 11 })
     await vi.waitFor(() => expect(label()).toBe('工作区内修改'))
     submit('confirmed permission')
-    await vi.waitFor(() => expect(old.prompt).toHaveBeenCalledWith('confirmed permission'))
+    await vi.waitFor(() =>
+      expect(old.prompt).toHaveBeenCalledWith('confirmed permission', { titleLocale: 'zh-CN' }),
+    )
 
     const opened = old.projectUIOpening.mock.calls.length
     connect('reconnecting')
@@ -566,7 +592,9 @@ describe('web permission synchronization', () => {
     choose('工作区内修改')
     await vi.waitFor(() => expect(label()).toBe('工作区内修改'))
     submit('confirmed after reconnect')
-    await vi.waitFor(() => expect(old.prompt).toHaveBeenCalledWith('confirmed after reconnect'))
+    await vi.waitFor(() =>
+      expect(old.prompt).toHaveBeenCalledWith('confirmed after reconnect', { titleLocale: 'zh-CN' }),
+    )
     expect(old.setYolo).toHaveBeenCalledTimes(2)
   }, 20_000)
 })
@@ -800,11 +828,81 @@ describe('web session selection', () => {
         submit('use the remembered selection')
       }
       expect(fresh.setYolo).toHaveBeenCalledWith(true)
-      await vi.waitFor(() => expect(fresh.prompt).toHaveBeenCalledWith('use the remembered selection'))
+      await vi.waitFor(() =>
+        expect(fresh.prompt).toHaveBeenCalledWith('use the remembered selection', { titleLocale: 'zh-CN' }),
+      )
       expect(permission.querySelector('[data-permission-label]')?.textContent).toBe('完全权限')
     },
     20_000,
   )
+
+  it('starts a draft in the workspace chosen from its sidebar action', async () => {
+    installPublicFixture()
+    const alpha = {
+      path: '/workspace/alpha',
+      name: 'Alpha',
+      lastUsedAt: null,
+      sessionCount: 1,
+      available: true,
+    }
+    const beta = {
+      path: '/workspace/beta',
+      name: 'Beta',
+      lastUsedAt: null,
+      sessionCount: 0,
+      available: true,
+    }
+    const old = session('old', async () => idleTimeline('old', { route: 'local', id: 'model-a' }))
+    const fresh = session('fresh', async () => idleTimeline('fresh', { route: 'local', id: 'model-a' }))
+    const create = vi.fn(async () => fresh)
+    sdk.createClient.mockReturnValue({
+      initialize: vi.fn(async () => undefined),
+      on: vi.fn(),
+      close: vi.fn(async () => undefined),
+      apis: vi.fn(async () => ({ profile: { models: [{ route: 'local', id: 'model-a' }] } })),
+      config: {
+        get: vi.fn(async () => ({ configured: true })),
+        providers: vi.fn(async () => ({ providers: [] })),
+      },
+      approval: { decide: vi.fn(async () => undefined) },
+      workspace: { list: vi.fn(async () => ({ items: [alpha, beta] })) },
+      session: {
+        list: vi.fn(async () => ({ items: [{ sessionId: 'old', cwd: alpha.path }] })),
+        load: vi.fn(async () => old),
+        new: create,
+      },
+    })
+    binding.loadWebSession.mockResolvedValue({ session: old, offPermission: vi.fn() })
+    binding.bindWebSession.mockImplementation((selected: SessionDouble) => ({
+      session: selected,
+      offPermission: vi.fn(),
+    }))
+
+    await import('../src/app.js')
+    const createInBeta = await vi.waitFor(() => {
+      const button = document.querySelector<HTMLButtonElement>(
+        '[data-workspace-new-session="/workspace/beta"]',
+      )
+      expect(button).toBeTruthy()
+      expect(button?.disabled).toBe(false)
+      return button as HTMLButtonElement
+    })
+    createInBeta.click()
+
+    await vi.waitFor(() => expect(document.querySelector('[data-workspace-label]')?.textContent).toBe('Beta'))
+    expect((document.getElementById('new-session') as HTMLDialogElement).open).toBe(false)
+    expect(create).not.toHaveBeenCalled()
+    await vi.waitFor(() =>
+      expect((document.getElementById('prompt') as HTMLTextAreaElement).disabled).toBe(false),
+    )
+
+    submit('create in beta')
+    await vi.waitFor(() => expect(create).toHaveBeenCalledOnce())
+    expect(create).toHaveBeenCalledWith({ cwd: beta.path, sessionKey: expect.any(String) })
+    await vi.waitFor(() =>
+      expect(fresh.prompt).toHaveBeenCalledWith('create in beta', { titleLocale: 'zh-CN' }),
+    )
+  })
 
   it('keeps controls usable after a pending model update and refreshes both old and new drafts', async () => {
     installPublicFixture()
@@ -840,7 +938,8 @@ describe('web session selection', () => {
     models = [...models, { route: 'new', id: 'model-b' }]
     await savedCallback({ ...snapshot, effect: 'new-sessions' })
     control('model').click()
-    expect(document.querySelector('[role="listbox"]')?.textContent).toContain('model-b')
+    openModelList()
+    expect(modelMenu().textContent).toContain('model-b')
     control('model').click()
     control('new').click()
     await vi.waitFor(() => expect(control('model').disabled).toBe(false))
@@ -852,6 +951,64 @@ describe('web session selection', () => {
       expect(control(id).disabled).toBe(false)
     expect(control('send').disabled).toBe(true)
   })
+
+  it('keeps the model picker flat and applies the selected model settings', async () => {
+    installPublicFixture()
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      callback(0)
+      return 1
+    })
+    const old = session('old', async () => idleTimeline('old', { route: 'local', id: 'model-a' }))
+    sdk.createClient.mockReturnValue({
+      initialize: vi.fn(async () => undefined),
+      on: vi.fn(),
+      close: vi.fn(async () => undefined),
+      // Model capability metadata stays available to settings even though the picker is flat.
+      apis: vi.fn(async () => ({
+        profile: {
+          models: [
+            {
+              route: 'local',
+              id: 'model-a',
+              reasoning: true,
+              thinkingLevelMap: { low: 'low', high: 'high' },
+            },
+          ],
+        },
+      })),
+      config: {
+        get: vi.fn(async () => ({ configured: true })),
+        providers: vi.fn(async () => ({ providers: [] })),
+      },
+      workspace: { list: vi.fn(async () => ({ items: [] })) },
+      session: { list: vi.fn(async () => ({ items: [{ sessionId: 'old' }] })), load: vi.fn(async () => old) },
+    })
+    binding.loadWebSession.mockResolvedValue({ session: old, offPermission: vi.fn() })
+    await import('../src/app.js')
+    const control = (id: string) => document.getElementById(id) as HTMLButtonElement
+    await vi.waitFor(() => expect(control('model').disabled).toBe(false))
+
+    const rows = () => Array.from(modelMenu().querySelectorAll<HTMLElement>('[role="option"]'))
+    control('model').click()
+    openModelList()
+    rows()[0]?.click()
+    await vi.waitFor(() =>
+      expect(old.setModel).toHaveBeenCalledWith({
+        slot: 'primary',
+        route: 'local',
+        model: 'model-a',
+        thinking: 'off',
+        contextWindow: 128000,
+      }),
+    )
+
+    // The flat picker changes only the model; thinking controls stay in account settings.
+    await vi.waitFor(() => expect(control('model').disabled).toBe(false))
+    control('model').click()
+    expect(document.querySelector('.model-picker-entry, #model-submenu-listbox')).toBeNull()
+    expect(rows().map((row) => row.textContent?.trim())).toContain('model-a已配置账户')
+    control('model').click()
+  }, 20_000)
 
   it.each(['save-first', 'poll-first', 'poll-fails'])(
     'keeps saved model status accurate when %s',
@@ -903,9 +1060,9 @@ describe('web session selection', () => {
       else pollRead.resolve(result)
       await vi.waitFor(() => expect(modelButton.disabled).toBe(false))
       modelButton.click()
-      expect(document.querySelector('[role="listbox"]')?.textContent).toContain('model-b')
-      if (order === 'poll-first')
-        expect(document.querySelector('[role="listbox"]')?.textContent).toContain('model-c')
+      openModelList()
+      expect(modelMenu().textContent).toContain('model-b')
+      if (order === 'poll-first') expect(modelMenu().textContent).toContain('model-c')
     },
   )
 
@@ -1149,7 +1306,8 @@ describe('web session selection', () => {
     prompt.dispatchEvent(new Event('input', { bubbles: true }))
 
     model.click()
-    const option = document.querySelector<HTMLElement>('[role="option"]')
+    openModelList()
+    const option = modelMenu().querySelector<HTMLElement>('[role="option"]')
     option?.click()
     await vi.waitFor(() =>
       expect(old.setModel).toHaveBeenCalledWith({
@@ -1194,7 +1352,9 @@ describe('web session selection', () => {
     firstCreation.resolve(fresh)
     includeFresh = true
     newProjection.resolve(idleTimeline('fresh'))
-    await vi.waitFor(() => expect(fresh.prompt).toHaveBeenCalledWith('must not cross sessions'))
+    await vi.waitFor(() =>
+      expect(fresh.prompt).toHaveBeenCalledWith('must not cross sessions', { titleLocale: 'zh-CN' }),
+    )
   })
 
   it('opens directory confirmation before creation and explains an unavailable path', async () => {
@@ -1365,6 +1525,85 @@ describe('web session selection', () => {
     expect(picker.disabled).toBe(false)
   })
 
+  it.each(['slow', 'failed'] as const)(
+    'sends the first prompt independently of a %s sidebar refresh',
+    async (mode) => {
+      installPublicFixture()
+      history.replaceState(null, '', '/#test-launcher-token')
+      const fresh = session('fresh', async () => idleTimeline('fresh'))
+      const listing = deferred<{ items: Array<{ sessionId: string; title: string }> }>()
+      let created = false
+      const workspace = {
+        path: '/workspace/agnes',
+        name: 'agnes',
+        lastUsedAt: null,
+        sessionCount: 0,
+        available: true,
+      }
+      sdk.createClient.mockReturnValue({
+        apis: vi.fn(async () => ({ profile: { models: [{ route: 'local', id: 'model-a' }] } })),
+        approval: { decide: vi.fn(async () => undefined) },
+        close: vi.fn(async () => undefined),
+        config: {
+          get: vi.fn(async () => ({ configured: true })),
+          providers: vi.fn(async () => ({ providers: [] })),
+          save: vi.fn(async () => ({ configured: true })),
+          test: vi.fn(async () => ({ verified: true, models: [] })),
+        },
+        initialize: vi.fn(async () => undefined),
+        on: vi.fn(),
+        workspace: {
+          list: vi.fn(async () => ({ items: [] })),
+          add: vi.fn(async () => ({ workspace })),
+        },
+        session: {
+          list: vi.fn(async () => (created ? listing.promise : { items: [] })),
+          load: vi.fn(async () => fresh),
+          new: vi.fn(async () => {
+            created = true
+            return fresh
+          }),
+        },
+      })
+      binding.bindWebSession.mockImplementation((selected: SessionDouble) => ({
+        session: selected,
+        offPermission: vi.fn(),
+      }))
+      await import('../src/app.js')
+      const dialog = document.getElementById('new-session') as HTMLDialogElement
+      await vi.waitFor(() => expect(dialog.open).toBe(true))
+      const path = document.getElementById('new-session-cwd') as HTMLInputElement
+      path.value = workspace.path
+      path.dispatchEvent(new Event('input', { bubbles: true }))
+      await vi.waitFor(() =>
+        expect((document.getElementById('new-session-create') as HTMLButtonElement).disabled).toBe(false),
+      )
+      document
+        .getElementById('new-session-form')
+        ?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await vi.waitFor(() => expect(dialog.open).toBe(false))
+      document.getElementById('model')?.click()
+      openModelList()
+      modelMenu().querySelector<HTMLElement>('[role="option"]')?.click()
+      try {
+        submit('first message')
+        await vi.waitFor(() =>
+          expect(fresh.prompt).toHaveBeenCalledWith('first message', { titleLocale: 'zh-CN' }),
+        )
+        if (mode === 'failed') {
+          listing.reject(new Error('sidebar list failed'))
+          await vi.waitFor(() =>
+            expect(document.getElementById('notice')?.textContent).toContain('sidebar list failed'),
+          )
+        }
+        expect((document.getElementById('prompt') as HTMLTextAreaElement).value).toBe('')
+        expect(fresh.prompt).toHaveBeenCalledTimes(1)
+      } finally {
+        listing.resolve({ items: [{ sessionId: 'fresh', title: 'fresh' }] })
+      }
+    },
+  )
+
   it('keeps the first draft and creation key through model and prompt failures', async () => {
     installPublicFixture()
     history.replaceState(null, '', '/#test-launcher-token')
@@ -1437,7 +1676,8 @@ describe('web session selection', () => {
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     await vi.waitFor(() => expect(dialog.open).toBe(false))
     document.getElementById('model')?.click()
-    document.querySelector<HTMLElement>('[role="option"]')?.click()
+    openModelList()
+    modelMenu().querySelector<HTMLElement>('[role="option"]')?.click()
 
     submit('保留这条首轮草稿')
     await vi.waitFor(() =>
@@ -1466,6 +1706,7 @@ describe('web session selection', () => {
     expect(document.querySelector('[data-workspace-label]')?.textContent).toBe('agnes')
     expect(document.getElementById('composer-workspace')?.title).toBe(workspace.path)
 
+    document.querySelector<HTMLInputElement>('input[name="agnes-locale"][value="en"]')?.click()
     composer.value = '成功后的第二条消息'
     composer.dispatchEvent(new Event('input', { bubbles: true }))
     await vi.waitFor(() =>
@@ -1474,14 +1715,21 @@ describe('web session selection', () => {
     document
       .getElementById('composer')
       ?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    await vi.waitFor(() => expect(fresh.prompt).toHaveBeenLastCalledWith('成功后的第二条消息'))
+    await vi.waitFor(() =>
+      expect(fresh.prompt).toHaveBeenLastCalledWith('成功后的第二条消息', { titleLocale: 'en' }),
+    )
     expect(create).toHaveBeenCalledTimes(1)
     expect(create.mock.calls[0]?.[0]?.sessionKey).toBe(firstKey)
   })
 
   it('preserves the running action as a named busy mode with a separate stop control', async () => {
     installPublicFixture()
-    const running = session('old', async () => busyTimeline('old'))
+    let pendingInputs = [
+      { itemId: 'B', preview: '第二条提示词' },
+      { itemId: 'C', preview: '第三条提示词' },
+    ]
+    let sequence = 1
+    const running = session('old', async () => ({ ...busyTimeline('old'), upto: sequence, pendingInputs }))
     const titleList = vi.fn(async () => ({ items: [{ sessionId: 'old' }] }))
     sdk.createClient.mockReturnValue({
       apis: vi.fn(async () => ({ profile: { models: [{ route: 'local', id: 'model-a' }] } })),
@@ -1525,9 +1773,49 @@ describe('web session selection', () => {
     expect(hint.textContent).toBe('可补充下一轮')
     expect(cancel.hidden).toBe(false)
     expect(cancel.textContent).toBe('停止')
+    expect(document.querySelector('.composer-queue-count')?.textContent).toBe('待执行 · 2')
+    expect(
+      Array.from(document.querySelectorAll('.composer-queue-preview'), (node) => node.textContent),
+    ).toEqual(['第二条提示词', '第三条提示词'])
+    const sendNow = deferred<number>()
+    running.sendNow.mockImplementationOnce(() => sendNow.promise)
+    const queuedButton = document.querySelector<HTMLButtonElement>('[data-queue-item="C"] button')
+    if (!queuedButton) throw new Error('missing queued input action')
+    queuedButton.click()
+    queuedButton.click()
+    expect(running.sendNow).toHaveBeenCalledTimes(1)
+    expect(running.sendNow).toHaveBeenCalledWith('C')
+    expect(queuedButton.disabled).toBe(true)
+    expect(queuedButton.getAttribute('aria-busy')).toBe('true')
+    sendNow.reject(new Error('synthetic send-now refusal'))
+    await vi.waitFor(() =>
+      expect(document.querySelector('.composer-queue-error')?.textContent).toBe('synthetic send-now refusal'),
+    )
+    expect(document.querySelectorAll('[data-queue-item]')).toHaveLength(2)
+    running.sendNow.mockImplementationOnce(async () => {
+      pendingInputs = [{ itemId: 'B', preview: '第二条提示词' }]
+      sequence++
+      return sequence
+    })
+    queuedButton.click()
+    await vi.waitFor(() => expect(document.querySelectorAll('[data-queue-item]')).toHaveLength(1))
+    expect(document.querySelector('.composer-queue-count')?.textContent).toBe('待执行 · 1')
+    expect(running.prompt).not.toHaveBeenCalled()
     const reads = titleList.mock.calls.length
-    submit('本轮还没结束，先补充下一轮')
-    await vi.waitFor(() => expect(running.followUp).toHaveBeenCalledTimes(1))
+    running.followUp.mockImplementation(async (input: string) => {
+      sequence++
+      pendingInputs = [...pendingInputs, { itemId: `queued-${sequence}`, preview: input }]
+      return sequence
+    })
+    const followUps = ['本轮还没结束，先补充下一轮', '再排一条', '第三条也应立即显示']
+    for (const [index, input] of followUps.entries()) {
+      submit(input)
+      await vi.waitFor(() => expect(running.followUp).toHaveBeenCalledTimes(index + 1))
+      await vi.waitFor(() => expect(document.querySelectorAll('[data-queue-item]')).toHaveLength(index + 2))
+    }
+    expect(
+      Array.from(document.querySelectorAll('.composer-queue-preview'), (node) => node.textContent),
+    ).toEqual(['第二条提示词', ...followUps])
     expect(titleList).toHaveBeenCalledTimes(reads)
     const firstCancel = deferred<void>()
     running.cancel.mockImplementationOnce(() => firstCancel.promise)
@@ -1669,13 +1957,14 @@ describe('web model confirmation', () => {
     expect(model.getAttribute('aria-label')).toBe('当前会话模型：model-a')
 
     model.click()
-    document.querySelectorAll<HTMLElement>('[role="option"]')[1]?.click()
+    openModelList()
+    modelMenu().querySelectorAll<HTMLElement>('[role="option"]')[1]?.click()
     await vi.waitFor(() => expect(old.setModel).toHaveBeenCalledTimes(1))
     await vi.waitFor(() => expect(document.getElementById('notice')?.dataset.kind).toBe('error'))
     expect(model.querySelector('[data-model-label]')?.textContent).toBe('model-a')
     expect(model.getAttribute('aria-label')).not.toContain('account-acct-private')
 
-    document.querySelectorAll<HTMLElement>('[role="option"]')[1]?.click()
+    modelMenu().querySelectorAll<HTMLElement>('[role="option"]')[1]?.click()
     await vi.waitFor(() => expect(old.setModel).toHaveBeenCalledTimes(2))
     expect(model.disabled).toBe(true)
     document.querySelector<HTMLButtonElement>('[data-session="next"]')?.click()
