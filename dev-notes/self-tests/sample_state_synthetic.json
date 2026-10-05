@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task": {
+    "problem_id": "space-diving-synthetic",
+    "description": "synthetic sample"
+  },
+  "stage": "node_2b_modeling",
+  "audit_logs": [
+    {
+      "source": "agent-direct",
+      "artifact_id": "syn-node1-spec-0001",
+      "args": {
+        "note": "spec written"
+      }
+    },
+    {
+      "source": "agent-direct",
+      "artifact_id": "syn-datasrc-0002",
+      "args": {
+        "note": "US Standard Atmosphere 1976"
+      }
+    }
+  ],
+  "anomalies": [
+    {
+      "type": "data_source_unavailable",
+      "note": "Level 1 blocked, Level 3 fallback"
+    }
+  ],
+  "verification": {
+    "benchmark_source": null,
+    "comparison_result": null,
+    "max_relative_error": null
+  },
+  "report": {
+    "conclusion": "pending",
+    "traceability": {}
+  }
+}
