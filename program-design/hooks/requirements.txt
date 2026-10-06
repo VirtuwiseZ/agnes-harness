@@ -1,0 +1,13 @@
+# Dependencies for program-design hooks
+# All hooks are standalone scripts; no changes to the AGH host repository.
+
+sympy>=1.12
+pint>=0.22
+numpy>=1.26
+scipy>=1.11
+# Data-source routing (Node 1.5) Level 0 candidate packages, verified installable
+# in this environment but NOT imported by any hook: the ODE code must stay
+# source-agnostic. These are installed only so a runtime availability check can
+# actually execute them, per data-source-routing.md Step 2 (Level 0).
+ambiance>=1.3
+pymsis>=0.13
