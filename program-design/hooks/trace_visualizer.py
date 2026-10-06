@@ -71,11 +71,23 @@ import sys
 # ---------------------------------------------------------------------------
 
 def load_trace(path):
-    """Load an AGH raw trace export (JSONL). Returns a list of events sorted by seq."""
+    """Load an AGH raw trace export (JSONL). Returns a list of events sorted by seq.
+
+    Lines without a top-level "seq" field are ignored (not an error): the
+    official `agh export --raw` format guarantees every line has one, but the
+    automatic Node 4 capture tool (program-design/hooks/trace_capture.cjs)
+    prepends a single `_capture_meta` audit line (sessionId + timestamp,
+    useful for the HTML's provenance display but not a trace event) which has
+    no seq — skipping such lines keeps this loader robust to both sources
+    without callers having to pre-filter the file."""
     with open(path, "rb") as f:
         raw = f.read()
     lines = [l for l in raw.splitlines() if l.strip()]
-    events = [json.loads(l) for l in lines]
+    events = []
+    for l in lines:
+        obj = json.loads(l)
+        if "seq" in obj:
+            events.append(obj)
     events.sort(key=lambda e: e["seq"])
     return events
 
@@ -311,7 +323,12 @@ def build_steps_legacy(calls, state, cross):
     dsd = (state or {}).get("data_source_decision") or {}
     if not isinstance(dsd, dict):
         dsd = {"note": str(dsd)}
-    atmo = dsd.get("atmosphere_source")
+    # "modeling_input_source" is the current, domain-neutral field name;
+    # "atmosphere_source" is the name an earlier revision of the template
+    # used for the same concept (before it was generalized) — try the new
+    # name first, fall back to the old one so already-produced state files
+    # still render correctly instead of showing a blank "selected source".
+    atmo = dsd.get("modeling_input_source", dsd.get("atmosphere_source"))
     atmo = atmo if isinstance(atmo, dict) else {"name": str(atmo) if atmo else ""}
     ws_calls = [c for c in calls if c["name"] == "web_fetch"]
     shell_level0 = [c for c in calls if c["name"] == "shell" and "import " in json.dumps(c.get("args") or {})]
