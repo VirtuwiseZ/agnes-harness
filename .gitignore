@@ -34,3 +34,7 @@ learn/
 outputs/
 spikes/
 docs/task-records/
+
+# Python bytecode caches from running the program-design hooks/tests.
+__pycache__/
+*.pyc
