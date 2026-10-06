@@ -1,8 +1,32 @@
 ﻿"""
-ode_model.py — Node 2b: data-source-agnostic ODE solver for a vertical
-descent / free-fall problem under variable atmospheric density.
+ode_model.py — REFERENCE / EXAMPLE implementation only, NOT a general-purpose
+generic ODE engine.
 
-Design constraints (from the agreed-upon architecture - see the methodology templates in program-design/knowledge/, which are the canonical, agent-facing source of these rules):
+This file is a working demonstration of the data-source-agnostic ODE-solver
+pattern (a plain structured T(z)/ρ(z) array + a hypothesis dict, fed through
+scipy.integrate.solve_ivp) for the SPECIFIC problem this project was first
+built around: a 1D vertical descent under variable atmospheric density
+(the 2023 space-diving walkthrough). It exists so the architecture's rules
+can be seen concretely in working code, not so that every future problem
+imports or adapts this exact file.
+
+For any OTHER problem (a different governing equation, a different physical
+system, even the same descent problem with different assumptions), the
+intended use is to WRITE A NEW MODEL MODULE FROM SCRATCH, borrowing only
+the pattern (structured-array input, no named data source, dimensional gate
+run first, scipy solver not a hand-rolled Taylor method) — not to edit or
+patch this file into shape. Nothing downstream (boundary_gate.py's spec
+JSON, the report, problem_state.json) is wired to `ode_model` by name; the
+model module a given run actually uses is whatever the agent writes for
+that run (as seen in the 02 walkthrough, which produced its own
+descent_model.py rather than reusing this one). If you find yourself
+"adapting" this file for a new problem, stop and instead write a fresh
+module — that is the correct move, and this file is not required to be
+the one that gets modified.
+
+Design constraints this example demonstrates (from the agreed-upon
+architecture - see the methodology templates in program-design/knowledge/,
+which are the canonical, agent-facing source of these rules):
 
   * The ODE itself must NOT reference any named data source. It receives
     a plain structured array { z: float, rho: float } (density vs.
@@ -16,17 +40,18 @@ Design constraints (from the agreed-upon architecture - see the methodology temp
   * Uses scipy.integrate.solve_ivp (per the consensus "do not hand-roll
     a first-order Taylor method" rule).
 
-What this first version actually implements (to keep scope to one
-verifiable step, as agreed with the user):
+What this file actually implements (a deliberately minimal, worked example
+for this one problem):
   * The core descent ODE for a 0 -> z0 fall:
         d(v^2/2)/dx = g_eff(x) - (rho(x) * CD * A / (2*m)) * v^2
     (writing it in terms of u = v^2/2 keeps the equation free of a
     square-root, exactly as in the 2023 team's formulation).
   * A runnable demo that pulls a T(z)/rho(z) profile from ambiance only
     (0 -> 80 km), for now — the 80 -> 150 km pymsis segment and the
-    junction handling are deliberately NOT in this file yet (that is
-    the next single step, per the "one thing at a time" working
-    rhythm).
+    junction handling are deliberately NOT in this file; a real run
+    (such as the 02 walkthrough's own descent_model.py) is expected to
+    write its own module with its own regime/CD/area assumptions, not
+    to fill in this file's placeholders.
 """
 
 import numpy as np

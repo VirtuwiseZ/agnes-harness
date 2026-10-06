@@ -1,0 +1,33 @@
+{
+  "_note": "Generic blank skeleton for a NEW physics problem's task-specific numeric\nhypothesis table (the domain parameter file, e.g. knowledge/<domain>/<domain>_params.json).\nThis is NOT the same file as problem_state.json — problem_state.json is the runtime\nstate machine this file feeds into; this file is the one-shot, human/agent-authored\nsummary of \"what numbers + what candidate sources does this particular problem come\nwith\", decided at Node 1 (task spec) / Node 1.5 (data-source routing). Fill every\nnull below per the actual problem; do NOT copy values from a previously worked\nexample (a different problem, even one in the same physical domain, may differ in\nevery one of these numbers). All fields here are candidates to be confirmed or\nrejected by the Node 1.5 / Node 2a procedures, not settled inputs the modeling code\nmay lean on — the code only ever consumes a structured data array + a verified\nbaseline, both produced by those two steps, not the literal values in this file.",
+  "description": null,
+  "problem_id": null,
+  "source_citation": null,
+  "primary_target_quantity": null,
+  "safety_or_acceptance_constraints": {
+    "_note": "Quantified pass/fail criteria for the headline answer, not just 'find the maximum' — e.g. numeric G-force limit + duration, or a required tolerance band. Must be present so Node 2b's sweep has a concrete stopping condition, not an open-ended 'make it as small as possible'.",
+    "values": null,
+    "units": null,
+    "rationale": null
+  },
+  "named_parameters": {
+    "_note": "Free-form key/value map of every physical constant / coefficient the governing equation will reference, each with its value + units + where the number came from (textbook / measured / assumed-this-run). This is the single place to collect 'what numbers do I have and where did each one come from' before writing any ODE code."
+  },
+  "candidate_atmosphere_or_field_data_source": {
+    "_note": "ONLY if the problem actually needs a spatially-varying external field/medium (atmosphere, B-field, etc.). For a problem that does NOT (e.g. a point-mass pendulum, an LC circuit) this block should be omitted entirely — do not fill it in with placeholder nonsense. 'candidate' is deliberate: Node 1.5 confirms or rejects, it is not an input.",
+    "source_name": null,
+    "access_method_hint": null,
+    "span_or_range_hint": null
+  },
+  "candidate_verification_baseline": {
+    "_note": "An independent, real-world (or independently-sourced) reference to check the model against — e.g. a published measurement, a textbook worked value for a nearby case, a second model from a different method. Must be genuinely independent of whatever source node 1.5 picks for the modeling input.",
+    "name": null,
+    "expected_value": null,
+    "units": null,
+    "citation_or_source": null
+  },
+  "aerodynamic_or_coupling_coefficients": {
+    "_note": "Same 'omit if not applicable' rule as the atmospheric-source block above — a pendulum or circuit problem has no CD/A table; do not force this block onto a problem that doesn't need it. Only relevant to drag/coupling-type problems.",
+    "values": null
+  }
+}

@@ -9,12 +9,14 @@ handing off. No other file or chat context may be the authoritative copy.
 | Field | Type | Meaning |
 |---|---|---|
 | `task` | object | Fixed task brief: problem id, description, target quantity, safety constraints |
+| `session_key` | string \| null | This run's AGH session key (the stable, unique identifier AGH assigns to the conversation it is running in), written once at Node 0/1 state-file creation, so Node 4 can automatically pull this session's own trace back without a human-supplied export. See §0's "Record this run's own session key" bullet in the governance SKILL for the exact write rule, including what to do if the key is not available in the current client surface (leave null + log an audit note, do NOT guess). |
 | `stage` | string | One of `node_1_spec`, `node_1_5_data_source`, `node_2a_routing`, `node_2b_modeling`, `node_3_report`, `node_4_render`, `done` |
 | `quota` | object | Remaining retries per stage (see "Quota & Annealing" below) |
 | `hypothesis_layer` | object | Current physical assumptions (CD values, boundary conditions, model form) — the layer annealing rolls back to |
 | `dimensional_table` | object | `symbol -> dimension name` declarations, as consumed by `dimensional_gate.py --dims` |
 | `knowledge_routing` | object | Which method template + which JSON param file was matched (Node 2a output) |
 | `data_source_decision` | object | Node 1.5 output: chosen external data source + access method + verification baseline + rationale + availability check |
+| `internal_prior` | object \| null | Node 1a's private, free-form "what do I think the answer is and why" sketch — written ONCE at Node 1a, never shown to the user, never cited in the report; its only permitted later use is a conscious divergence-check against Node 2b's verified result (see SKILL.md §2 Node 1a for the two hard rules). Exists so the sketch can never be silently read back as a settled, gate-verified number. |
 | `numerical_artifacts` | object | Keyed store of computed numbers / ODE solutions, each tagged with an `artifact_id` (from `audit_log.py`) |
 | `audit_logs` | array | Append-only audit records (see `audit_log.py`); only `audit_log.append_record` may mutate this |
 | `anomalies` | array | Log of failures / boundary violations / annealing triggers encountered this run |
@@ -36,11 +38,13 @@ handing off. No other file or chat context may be the authoritative copy.
 | Field | Only writer(s) |
 |---|---|
 | `task` | Node 1 (once, at init) |
+| `session_key` | Node 0/1 state-file creation (once, at the same moment `task` is written); Node 4 only ever reads it, never writes it |
 | `stage`, `quota` | Node 2b (during execution), Node 3 (final `done`) |
 | `hypothesis_layer` | Node 2b (on annealing rollback only, never silently in-place) |
 | `dimensional_table` | Node 2b (when the governing equations are written out) |
 | `knowledge_routing` | Node 2a |
 | `data_source_decision` | Node 1.5 only — no later node may edit or "re-decide" it silently; if a downstream data-source fallback is needed it must surface as an `anomaly` (type `data_source_unavailable`), not by rewriting this field in place |
+| `internal_prior` | Node 1a (written once, immediately after Node 1's spec is recorded); read-only for every later node — the only permitted "write" to it after Node 1a is appending a divergence-check note into `audit_logs` (type `internal_prior_divergence`), never rewriting `internal_prior` itself |
 | `numerical_artifacts` | Node 2b |
 | `audit_logs` | `audit_log.append_record()` only — no node may edit it directly |
 | `anomalies` | Node 2b (append-only, never rewritten) |

@@ -72,9 +72,15 @@ a fixed JSON field.
 3. **Select one method + one concrete source (possibly a multi-level mix),
    and log the decision.**
    - Record in `problem_state.json`:
-     - `data_source_decision.atmosphere_source = { name, access_method
+     - `data_source_decision.modeling_input_source = { name, access_method
        (api/table/analytic), span_covered, precision, fetched_at (timestamp)
        }`
+       ("modeling_input_source" is a generic, domain-neutral field name — it
+       holds whatever external data source(s) Node 1.5 chose as the primary
+       input(s) to the model, however many there are and whatever physical
+       quantity they carry; the specific quantity (e.g. T(z)/ρ(z) for an
+       atmosphere problem) is a property of *this problem's* data requirement,
+       recorded in step 1, not baked into the field name itself.)
      - `data_source_decision.verification_baseline = { name, independent_of
        (boolean: is it a different source than the modeling input), citation }`
      - A plain-language `rationale` field explaining why this level was

@@ -30,8 +30,24 @@ numbers look.
      (e.g. CD=0 ⇒ pure gravitational free-fall formula, r_slip→0 ⇒ simple pendulum).
 
 3. **Execute the checks** via the `boundary_gate.py` hook (deterministic, not LLM-judged):
-   - The hook takes the model's callable + the enumerated limits and reports PASS/FAIL
-     per case, with the actual numeric value vs. the asserted expectation.
+   - The hook takes a **spec JSON file** (see `boundary_gate.py`'s docstring for the
+     full schema), not the callable directly. The spec names:
+       - `"model_module"`: an importable Python module name (a bare module name on
+         `sys.path` when the hook runs — e.g. the file `descent_model.py` you
+         created this run, invoked as `"model_module": "descent_model"`; the hook
+         uses `importlib.import_module()`, so the module must actually be
+         importable from wherever the hook is launched, typically the run's working
+         directory — if your model file lives elsewhere, launch the hook from that
+         directory or confirm the module name resolves, don't assume)
+       - `"primary_result"`: the exact key inside that module's `run_model(params)`
+         return-dict that holds the number to check (e.g. `"max_safe_altitude_km"`)
+       - `"cases"`: the enumerated boundary cases from step 1–2 above, each with a
+         concrete `params` override and a plain-language `expectation` (see the hook's
+         docstring for the accepted expectation types: `finite`, `zero`,
+         `nonnegative`, `monotonic_increase`, `monotonic_decrease`, `bounded_by:<float>`)
+   - The hook reports PASS/FAIL per case, with the actual numeric value vs. the
+     asserted expectation, and writes nothing back — the caller logs the verdict
+     into `problem_state.json` (see step 4).
 
 4. **Only if all cases PASS** may the pipeline advance to the conclusion node.
    Any single FAIL is logged to `problem_state.json.anomalies` and forces a roll-back

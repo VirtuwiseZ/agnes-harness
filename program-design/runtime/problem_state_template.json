@@ -7,6 +7,7 @@
     "target_quantity": null,
     "safety_constraints_ref": null
   },
+  "session_key": null,
   "stage": "node_1_spec",
   "quota": {
     "downstream_retries_remaining": 3,
@@ -18,13 +19,14 @@
     "last_known_good_version": null
   },
   "dimensional_table": {},
+  "internal_prior": null,
   "knowledge_routing": {
     "matched_template": null,
     "param_json": null,
     "routing_decision_audit": null
   },
   "data_source_decision": {
-    "atmosphere_source": null,
+    "modeling_input_source": null,
     "verification_baseline": null,
     "rationale": null,
     "availability_check": null,

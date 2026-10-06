@@ -48,6 +48,26 @@ Usage:
     python dimensional_gate.py --equation "E = exp(-x/L)" \
         --dims '{"E": "dimensionless", "x": "length", "L": "length"}'  # warns only
 
+    ODE / derivative-form equations: write each derivative term explicitly as
+    SymPy's Derivative(function, variable, *count) — do NOT use hand-written
+    differential notation like "du/dx" or "dv/dt". That notation is not
+    parseable by the SymPy layer (it resolves to two undeclared bare symbols
+    and the gate aborts with "symbols without declared dimensions", NOT a
+    real PASS/FAIL verdict, as confirmed by an actual run against the 02
+    walkthrough's space-diving equation). Correct form for the same 02-run
+    equation:
+
+    python dimensional_gate.py \
+        --equation "Derivative(u, x) = g - rho*CD*A/(2*m)*u" \
+        --dims '{"u": "specific_energy", "x": "length", "g": "acceleration",
+                 "rho": "density", "CD": "dimensionless", "A": "area", "m": "mass"}'
+
+    (Declare the differentiated function's own symbol, e.g. "u", with its own
+    dimension; the derivative's independent variable, e.g. "x", is credited
+    automatically from the Derivative form and also needs a declaration in
+    --dims. A higher-order derivative such as D2(u, x, x) is written
+    Derivative(u, x, x).)
+
 Exit codes:
     0 = PASS
     1 = FAIL (dimensional mismatch between terms)
