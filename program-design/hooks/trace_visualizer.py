@@ -95,7 +95,12 @@ def load_trace(path):
 def load_state(path):
     if not path or not os.path.exists(path):
         return None
-    with open(path, "r", encoding="utf-8") as f:
+    # utf-8-sig transparently strips a BOM if present and is identical to plain
+    # utf-8 if not — matters because state files produced via PowerShell's
+    # Out-File pipeline (a documented way this project has pulled files down,
+    # see dev-notes convention) carry a UTF-8 BOM, and json.load() on a BOM
+    # would otherwise raise before any of this script's own logic runs.
+    with open(path, "r", encoding="utf-8-sig") as f:
         return json.load(f)
 
 
