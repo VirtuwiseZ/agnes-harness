@@ -125,7 +125,10 @@ def _axis_label(fig_spec, axis, fallback_series_names):
 def _draw_1d(fig_spec, fig_id):
     kind = fig_spec.get("kind", "curve")
     series = fig_spec.get("series") or []
-    if not series:
+    # kind 'interval_highlight' is a legitimate background-band-only figure:
+    # it draws `highlights` with zero data series. Every other kind requires at
+    # least one series with points.
+    if not series and kind not in ("interval_highlight",):
         raise FigureError(f"figure '{fig_id}': kind '{kind}' requires at least one series with points.")
 
     x_names = [s.get("name") or "" for s in series]
@@ -189,9 +192,17 @@ def _draw_1d(fig_spec, fig_id):
             ax.plot(x, y, style.get("linestyle", "-"), color=style.get("color", "0.2"),
                     label=s.get("name") or "")
         else:
+            # Marker policy: for small point counts, mark every point (so a
+            # 4-point curve is not misleadingly drawn with just 1 visible
+            # marker, which was a real regression bug in the earlier
+            # `markevery=len(x)` version — that formula means "every len(x)-th
+            # point starting at index 0", i.e. exactly one marker per series
+            # whenever len(x) >= 2). For larger point counts, drop markers
+            # entirely to avoid a wall of overlapping dots on a dense line.
+            use_markers = style.get("marker") if len(x) <= 12 else None
             line, = ax.plot(x, y, style.get("linestyle", "-"), color=style.get("color", None),
-                            label=s.get("name") or "", marker=style.get("marker", "o") if len(x) <= 12 else None,
-                            markevery=len(x) if len(x) <= 12 else "None")
+                            label=s.get("name") or "", marker=use_markers,
+                            markevery=1 if use_markers else None)
             if kind_hint == "line_scatter" and s.get("y_err") is not None:
                 err_y = s.get("y_err")
                 _require_same_len((s.get("name") or "") + ".y_err", x, err_y)
@@ -209,8 +220,20 @@ def _draw_1d(fig_spec, fig_id):
     # silently crop. (NaN/Inf points are skipped by matplotlib itself.)
     all_x = [v for s in series for v in (s.get("points") or {}).get("x", [])]
     all_y = [v for s in series for v in (s.get("points") or {}).get("y", [])]
+    # A background-band-only figure (kind='interval_highlight' with no data
+    # series) still needs an x-axis range — derive it from the highlight bands
+    # themselves, not from (nonexistent) data points.
+    for hl in fig_spec.get("highlights") or []:
+        for v in (hl.get("x0"), hl.get("x1")):
+            if isinstance(v, (int, float)) and math.isfinite(v):
+                all_x.append(v)
     finite_x = [v for v in all_x if isinstance(v, (int, float)) and math.isfinite(v)]
     finite_y = [v for v in all_y if isinstance(v, (int, float)) and math.isfinite(v)]
+    if not finite_x and not finite_y:
+        raise FigureError(
+            f"figure '{fig_id}': no finite x or y data points across any series, and no "
+            f"finite highlight range to anchor the axes to — nothing to draw; refusing "
+            f"to render an empty/blank plot as if it were a result.")
     if finite_x:
         lo, hi = min(finite_x), max(finite_x)
         pad = (hi - lo) * 0.05 or 1.0
@@ -289,18 +312,39 @@ def _draw_heatmap(fig_spec, fig_id):
 
 
 def render_all(figures, out_dir, fmt):
+    """Draw every figure in `figures`, independently. A malformed figure raises
+    FigureError that is collected (not raised immediately) so one bad figure
+    cannot silently skip the rest of the batch — good figures in the same
+    `numerical_artifacts.figures` dict still get written; all errors are
+    reported together at the end and the caller decides (exit 1) whether the
+    overall run counts as successful. This is deliberate: "one typo in one
+    figure's y_err length" must not be the reason the other four, correct,
+    figures for the same task never get drawn at all."""
     os.makedirs(out_dir, exist_ok=True)
     written = []
+    errors = []
     for fig_id, spec in figures.items():
         kind = spec.get("kind", "curve")
-        if kind == "heatmap":
-            fig = _draw_heatmap(spec, fig_id)
-        else:
-            fig = _draw_1d(spec, fig_id)
-        out = os.path.join(out_dir, f"{fig_id}.{fmt}")
-        fig.savefig(out)
-        plt.close(fig)
-        written.append(out)
+        try:
+            if kind == "heatmap":
+                fig = _draw_heatmap(spec, fig_id)
+            else:
+                fig = _draw_1d(spec, fig_id)
+            out = os.path.join(out_dir, f"{fig_id}.{fmt}")
+            fig.savefig(out)
+            plt.close(fig)
+            written.append(out)
+        except FigureError as e:
+            plt.close("all")
+            errors.append(str(e))
+    if errors:
+        msg = "\n".join(errors)
+        raise FigureError(
+            f"{len(errors)} of {len(figures)} figure(s) failed to draw; "
+            f"{len(written)} succeeded and were written despite this:\n{msg}\n"
+            f"Fix the failing figures upstream and re-run; the successful ones above "
+            f"are not invalidated by their siblings' errors."
+        )
     return written
 
 
