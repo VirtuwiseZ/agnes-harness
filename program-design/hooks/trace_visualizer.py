@@ -248,10 +248,16 @@ def md_to_html_blocks(md_text):
     return blocks
 
 
+FIGURE_RE = re.compile(r"^\{\{figure:\s*([A-Za-z0-9_\-]+)\}\}\s*$")
+
+
 def _md_body_to_html(body_lines):
     """Render the constrained markdown subset (paragraphs, - lists, **bold**,
     `code`, and $$-fenced math as plain <pre> — no LaTeX rendering, just
-    readable text) into safe HTML."""
+    readable text) into safe HTML. A single line of the form
+    `{{figure: <id>}}` is rendered as a <figure> placeholder carrying the
+    figure id in a data attribute; the actual image is inlined into that
+    placeholder later, in _figure_tag(), once --figures-dir is known."""
     out = []
     in_list = False
     for raw in body_lines:
@@ -260,6 +266,14 @@ def _md_body_to_html(body_lines):
             if in_list:
                 out.append("</ul>")
                 in_list = False
+            continue
+        m = FIGURE_RE.match(line.strip())
+        if m:
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            fid = m.group(1)
+            out.append(f"<figure class='report-figure' data-figure-id='{html.escape(fid)}'></figure>")
             continue
         if line.lstrip().startswith("- "):
             if not in_list:
@@ -404,10 +418,15 @@ def _legacy_layer(num, title, steps):
 # ---------------------------------------------------------------------------
 
 def render_html(blocks, cross, events, state, out_path, fallback_legacy=None,
-                 report_source="report-md"):
+                 report_source="report-md", figures_dir=None):
     """blocks: list of {title, html, raw} — the page's main spine, in order.
     fallback_legacy: if set (no --report given), renders the old 5-layer layout
-    instead of (not in addition to) the blocks spine — see module docstring."""
+    instead of (not in addition to) the blocks spine — see module docstring.
+    figures_dir: if set, every {{figure: <id>}} placeholder produced by
+    _md_body_to_html() is inlined here (base64) with its caption looked up
+    in problem_state.json's numerical_artifacts.figures[<id>].title when
+    state is provided; missing files render as an explicit "missing" box,
+    never silently dropped."""
     session_start = next((e for e in events if e["type"] == "session/start"), None)
     session_key = (session_start or {}).get("data", {}).get("key", "unknown-session")
 
@@ -430,10 +449,11 @@ def render_html(blocks, cross, events, state, out_path, fallback_legacy=None,
             + "</details>"
         )
         state_snapshot = _state_snapshot_block(state)
+        section_html = _figure_tag(figures_dir, b["html"], state) if figures_dir is not None else b["html"]
         spine_html.append(
             f"<section class='report-section' id='{block_id}'>"
             f"<h2>{html.escape(b['title'])}</h2>"
-            f"<div class='sec-body'>{b['html']}</div>"
+            f"<div class='sec-body'>{section_html}</div>"
             f"{verify_block}"
             f"{state_snapshot}"
             f"</section>"
@@ -475,6 +495,46 @@ def render_html(blocks, cross, events, state, out_path, fallback_legacy=None,
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(doc)
     return out_path
+
+
+def _figure_tag(figures_dir, block_html, state):
+    """Fill every <figure class='report-figure' data-figure-id='...'></figure>
+    placeholder in a report section with its inlined image. figures_dir may be
+    None (no --figures-dir given), in which case every placeholder becomes an
+    explicit "no figure source configured" box — matching this project's
+    "never paper over a missing piece of output" principle rather than
+    rendering a blank <figure>. State (if provided) is consulted only to look
+    up the figure's caption (numerical_artifacts.figures[<id>].title); it is
+    not used for anything else, and never for a physics judgment about the
+    figure's content."""
+    def repl(m):
+        fid = html.unescape(m.group(1))
+        title = ""
+        if state:
+            figs = (state.get("numerical_artifacts") or {}).get("figures") or {}
+            fig = figs.get(fid)
+            if isinstance(fig, dict):
+                title = fig.get("title") or ""
+        if not figures_dir:
+            return (f"<figure class='report-figure-missing'>引用了 <code>{html.escape(fid)}</code> 的图，"
+                    f"但未提供 --figures-dir，无法内联对应图片。</figure>")
+        path = None
+        for ext in (".png", ".svg", ".jpg", ".jpeg"):
+            cand = os.path.join(figures_dir, fid + ext)
+            if os.path.exists(cand):
+                path = cand
+                break
+        if path is None:
+            return (f"<figure class='report-figure-missing'>引用了 <code>{html.escape(fid)}</code> 的图，"
+                    f"但在 --figures-dir 下找不到对应的 <code>{html.escape(fid)}</code>.png/.svg/.jpg。</figure>")
+        ext = os.path.splitext(path)[1].lower()
+        mime = {".png": "image/png", ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}[ext]
+        with open(path, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode("ascii")
+        caption = f"<figcaption>{html.escape(title) if title else '（无标题）'}</figcaption>"
+        return (f"<figure class='report-figure-inlined'>"
+                f"<img src='data:{mime};base64,{b64}' alt='{html.escape(fid)}'>{caption}</figure>")
+    return re.sub(r"<figure class='report-figure' data-figure-id='([^']+)'></figure>", repl, block_html)
 
 
 def _state_snapshot_block(state):
@@ -643,6 +703,7 @@ def main(argv=None):
     ap.add_argument("--trace", required=True, help="AGH raw trace export (JSONL).")
     ap.add_argument("--report", default=None, help="Node 3 incremental markdown research report (primary narrative source).")
     ap.add_argument("--state", default=None, help="problem_state.json for the same run (optional).")
+    ap.add_argument("--figures-dir", default=None, help="Directory holding .png/.svg figure files produced by make_report_figures.py; every {{figure: <id>}} placeholder in --report is inlined from here.")
     ap.add_argument("--out", default="research_report.html", help="Output HTML path.")
     args = ap.parse_args(argv)
 
@@ -665,10 +726,13 @@ def main(argv=None):
         source = "trace + problem_state.json（无 Node 3 增量汇报，退化视图）"
 
     out = render_html(blocks, cross, events, state, args.out,
-                      fallback_legacy=legacy, report_source=source)
+                      fallback_legacy=legacy, report_source=source,
+                      figures_dir=args.figures_dir)
     print("wrote", out)
     print("narrative source:", source)
     print("tool calls in trace:", len(calls), "· cross-check entries:", len(cross))
+    if args.figures_dir:
+        print("figures dir:", args.figures_dir)
     return 0
 
 
