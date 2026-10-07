@@ -164,6 +164,7 @@ def _draw_1d(fig_spec, fig_id):
             xs = list(x)
             ys = list(y)
             if dup:
+                n_dup = sum(c - 1 for c in key_counts.values() if c > 1)
                 step = 0.02 * (max(map(abs, x), default=1) or 1)
                 offset = 0
                 for i in range(len(xs)):
@@ -171,8 +172,10 @@ def _draw_1d(fig_spec, fig_id):
                         xs[i] = xs[i] + (step * offset % 3 - 1) * 0.5
                         ys[i] = ys[i] + (step * (offset + 1) % 3 - 1) * 0.5
                         offset += 1
-                footnotes.append(f"series '{s.get('name') or ''}': some (x,y) points coincide exactly; "
-                                 f"a fixed-magnitude visual jitter was applied on screen only (original values unchanged).")
+                footnotes.append(
+                    f"部分 (x, y) 点完全重合（共 {n_dup} 个重复点），"
+                    f"画面上施加了定幅可视抖动（仅屏幕层面，原始数值未改动）。"+
+                    f"[系列: {s.get('name') or ''}]")
             err_y = s.get("y_err")
             if err_y is not None:
                 _require_same_len((s.get("name") or "") + ".y_err", x, err_y)
@@ -187,8 +190,9 @@ def _draw_1d(fig_spec, fig_id):
             ax.errorbar(x, y, yerr=err_y, fmt=style.get("linestyle", "-") + "o",
                        color=style.get("color", "0.2"), label=s.get("name") or "", capsize=4)
         elif kind == "error_bar" and s.get("y_err") is None:
-            footnotes.append(f"series '{s.get('name') or ''}': kind is 'error_bar' but no y_err was given; "
-                             f"drawn as a plain line instead (no error bars), flagged here, not silently treated as if it had none.")
+            footnotes.append(
+                f"系列「{s.get('name') or ''}」声明为 error_bar 但未提供 y_err；"
+                f"按普通折线绘制（不画误差棒），已在图注中明确标出，未静默当作有误差棒。")
             ax.plot(x, y, style.get("linestyle", "-"), color=style.get("color", "0.2"),
                     label=s.get("name") or "")
         else:
@@ -246,17 +250,58 @@ def _draw_1d(fig_spec, fig_id):
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     title = fig_spec.get("title")
-    ax.set_title(title if title else "（无标题）")
+    if title:
+        import textwrap
+        # Wrap long titles at a conservative budget so they never overflow the
+        # figure's top edge; deterministic character budget, not content-adaptive.
+        wrapped_title = textwrap.fill(title, width=38)
+        ax.set_title(wrapped_title)
+    else:
+        ax.set_title("（无标题）")
     if any(s.get("name") for s in series) or fig_spec.get("highlights") or fig_spec.get("markers"):
         ax.legend()
-
     if n_nan_total or n_inf_total:
-        footnotes.append(f"{n_nan_total} NaN and {n_inf_total} Inf value(s) across all series; "
-                         f"matplotlib's default handling applied (skipped/clamped), not fixed here — "
-                         f"this footnote is the only record of that, by design.")
+        footnotes.append(
+            f"共 {n_nan_total} 个 NaN、{n_inf_total} 个 Inf 值（横跨所有系列）；"
+            f"按 matplotlib 默认行为处理（跳过/截断），本脚本未擅自修补——"
+            f"此脚注即为该处理的唯一记录。")
     if footnotes:
-        ax.text(0.01, 0.01, "\n".join(footnotes), transform=ax.transAxes, fontsize=7,
-                va="bottom", ha="left", color="0.4")
+        # Footnotes must stay ON the canvas — never let a long note silently
+        # run past the figure edge. Wrap at a fixed character budget, and if the
+        # resulting multiline block still overflows the axes bottom (very long
+        # note + small figure), shrink the font size deterministically until it
+        # fits; this is a presentation-layer accommodation, not a data change.
+        import textwrap
+        def _fits_and_wrap(text, fontsize):
+            # Approximate how many characters fit on one line of the axes at this
+            # font size. The axes region is roughly figsize-width-inches * dpi
+            # pixels wide minus margins; assume ~55%-70% of that width is
+            # available to a footnote, and a CJK glyph at fontsize 7 is roughly
+            # 7*0.9 dpi-ish pixels wide (heuristic, conservative).
+            axes_w_px = fig.get_figwidth() * fig.dpi * 0.6
+            chars_per_line = max(20, int(axes_w_px / max(fontsize * 0.55, 4)))
+            return textwrap.fill(text, width=chars_per_line)
+
+        fontsize = 7
+        wrapped = "\n".join(_fits_and_wrap(t, fontsize) for t in footnotes)
+        txt_obj = ax.text(0.01, 0.01, wrapped, transform=ax.transAxes, fontsize=fontsize,
+                          va="bottom", ha="left", color="0.4")
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        bb = txt_obj.get_window_extent(renderer)
+        ax_bb = ax.get_window_extent(renderer)
+        # Iteratively shrink the font (deterministic, not content-adapting) until
+        # the footnote block no longer pokes above the axes area or runs past the
+        # right edge. Bounded below at fontsize=5 so this loop always terminates.
+        guard = 0
+        while (bb.x1 > ax_bb.x1 + 1 or bb.y0 < ax_bb.y0 - 1) and fontsize > 5 and guard < 8:
+            fontsize -= 1
+            wrapped = "\n".join(_fits_and_wrap(t, fontsize) for t in footnotes)
+            txt_obj.set_text(wrapped)
+            txt_obj.set_fontsize(fontsize)
+            fig.canvas.draw()
+            bb = txt_obj.get_window_extent(renderer)
+            guard += 1
 
     fig.tight_layout()
     return fig
@@ -306,7 +351,11 @@ def _draw_heatmap(fig_spec, fig_id):
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     title = fig_spec.get("title")
-    ax.set_title(title if title else "（无标题）")
+    if title:
+        import textwrap
+        ax.set_title(textwrap.fill(title, width=38))
+    else:
+        ax.set_title("（无标题）")
     fig.tight_layout()
     return fig
 

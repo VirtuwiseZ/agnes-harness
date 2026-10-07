@@ -134,11 +134,11 @@ def build_codata_errorbar():
     return {
         "codata_kg_errorbar": {
             "kind": "error_bar",
-            "title": "NIST CODATA 2022 basic constants (kg sub-set, relative intra-group index; error bars = standard uncertainty)",
-            "axes": {"x": {"label": "constant # within group"},
-                     "y": {"label": "value (kg, unnormalized; intra-group comparison only)"}},
+            "title": "NIST CODATA 2022 基本常数（kg 量纲子集，按组内相对编号排列；误差棒 = 标准不确定度）",
+            "axes": {"x": {"label": "常数编号（本组内相对序号，非原始编号）"},
+                     "y": {"label": "数值（kg，未归一化，仅本组内比较）"}},
             "series": [
-                {"name": "kg sub-set", "points": {"x": xs, "y": ys}, "y_err": errs},
+                {"name": "kg 子集", "points": {"x": xs, "y": ys}, "y_err": errs},
             ],
             "const_names": names,
         }
