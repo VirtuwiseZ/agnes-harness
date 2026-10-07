@@ -17,7 +17,7 @@ handing off. No other file or chat context may be the authoritative copy.
 | `knowledge_routing` | object | Which method template + which JSON param file was matched (Node 2a output) |
 | `data_source_decision` | object | Node 1.5 output: chosen external data source + access method + verification baseline + rationale + availability check |
 | `internal_prior` | object \| null | Node 1a's private, free-form "what do I think the answer is and why" sketch — written ONCE at Node 1a, never shown to the user, never cited in the report; its only permitted later use is a conscious divergence-check against Node 2b's verified result (see SKILL.md §2 Node 1a for the two hard rules). Exists so the sketch can never be silently read back as a settled, gate-verified number. |
-| `numerical_artifacts` | object | Keyed store of computed numbers / ODE solutions, each tagged with an `artifact_id` (from `audit_log.py`) |
+| `numerical_artifacts` | object | Keyed store of computed numbers / ODE solutions, each tagged with an `artifact_id` (from `audit_log.py`). Sub-key `figures` (optional, see `problem_state_schema.md` §Figures below): problem-agnostic data blocks for the optional charting node (SKILL Node 2.7), consumed by `make_report_figures.py` (not yet written — spec in `dev-notes/self-tests/03/charting_generic_architecture.md` §3) to produce the image files Node 4 inlines via `--figures-dir`. |
 | `audit_logs` | array | Append-only audit records (see `audit_log.py`); only `audit_log.append_record` may mutate this |
 | `anomalies` | array | Log of failures / boundary violations / annealing triggers encountered this run |
 | `verification` | object | Empirical benchmark comparison result (model vs. real data, e.g. Baumgartner) with quantified error |
@@ -51,6 +51,19 @@ handing off. No other file or chat context may be the authoritative copy.
 | `verification` | Node 2b |
 | `report` | Node 3 |
 | `report_<task-slug>.md` (separate file, not a field in this JSON) | Node 3 (append incrementally at every node boundary; Node 4 reads it read-only) |
+| `numerical_artifacts.figures` | Node 2.7 (optional node — only writes this sub-field if this problem's numerical results warrant charting; empty/absent is valid, not an omission) |
 
 Nodes never rewrite fields owned by earlier nodes; they only append to
 `audit_logs` / `anomalies` and update their own owned fields.
+
+## Figures sub-schema (`numerical_artifacts.figures`, optional)
+
+Domain-neutral, problem-agnostic data blocks. The full schema (5 kinds:
+`curve`/`scatter`/`error_bar`/`interval_highlight`/`heatmap`; `role` tag for
+theory/experiment/simulation/residual/fit; `highlights`/`markers` lists) and
+the "zero-judgment rendering layer" design (the figure script never decides
+whether a number is physically correct — that remains the job of the
+dimensional/boundary gates upstream) is specified in
+`dev-notes/self-tests/03/charting_generic_architecture.md` §2. `figures` may
+be empty or absent entirely — charting is an optional node (SKILL Node 2.7),
+not a required one.
