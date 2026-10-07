@@ -60,6 +60,7 @@ Usage:
         --out    dev-notes/self-tests/trace_<task>_report.html
 """
 import argparse
+import base64
 import html
 import json
 import os

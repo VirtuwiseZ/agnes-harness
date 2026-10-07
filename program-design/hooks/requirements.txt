@@ -5,6 +5,19 @@ sympy>=1.12
 pint>=0.22
 numpy>=1.26
 scipy>=1.11
+# Node 2.7 (optional charting step, make_report_figures.py) — rendering backend only;
+# the physics/numerical results it plots come from numerical_artifacts, already
+# produced by Node 2b, so this dependency never does physics, just faithful
+# presentation (see make_report_figures.py docstring).
+# NOTE: make_report_figures.py needs a CJK-capable font installed on the machine
+# actually running it (it probes for one at import time and warns loudly if none
+# is found); a plain `pip install matplotlib` does not by itself guarantee that —
+# on a fresh Linux box without a CJK font, Chinese titles/labels will still render
+# as missing-glyph boxes, and the script's top-of-run warning is the only signal.
+# matplotlib is not yet imported by any hook that ships today (Node 2.7 is an
+# optional, not-yet-fully-wired step); this line records the dependency now so
+# the install step is one line when Node 2.7 is actually run for real.
+matplotlib>=3.8
 # Data-source routing (Node 1.5) Level 0 candidate packages, verified installable
 # in this environment but NOT imported by any hook: the ODE code must stay
 # source-agnostic. These are installed only so a runtime availability check can
