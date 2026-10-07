@@ -335,16 +335,45 @@ def _draw_heatmap(fig_spec, fig_id):
     zlabel = (axes.get("z") or {}).get("label") or ""
 
     import numpy as np
-    X, Y = np.meshgrid(xv, yv)
     arr = np.array([[v if isinstance(v, (int, float)) and math.isfinite(v) else np.nan for v in row] for row in vals], dtype=float)
+
+    def _is_numeric(values):
+        return all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in values)
+
+    x_numeric = _is_numeric(xv)
+    y_numeric = _is_numeric(yv)
 
     fig, ax = plt.subplots(figsize=(7, 5), dpi=150)
     style = fig_spec.get("heatmap_style", "pcolormesh")
-    if style == "contourf":
-        cs = ax.contourf(X, Y, arr, levels=12, cmap="viridis")
+
+    if x_numeric and y_numeric:
+        X, Y = np.meshgrid(xv, yv)
+        if style == "contourf":
+            cs = ax.contourf(X, Y, arr, levels=12, cmap="viridis")
+        else:
+            im = ax.pcolormesh(X, Y, arr, cmap="viridis")
+            cs = im
     else:
-        im = ax.pcolormesh(X, Y, arr, cmap="viridis")
+        # Categorical axis (e.g. feature names, country names, lat/lon index
+        # labels): pcolormesh/meshgrid assume numeric coords and crash on
+        # string labels. Use imshow with the matrix directly, and put the
+        # category labels on the ticks. (Also handles the mixed case of one
+        # categorical + one numeric axis.)
+        if style == "contourf":
+            raise FigureError(
+                f"figure '{fig_id}': kind 'heatmap' with heatmap_style='contourf' requires "
+                f"numeric x_values/y_values (contourf needs coordinates); got categorical "
+                f"labels. Use 'pcolormesh' style for categorical axes.")
+        im = ax.imshow(arr.T, cmap="viridis", origin="lower", aspect="auto")
         cs = im
+        ax.set_xticks(range(len(xv)))
+        ax.set_xticklabels([str(v) for v in xv], rotation=45, ha="right")
+        ax.set_yticks(range(len(yv)))
+        ax.set_yticklabels([str(v) for v in yv])
+        # imshow indexes rows top-to-bottom by default; origin='lower' flips it
+        # so that y_values[0] sits at the bottom, matching the numeric-axis
+        # convention used elsewhere in this script.
+
     cbar = fig.colorbar(cs, ax=ax)
     if zlabel:
         cbar.set_label(zlabel)
