@@ -1,0 +1,36 @@
+{
+  "_note": "Task 2025A (Sasando resonator) numeric hypothesis table. All values here are CANDIDATES to be confirmed or rejected by Node 1.5 / Node 2a - not settled inputs the modeling code may lean on; the code consumes a structured constant set + verified baseline, not these literals. Omitted blocks: 'aerodynamic_or_coupling_coefficients' and 'candidate_atmosphere_or_field_data_source' are NOT applicable to a thin-plate resonance problem and are deliberately left out (no drag CD/A table, no T(z)/rho(z) atmosphere span - do not force-fill).",
+  "description": "Domain parameters for modeling the dried-lontar-leaf resonator of a sasando as a light circular thin plate driven by string contact, and designing an EQ (frequency-response) method to re-impose that timbre on an electric sasando.",
+  "problem_id": "2025A_Sasando",
+  "source_citation": "User-provided problem statement (2025A Sasando); material constants are order-of-magnitude experienced values for dried plant fiber (NOT measured data for the specific leaf), flagged per Node 1.5's analytical-approximation decision; classical circular-plate vibration formula from standard mechanics of materials text (independent verification baseline).",
+  "primary_target_quantity": "A set of circular-plate eigenfrequencies f_m (m = 0,1,2,3,... axisymmetric bending modes) within/around the stated 98-1047 Hz band, plus the relative modal amplitudes (given the string's contact geometry), so that H(f) = sum_m A_m * Lorentzian(f; f_m, zeta_m) can be computed and re-applied as a DSP EQ curve to the electric sasando's pickup signal.",
+  "safety_or_acceptance_constraints": {
+    "_note": "Quantified pass/fail criteria for the headline answer.",
+    "values": {
+      "stated_operating_band_min_Hz": 98.0,
+      "stated_operating_band_max_Hz": 1047.0,
+      "acceptance_rule": "The lowest-predicted axisymmetric eigenfrequency f_1 (m=1, dominant fundamental) must fall WITHIN ~one decade of the stated 98-1047 Hz band; at least 3-4 higher modes should stack up through the upper end of that band. If f_1 lands far below 98 Hz (e.g. <30 Hz, inaudible/bass-unlike) or far above 1047 Hz, the candidate material-constant set is rejected as inconsistent with the problem's stated physics and must be revised at the hypothesis layer, not force-fitted."
+    },
+    "units": "Hz",
+    "rationale": "The problem itself states the resonator 'naturally amplifies frequencies between 98 Hz and 1047 Hz' - that is the ground-truth operating band the model must reproduce order-of-magnitude, and is the quantitative stopping condition for the candidate-constant sweep, mirroring 2025B's 'hit condition' style pass/fail rule (a concrete band, not an open-ended 'minimize something')."
+  },
+  "named_parameters": {
+    "resonator_radius_m": "candidate 0.04 m (half the bamboo tube's 8 cm diameter - the problem gives no independent measurement of the actual leaf's size; this is a GEOMETRY GUESS tied to the only dimension the problem actually provides, flagged as such, to be confirmed/dropped in Node 2a's mechanism-match check, not treated as a verified leaf dimension)",
+    "plate_thickness_m": "candidate 0.0005 m (0.5 mm), typical dried-leaf order of magnitude; ASSUMED this run, not measured data for the specific sasando leaf",
+    "elastic_modulus_Pa": "candidate 1.0e9 Pa, order-of-magnitude value for dried plant fiber (stiffness range commonly cited for dried wood/fiber: ~1-5 GPa; the low end chosen here for a thin, somewhat flexible dried leaf rather than solid hardwood); flagged CANDIDATE, not settled",
+    "volume_density_kg_m3": "candidate 1200 kg/m^3, order-of-magnitude for dried plant matter; flagged CANDIDATE",
+    "poissons_ratio": "candidate 0.3, typical order for anisotropic dried plant matter treated isotropically in a simple plate model; flagged CANDIDATE (real dried leaves are strongly anisotropic along the midrib; isotropy is a simplification, to be flagged in Node 3)",
+    "damping_ratio_zeta": "candidate 0.02, consistent with a lightly-damped, 'zingy' plucked-leaf resonance (ringing, not dead-thud); flagged CANDIDATE",
+    "string_contact_geometry": "localized excitation at one point / short line near the plate rim (where the bamboo-mounted string actually contacts or pushes the leaf), NOT a uniform pressure load - this determines which modal amplitudes A_m are actually excited (a rim-localized force excites mostly axisymmetric and low-azimuthal-order modes; a central force excites a different subset). Must be stated as a physical assumption, not left implicit."
+  },
+  "candidate_verification_baseline": {
+    "_note": "Must be genuinely independent of the modeling-input candidate constants.",
+    "name": "Closed-form clamped circular-plate eigenfrequency formula (textbook, via Bessel-function roots): f_m = (alpha_m^2 / (2*pi)) * sqrt(D/(rho_s * R^4)) where alpha_m is the m-th root of the clamped-edge Bessel condition, D = E*h^3/(12*(1-nu^2)), rho_s = rho_vol*h. Checked SYMBOLICALLY first (dimensional + scaling-law structure), then with the candidate numeric constants substituted to see where the predicted f_m values land vs. the 98-1047 Hz band - the FORMULA and its Bessel-root constants are the independent, source-free object; the specific E/rho guesses are only what we substitute in, so this is not circular.",
+    "expected_value": null,
+    "units": "Hz (predicted f_1, f_2, f_3... to be computed at Node 2b and compared against the 98-1047 Hz band)",
+    "citation_or_source": "Standard circular-plate vibration result (e.g. Timoshenko-style thin-plate theory for a clamped circular disk); Bessel-root constants are fixed mathematical values (source-free), not a second material-constant fetch, so independence from the modeling input's E/rho guesses holds."
+  },
+  "anomalies_expected": [
+    "Dried lontar leaf is not a homogeneous, isotropic, circular plate - real leaves are anisotropic, possibly non-circular, possibly non-uniform in thickness. All of these are flagged simplifications; Node 3 must make them visible, not silently absorbed into 'the answer'."
+  ]
+}

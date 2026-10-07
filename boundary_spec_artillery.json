@@ -1,0 +1,63 @@
+{
+  "model_module": "artillery_model",
+  "primary_result": "miss_m",
+  "cases": [
+    {
+      "name": "zero-muzzle-velocity -> trajectory never reaches target -> large undershoot (negative miss), finite",
+      "params": {
+        "v0_m_s": 1.0,
+        "theta_deg": 45.0,
+        "R_target_m": 1200.0
+      },
+      "expectation": "finite"
+    },
+    {
+      "name": "very-high-velocity -> large overshoot (positive miss), still finite",
+      "params": {
+        "v0_m_s": 450.0,
+        "theta_deg": 45.0,
+        "R_target_m": 1200.0
+      },
+      "expectation": "finite"
+    },
+    {
+      "name": "straight-up (90 deg) with any v0 -> x barely moves -> strongly negative miss",
+      "params": {
+        "v0_m_s": 140.0,
+        "theta_deg": 89.0,
+        "R_target_m": 1200.0
+      },
+      "expectation": "finite"
+    },
+    {
+      "name": "near-horizontal (1 deg) -> lands very short -> strongly negative miss",
+      "params": {
+        "v0_m_s": 140.0,
+        "theta_deg": 1.0,
+        "R_target_m": 1200.0
+      },
+      "expectation": "finite"
+    }
+  ],
+  "sweep": {
+    "param": "v0_m_s",
+    "values": [
+      60.0,
+      100.0,
+      142.3,
+      180.0,
+      250.0,
+      350.0,
+      450.0
+    ],
+    "order": "increase",
+    "base_params": {
+      "theta_deg": 45.0,
+      "R_target_m": 1200.0,
+      "z_launch_m": 500.0,
+      "z_target_m": 500.0,
+      "u_wind_m_s": 0.0
+    },
+    "note": "miss distance is expected to increase monotonically with v0 (faster shot, farther landing point) at fixed angle - a monotonicity check the gate can actually verify."
+  }
+}

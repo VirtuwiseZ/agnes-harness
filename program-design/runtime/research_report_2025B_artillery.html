@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang='zh'><head><meta charset='utf-8'><title>物理研究汇报 — 5f6ef764-8685-4831-9489-c3744616b56a</title><style>
+:root{--bg:#0f1117;--card:#1a1d27;--card2:#232733;--ink:#e8eaf2;--muted:#9aa0b4;
+--accent:#4f8cff;--orange:#ff9f43;--red:#ff5470;--green:#2ecc71;--line:#3a3f52}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:15px/1.6 system-ui,"Segoe UI",sans-serif;padding:24px 200px 40px 24px}
+header.report-header h1{font-size:26px;margin:0 0 4px}
+.meta{color:var(--muted);font-size:13px}
+.report-section{background:var(--card);border:1px solid var(--line);border-radius:12px;
+padding:18px 20px;margin:18px 0}
+.report-section h2{font-size:20px;margin:0 0 12px}
+.sec-body p{margin:8px 0}
+.sec-body ul{margin:8px 0 8px 18px}
+.sec-body code{background:#12141c;padding:1px 5px;border-radius:4px;font-size:0.92em}
+.verify-block,.state-block{margin-top:14px;font-size:13px;color:var(--muted);
+border-left:4px solid var(--accent);padding-left:12px}
+.verify-block summary,.state-block summary{cursor:pointer;color:var(--accent);font-weight:600}
+.legacy-note{color:var(--muted);font-weight:400;font-size:15px;margin:20px 0}
+.layer-card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+padding:18px 20px;margin:18px 0}
+.layer-card h2{font-size:20px;margin:0 0 12px;display:flex;align-items:center;gap:10px}
+.layer-num{background:var(--accent);color:#fff;border-radius:50%;width:30px;height:30px;
+display:inline-flex;align-items:center;justify-content:center;font-size:15px}
+.step-block{background:var(--card2);border-radius:8px;padding:12px 14px;margin:10px 0;
+border-left:4px solid var(--accent)}
+.step-block.anomaly-minor{border-left-color:var(--orange)}
+.step-block.anomaly-major{border-left-color:var(--red)}
+.badge{font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px;font-weight:600}
+.badge-major{background:var(--red);color:#fff}
+.badge-minor{background:var(--orange);color:#1a1d27}
+.step-detail{margin-top:8px;font-size:12.5px;color:var(--muted)}
+.step-detail pre,.state-block pre,.verify-block pre{white-space:pre-wrap;background:#12141c;
+padding:8px;border-radius:6px;max-height:220px;overflow:auto}
+.loop-channel{position:fixed;right:16px;top:80px;width:160px}
+.loop-arc{fill:none;stroke-width:2;opacity:.85}
+.loop-arc.major{stroke:var(--red)}
+.cross-check{max-width:760px;margin-top:28px;background:var(--card);border:1px solid var(--line);
+border-radius:12px;padding:18px 20px}
+.cross-check h2{font-size:17px;margin:0 0 10px}
+.cross-table{border-collapse:collapse;width:100%}
+.cross-table th,.cross-table td{padding:6px 8px;border-bottom:1px solid var(--line);
+text-align:left;font-size:13px}
+.cross-table th{color:var(--muted)}
+.cross-empty{color:var(--muted)}
+</style></head><body><header class='report-header'><h1>物理研究汇报</h1><p class='meta'>session: 5f6ef764-8685-4831-9489-c3744616b56a · 主叙事来源: report-md（AI 增量研究汇报，主叙事）+ trace（按需核验附证） · trace 事件数: 258 · tool calls: 112 · 生成于 2026-10-07T15:09:54</p></header><section class='report-section' id='sec-0'><h2>Node 1 — Task Spec &amp; Private Prior</h2><div class='sec-body'><p><strong>What was done.</strong> The task was decomposed into: (a) find a concrete</p>
+<p>(muzzle velocity <code>v0</code>, firing angle <code>theta</code>) pair that makes a 5 kg, 11 cm</p>
+<p>diameter solid sphere land exactly on a target 1200 m away, with both cannon</p>
+<p>and target at 500 m altitude, under the stated cap <code>v0 &lt;= 450 m/s</code>; and</p>
+<p>(b) generalize that same method to targets at 1000–1500 m, varied</p>
+<p>altitudes, and varied wind, in a form a mathematically trained officer with</p>
+<p>no calculator could actually carry out.</p>
+<p><strong>Evidence/assumption relied on.</strong> The cannon era (150–200 years old)</p>
+<p>implies a solid, near-smooth spherical projectile — so aerodynamic drag is</p>
+<p>modeled as a quadratic (high-Reynolds) drag force, not a linear Stokes</p>
+<p>term. This is the one physical-regime assumption everything downstream</p>
+<p>rests on.</p>
+<p><strong>A private, intuition-only prior sketch</strong> (order of magnitude, dominant</p>
+<p>physics regime, what would most plausibly limit the answer) was formed and</p>
+<p>recorded *only* in a dedicated, clearly-labeled field in</p>
+<p><code>problem_state.json</code> (<code>internal_prior</code>), never shown here or in the final</p>
+<p>conclusion. Its only permitted later use is a divergence check against the</p>
+<p>gate-verified number.</p>
+<p>---</p></div><details class='verify-block'><summary>核验附证 — 这段内容对应的实际工具调用（trace 对照，点开按需核验）</summary><table class='cross-table'><thead><tr><th>声称的 artifact_id / 具体操作</th><th>trace 里是否找到对应调用</th><th>匹配到 seq</th></tr></thead><tbody><tr><td>f6518860b3a646ee1f2fa29be9b37e642fdf1c877fd6fe5a92ecbee8a05192e2</td><td>⚠</td><td>—</td></tr><tr><td>2770455c4fdcf58bfa139b4f1bef6739c3c2f8e1adda8e663c06d974b97f769f</td><td>⚠</td><td>—</td></tr><tr><td>5986fa735cace10568e785d921bbbab14c790143ef781c55b6e938404585a446</td><td>⚠</td><td>—</td></tr><tr><td>0245adae2e665d11104b8dbfbf3af3899247f899fa5c9c0947d1458e43fc93ab</td><td>⚠</td><td>—</td></tr><tr><td>c8399d1bd4e5d6ae224def01834d313f03c1b19f860ca7ff831efdc190936e61</td><td>⚠</td><td>—</td></tr><tr><td>ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81</td><td>⚠</td><td>—</td></tr><tr><td>052553cfbdae174c67970cc1991ec2f2bb7b7e8d72ab12603817b1640ba10b4c</td><td>⚠</td><td>—</td></tr><tr><td>25d91af7b6253ef4a3ef0952e3e31a0e33b50969062a9a9e126afb93ed9f95e7</td><td>⚠</td><td>—</td></tr><tr><td>3d89f30387957119349db8f820d34d2bb14ed6b06b394216e810eb7140586e50</td><td>⚠</td><td>—</td></tr><tr><td>506ec0c1251956ca12611d3bb5c2f9ade42dc55fb341155db93033a503253773</td><td>⚠</td><td>—</td></tr><tr><td>01e37f36a4164dcfe90b554ca3234cf89f3ff082775dd89b7f57c693e8cc3b7b</td><td>⚠</td><td>—</td></tr><tr><td>d45ad22c628dbc07eda285dc739246ffa96d9fe610b490f7e3a86e2937b139b2</td><td>⚠</td><td>—</td></tr><tr><td>2d154fa00f52073bd2164a75feb8520536aaaefa4c1193e5b3d30e1b39828c91</td><td>⚠</td><td>—</td></tr><tr><td>3391ceb861f60fce3f02a8783c96d9891baeddaa92729c0ad5e4308f4685e4b3</td><td>⚠</td><td>—</td></tr><tr><td>7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6</td><td>⚠</td><td>—</td></tr></tbody></table></details><details class='state-block'><summary>数据快照 — problem_state.json 中本节写入/更新的内容</summary><p><em>audit_logs（本文件新增/引用的记录）:</em></p><pre>[
+  {
+    &quot;timestamp&quot;: 1791356890.6759899,
+    &quot;source&quot;: &quot;node_1_task_spec&quot;,
+    &quot;args&quot;: {
+      &quot;problem_id&quot;: &quot;2025B_Artillery&quot;,
+      &quot;note&quot;: &quot;Task spec written: target = (v_muzzle, theta) hit pair for the 1200 m / both-ends-500 m case, plus a hand-computable estimation method generalized across 1000-1500 m range, varied altitudes, varied wind. Hard cap: v_muzzle &lt;= 450 m/s (the era&#x27;s stated &#x27;up to&#x27; limit).&quot;
+    },
+    &quot;artifact_id&quot;: &quot;ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81&quot;
+  },
+  {
+    &quot;timestamp&quot;: 1791356890.679538,
+    &quot;source&quot;: &quot;node_1_internal_prior&quot;,
+    &quot;args&quot;: {
+      &quot;note&quot;: &quot;internal_prior sketch recorded in problem_state.json&#x27;s dedicated field: private intuition-only estimate, NOT evidence. Dominant regime expected to be ballistic; order-of-magnitude estimate v0 ~ 130-170 m/s, theta ~ 35-50 deg for the 1200 m case. Divergence check vs Node 2b&#x27;s verified number is required later.&quot;
+    },
+    &quot;artifact_id&quot;: &quot;7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6&quot;
+  },
+  {
+    &quot;timestamp&quot;: 1791356890.6957643,
+    &quot;source&quot;: &quot;ambiance_atmosphere_level0_sample&quot;,
+    &quot;args&quot;: {
+      &quot;z_m&quot;: [
+        0,
+        500,
+        3000
+      ],
+      &quot;sample_values&quot;: {
+        &quot;0_m&quot;: {
+          &quot;T_K&quot;: 288.15,
+          &quot;rho_kg_m3&quot;: 1.225,
+          &quot;speed_of_sound_m_s&quot;: 340.29,
+          &quot;P_Pa&quot;: 101325.0
+        },
+        &quot;500_m&quot;: {
+          &quot;T_K&quot;: 284.9,
+          &quot;rho_kg_m3&quot;: 1.16727,
+          &quot;speed_of_sound_m_s&quot;: 338.37,
+          &quot;P_</pre><p><em>anomalies:</em></p><pre>[
+  {
+    &quot;type&quot;: &quot;state_file_truncation_recovery&quot;,
+    &quot;note&quot;: &quot;Mid-run, a buggy helper script opened problem_state.json for write (truncating it to 0 bytes) before re-reading it back, losing the on-disk copy. The content was fully recoverable from the in-session script outputs already captured in this run&#x27;s transcript, so it was reconstructed and every field cross-checked for consistency against those outputs before being written back. Logged here (not silently papered over) per the protocol&#x27;s &#x27;write-back verification&#x27; principle - the recovery is real, and this record is the evidence that it happened and was consciously handled, not an accident walked back later.&quot;
+  },
+  {
+    &quot;type&quot;: &quot;code_bug_quota_decrement&quot;,
+    &quot;note&quot;: &quot;artillery_model.py&#x27;s simulate() referenced an undefined closure variable (u_wind instead of u_wind_m_s) on first run - a plain coding error, not a physics-model error. Fixed in one edit; quota decremented 3 -&gt; 2 (annealing threshold not reached, no hypothesis rollback needed).&quot;
+  }
+]</pre><p><em>verification:</em></p><pre>{
+  &quot;benchmark_source&quot;: &quot;Independent hand-computable estimate: vacuum range formula + first-order quadratic-drag perturbation, using ONLY a uniform sea-level density (rho=1.225, a_sound=340.29) - no T(z)/rho(z) source, hence genuinely independent of the ambiance variable-density modeling input chosen at Node 1.5&quot;,
+  &quot;comparison_result&quot;: {
+    &quot;ode_variable_density&quot;: {
+      &quot;v0_m_s&quot;: 142.3,
+      &quot;theta_deg&quot;: 40.0,
+      &quot;R_m&quot;: 1200.0,
+      &quot;wind_m_s&quot;: 0.0,
+      &quot;residual_m&quot;: 2.66e-05
+    },
+    &quot;independent_hand_estimate&quot;: {
+      &quot;v0_vac_m_s&quot;: 109.31,
+      &quot;drag_corrected_v0_m_s&quot;: 235.96,
+      &quot;note&quot;: &quot;The first-order drag-perturbation formula v0 ~ v0_vac*sqrt(1+K*R*v0_vac/(2g)) is only valid for K*R*v0_vac/(2g) &lt;&lt; 1; here that argument is ~0.5, so this estimate is a known overestima</pre></details></section><section class='report-section' id='sec-1'><h2>Node 1.5 — Data-Source Routing</h2><div class='sec-body'><p><strong>What was done.</strong> Decided what external data this problem actually needs:</p>
+<p>(a) a variable air-density / speed-of-sound profile <code>rho(z)</code>, <code>a_sound(z)</code></p>
+<p>over the few-kilometer altitude span the trajectory occupies — this is the</p>
+<p>*modeling input*; and (b) a genuinely *independent* verification baseline,</p>
+<p>chosen so it does NOT reuse the same data source as (a).</p>
+<p><strong>Decision + rationale.</strong> <code>ambiance</code> (a locally installed Python package</p>
+<p>implementing a US-Standard-Atmosphere-style profile) was live-tested in</p>
+<p>this environment — a real import + sample call at 0 / 500 / 3000 m, not</p>
+<p>just a documented claim — and confirmed to cover the required span with no</p>
+<p>out-of-range caveats. It was chosen at Level 0 (local package) over a live</p>
+<p>API (Level 1) or a static published table (Level 2) because it is already</p>
+<p>installed, requires no network call, and its validity comfortably exceeds</p>
+<p>the few-km span this problem actually needs.</p>
+<p><strong>Independence guarantee.</strong> The verification baseline was deliberately a</p>
+<p>*different kind* of object: a closed-form vacuum-range formula plus a</p>
+<p>first-order drag-perturbation estimate, using only a single *constant*</p>
+<p>sea-level density — no <code>T(z)</code>/<code>rho(z)</code> profile at all. This means the</p>
+<p>&quot;model vs. baseline&quot; comparison is not &quot;atmosphere table vs. the same</p>
+<p>atmosphere table recomputed&quot; (which would be circular validation).</p>
+<p><strong>No fallback / human-intervention branch was needed</strong> — the chosen source</p>
+<p>was reachable and in-span, so the protocol&#x27;s &quot;manual fetch + handoff&quot;</p>
+<p>checkpoint (Step 5a) was not triggered.</p>
+<p>---</p></div><details class='verify-block'><summary>核验附证 — 这段内容对应的实际工具调用（trace 对照，点开按需核验）</summary><table class='cross-table'><thead><tr><th>声称的 artifact_id / 具体操作</th><th>trace 里是否找到对应调用</th><th>匹配到 seq</th></tr></thead><tbody><tr><td>f6518860b3a646ee1f2fa29be9b37e642fdf1c877fd6fe5a92ecbee8a05192e2</td><td>⚠</td><td>—</td></tr><tr><td>2770455c4fdcf58bfa139b4f1bef6739c3c2f8e1adda8e663c06d974b97f769f</td><td>⚠</td><td>—</td></tr><tr><td>5986fa735cace10568e785d921bbbab14c790143ef781c55b6e938404585a446</td><td>⚠</td><td>—</td></tr><tr><td>0245adae2e665d11104b8dbfbf3af3899247f899fa5c9c0947d1458e43fc93ab</td><td>⚠</td><td>—</td></tr><tr><td>c8399d1bd4e5d6ae224def01834d313f03c1b19f860ca7ff831efdc190936e61</td><td>⚠</td><td>—</td></tr><tr><td>ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81</td><td>⚠</td><td>—</td></tr><tr><td>052553cfbdae174c67970cc1991ec2f2bb7b7e8d72ab12603817b1640ba10b4c</td><td>⚠</td><td>—</td></tr><tr><td>25d91af7b6253ef4a3ef0952e3e31a0e33b50969062a9a9e126afb93ed9f95e7</td><td>⚠</td><td>—</td></tr><tr><td>3d89f30387957119349db8f820d34d2bb14ed6b06b394216e810eb7140586e50</td><td>⚠</td><td>—</td></tr><tr><td>506ec0c1251956ca12611d3bb5c2f9ade42dc55fb341155db93033a503253773</td><td>⚠</td><td>—</td></tr><tr><td>01e37f36a4164dcfe90b554ca3234cf89f3ff082775dd89b7f57c693e8cc3b7b</td><td>⚠</td><td>—</td></tr><tr><td>d45ad22c628dbc07eda285dc739246ffa96d9fe610b490f7e3a86e2937b139b2</td><td>⚠</td><td>—</td></tr><tr><td>2d154fa00f52073bd2164a75feb8520536aaaefa4c1193e5b3d30e1b39828c91</td><td>⚠</td><td>—</td></tr><tr><td>3391ceb861f60fce3f02a8783c96d9891baeddaa92729c0ad5e4308f4685e4b3</td><td>⚠</td><td>—</td></tr><tr><td>7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6</td><td>⚠</td><td>—</td></tr></tbody></table></details><details class='state-block'><summary>数据快照 — problem_state.json 中本节写入/更新的内容</summary><p><em>audit_logs（本文件新增/引用的记录）:</em></p><pre>[
+  {
+    &quot;timestamp&quot;: 1791356890.6759899,
+    &quot;source&quot;: &quot;node_1_task_spec&quot;,
+    &quot;args&quot;: {
+      &quot;problem_id&quot;: &quot;2025B_Artillery&quot;,
+      &quot;note&quot;: &quot;Task spec written: target = (v_muzzle, theta) hit pair for the 1200 m / both-ends-500 m case, plus a hand-computable estimation method generalized across 1000-1500 m range, varied altitudes, varied wind. Hard cap: v_muzzle &lt;= 450 m/s (the era&#x27;s stated &#x27;up to&#x27; limit).&quot;
+    },
+    &quot;artifact_id&quot;: &quot;ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81&quot;
+  },
+  {
+    &quot;timestamp&quot;: 1791356890.679538,
+    &quot;source&quot;: &quot;node_1_internal_prior&quot;,
+    &quot;args&quot;: {
+      &quot;note&quot;: &quot;internal_prior sketch recorded in problem_state.json&#x27;s dedicated field: private intuition-only estimate, NOT evidence. Dominant regime expected to be ballistic; order-of-magnitude estimate v0 ~ 130-170 m/s, theta ~ 35-50 deg for the 1200 m case. Divergence check vs Node 2b&#x27;s verified number is required later.&quot;
+    },
+    &quot;artifact_id&quot;: &quot;7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6&quot;
+  },
+  {
+    &quot;timestamp&quot;: 1791356890.6957643,
+    &quot;source&quot;: &quot;ambiance_atmosphere_level0_sample&quot;,
+    &quot;args&quot;: {
+      &quot;z_m&quot;: [
+        0,
+        500,
+        3000
+      ],
+      &quot;sample_values&quot;: {
+        &quot;0_m&quot;: {
+          &quot;T_K&quot;: 288.15,
+          &quot;rho_kg_m3&quot;: 1.225,
+          &quot;speed_of_sound_m_s&quot;: 340.29,
+          &quot;P_Pa&quot;: 101325.0
+        },
+        &quot;500_m&quot;: {
+          &quot;T_K&quot;: 284.9,
+          &quot;rho_kg_m3&quot;: 1.16727,
+          &quot;speed_of_sound_m_s&quot;: 338.37,
+          &quot;P_</pre><p><em>anomalies:</em></p><pre>[
+  {
+    &quot;type&quot;: &quot;state_file_truncation_recovery&quot;,
+    &quot;note&quot;: &quot;Mid-run, a buggy helper script opened problem_state.json for write (truncating it to 0 bytes) before re-reading it back, losing the on-disk copy. The content was fully recoverable from the in-session script outputs already captured in this run&#x27;s transcript, so it was reconstructed and every field cross-checked for consistency against those outputs before being written back. Logged here (not silently papered over) per the protocol&#x27;s &#x27;write-back verification&#x27; principle - the recovery is real, and this record is the evidence that it happened and was consciously handled, not an accident walked back later.&quot;
+  },
+  {
+    &quot;type&quot;: &quot;code_bug_quota_decrement&quot;,
+    &quot;note&quot;: &quot;artillery_model.py&#x27;s simulate() referenced an undefined closure variable (u_wind instead of u_wind_m_s) on first run - a plain coding error, not a physics-model error. Fixed in one edit; quota decremented 3 -&gt; 2 (annealing threshold not reached, no hypothesis rollback needed).&quot;
+  }
+]</pre><p><em>verification:</em></p><pre>{
+  &quot;benchmark_source&quot;: &quot;Independent hand-computable estimate: vacuum range formula + first-order quadratic-drag perturbation, using ONLY a uniform sea-level density (rho=1.225, a_sound=340.29) - no T(z)/rho(z) source, hence genuinely independent of the ambiance variable-density modeling input chosen at Node 1.5&quot;,
+  &quot;comparison_result&quot;: {
+    &quot;ode_variable_density&quot;: {
+      &quot;v0_m_s&quot;: 142.3,
+      &quot;theta_deg&quot;: 40.0,
+      &quot;R_m&quot;: 1200.0,
+      &quot;wind_m_s&quot;: 0.0,
+      &quot;residual_m&quot;: 2.66e-05
+    },
+    &quot;independent_hand_estimate&quot;: {
+      &quot;v0_vac_m_s&quot;: 109.31,
+      &quot;drag_corrected_v0_m_s&quot;: 235.96,
+      &quot;note&quot;: &quot;The first-order drag-perturbation formula v0 ~ v0_vac*sqrt(1+K*R*v0_vac/(2g)) is only valid for K*R*v0_vac/(2g) &lt;&lt; 1; here that argument is ~0.5, so this estimate is a known overestima</pre></details></section><section class='report-section' id='sec-2'><h2>Node 2a — Knowledge Routing &amp; Template Adaptation Check</h2><div class='sec-body'><p><strong>What was done.</strong> Matched the problem to the project&#x27;s</p>
+<p><code>atmosphere-drag-ode.md</code> method template — the same generic &quot;projectile</p>
+<p>through a variable-density atmosphere with drag as a force term&quot; structure</p>
+<p>— and then explicitly re-derived, line by line, *which* of that template&#x27;s</p>
+<p>concrete assumptions actually apply to THIS problem versus which are</p>
+<p>inherited from the template&#x27;s original space-diving example and must be</p>
+<p>re-derived or dropped.</p>
+<p><strong>Key findings (recorded, not silently reused):</strong></p>
+<ul>
+<li>The template&#x27;s ODE is 1D in *fallen distance*; this problem is a 2D</li>
+</ul>
+<p>  (horizontal + vertical) hit-condition problem — the ODE structure had to</p>
+<p>  be re-expressed as two coupled ODEs in time <code>t</code>, not copied verbatim.</p>
+<ul>
+<li>The template&#x27;s CD regime values (e.g. CD = 5.0 in a &quot;transonic&quot; band)</li>
+</ul>
+<p>  were tuned for a human jumper&#x27;s parachute/terminal regime — they do NOT</p>
+<p>  apply to a solid steel cannonball. Re-derived instead: CD ~ 0.47</p>
+<p>  subsonic, dropping to ~0.25 by Mach ~1.3, for a smooth sphere.</p>
+<ul>
+<li>The template&#x27;s &quot;maximum safe altitude&quot; optimization target has no</li>
+</ul>
+<p>  counterpart here — this problem solves a *discrete hit condition*</p>
+<p>  (x = R exactly when z returns to z_target), so the boundary/monotonicity</p>
+<p>  check structure was repurposed to check the *miss distance* (a signed,</p>
+<p>  monotone function of v0) instead.</p>
+<p>---</p></div><details class='verify-block'><summary>核验附证 — 这段内容对应的实际工具调用（trace 对照，点开按需核验）</summary><table class='cross-table'><thead><tr><th>声称的 artifact_id / 具体操作</th><th>trace 里是否找到对应调用</th><th>匹配到 seq</th></tr></thead><tbody><tr><td>f6518860b3a646ee1f2fa29be9b37e642fdf1c877fd6fe5a92ecbee8a05192e2</td><td>⚠</td><td>—</td></tr><tr><td>2770455c4fdcf58bfa139b4f1bef6739c3c2f8e1adda8e663c06d974b97f769f</td><td>⚠</td><td>—</td></tr><tr><td>5986fa735cace10568e785d921bbbab14c790143ef781c55b6e938404585a446</td><td>⚠</td><td>—</td></tr><tr><td>0245adae2e665d11104b8dbfbf3af3899247f899fa5c9c0947d1458e43fc93ab</td><td>⚠</td><td>—</td></tr><tr><td>c8399d1bd4e5d6ae224def01834d313f03c1b19f860ca7ff831efdc190936e61</td><td>⚠</td><td>—</td></tr><tr><td>ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81</td><td>⚠</td><td>—</td></tr><tr><td>052553cfbdae174c67970cc1991ec2f2bb7b7e8d72ab12603817b1640ba10b4c</td><td>⚠</td><td>—</td></tr><tr><td>25d91af7b6253ef4a3ef0952e3e31a0e33b50969062a9a9e126afb93ed9f95e7</td><td>⚠</td><td>—</td></tr><tr><td>3d89f30387957119349db8f820d34d2bb14ed6b06b394216e810eb7140586e50</td><td>⚠</td><td>—</td></tr><tr><td>506ec0c1251956ca12611d3bb5c2f9ade42dc55fb341155db93033a503253773</td><td>⚠</td><td>—</td></tr><tr><td>01e37f36a4164dcfe90b554ca3234cf89f3ff082775dd89b7f57c693e8cc3b7b</td><td>⚠</td><td>—</td></tr><tr><td>d45ad22c628dbc07eda285dc739246ffa96d9fe610b490f7e3a86e2937b139b2</td><td>⚠</td><td>—</td></tr><tr><td>2d154fa00f52073bd2164a75feb8520536aaaefa4c1193e5b3d30e1b39828c91</td><td>⚠</td><td>—</td></tr><tr><td>3391ceb861f60fce3f02a8783c96d9891baeddaa92729c0ad5e4308f4685e4b3</td><td>⚠</td><td>—</td></tr><tr><td>7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6</td><td>⚠</td><td>—</td></tr></tbody></table></details><details class='state-block'><summary>数据快照 — problem_state.json 中本节写入/更新的内容</summary><p><em>audit_logs（本文件新增/引用的记录）:</em></p><pre>[
+  {
+    &quot;timestamp&quot;: 1791356890.6759899,
+    &quot;source&quot;: &quot;node_1_task_spec&quot;,
+    &quot;args&quot;: {
+      &quot;problem_id&quot;: &quot;2025B_Artillery&quot;,
+      &quot;note&quot;: &quot;Task spec written: target = (v_muzzle, theta) hit pair for the 1200 m / both-ends-500 m case, plus a hand-computable estimation method generalized across 1000-1500 m range, varied altitudes, varied wind. Hard cap: v_muzzle &lt;= 450 m/s (the era&#x27;s stated &#x27;up to&#x27; limit).&quot;
+    },
+    &quot;artifact_id&quot;: &quot;ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81&quot;
+  },
+  {
+    &quot;timestamp&quot;: 1791356890.679538,
+    &quot;source&quot;: &quot;node_1_internal_prior&quot;,
+    &quot;args&quot;: {
+      &quot;note&quot;: &quot;internal_prior sketch recorded in problem_state.json&#x27;s dedicated field: private intuition-only estimate, NOT evidence. Dominant regime expected to be ballistic; order-of-magnitude estimate v0 ~ 130-170 m/s, theta ~ 35-50 deg for the 1200 m case. Divergence check vs Node 2b&#x27;s verified number is required later.&quot;
+    },
+    &quot;artifact_id&quot;: &quot;7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6&quot;
+  },
+  {
+    &quot;timestamp&quot;: 1791356890.6957643,
+    &quot;source&quot;: &quot;ambiance_atmosphere_level0_sample&quot;,
+    &quot;args&quot;: {
+      &quot;z_m&quot;: [
+        0,
+        500,
+        3000
+      ],
+      &quot;sample_values&quot;: {
+        &quot;0_m&quot;: {
+          &quot;T_K&quot;: 288.15,
+          &quot;rho_kg_m3&quot;: 1.225,
+          &quot;speed_of_sound_m_s&quot;: 340.29,
+          &quot;P_Pa&quot;: 101325.0
+        },
+        &quot;500_m&quot;: {
+          &quot;T_K&quot;: 284.9,
+          &quot;rho_kg_m3&quot;: 1.16727,
+          &quot;speed_of_sound_m_s&quot;: 338.37,
+          &quot;P_</pre><p><em>anomalies:</em></p><pre>[
+  {
+    &quot;type&quot;: &quot;state_file_truncation_recovery&quot;,
+    &quot;note&quot;: &quot;Mid-run, a buggy helper script opened problem_state.json for write (truncating it to 0 bytes) before re-reading it back, losing the on-disk copy. The content was fully recoverable from the in-session script outputs already captured in this run&#x27;s transcript, so it was reconstructed and every field cross-checked for consistency against those outputs before being written back. Logged here (not silently papered over) per the protocol&#x27;s &#x27;write-back verification&#x27; principle - the recovery is real, and this record is the evidence that it happened and was consciously handled, not an accident walked back later.&quot;
+  },
+  {
+    &quot;type&quot;: &quot;code_bug_quota_decrement&quot;,
+    &quot;note&quot;: &quot;artillery_model.py&#x27;s simulate() referenced an undefined closure variable (u_wind instead of u_wind_m_s) on first run - a plain coding error, not a physics-model error. Fixed in one edit; quota decremented 3 -&gt; 2 (annealing threshold not reached, no hypothesis rollback needed).&quot;
+  }
+]</pre><p><em>verification:</em></p><pre>{
+  &quot;benchmark_source&quot;: &quot;Independent hand-computable estimate: vacuum range formula + first-order quadratic-drag perturbation, using ONLY a uniform sea-level density (rho=1.225, a_sound=340.29) - no T(z)/rho(z) source, hence genuinely independent of the ambiance variable-density modeling input chosen at Node 1.5&quot;,
+  &quot;comparison_result&quot;: {
+    &quot;ode_variable_density&quot;: {
+      &quot;v0_m_s&quot;: 142.3,
+      &quot;theta_deg&quot;: 40.0,
+      &quot;R_m&quot;: 1200.0,
+      &quot;wind_m_s&quot;: 0.0,
+      &quot;residual_m&quot;: 2.66e-05
+    },
+    &quot;independent_hand_estimate&quot;: {
+      &quot;v0_vac_m_s&quot;: 109.31,
+      &quot;drag_corrected_v0_m_s&quot;: 235.96,
+      &quot;note&quot;: &quot;The first-order drag-perturbation formula v0 ~ v0_vac*sqrt(1+K*R*v0_vac/(2g)) is only valid for K*R*v0_vac/(2g) &lt;&lt; 1; here that argument is ~0.5, so this estimate is a known overestima</pre></details></section><section class='report-section' id='sec-3'><h2>Node 2b — Modeling, Execution &amp; Verification</h2><div class='sec-body'><p><strong>Governing equations.</strong> Two coupled ODEs in time <code>t</code>, with <code>x</code> (downrange</p>
+<p>horizontal distance) and <code>z</code> (altitude above sea level) as the projectile&#x27;s</p>
+<p>position:</p>
+<ul>
+<li><code>dvx/dt = -(rho(z) * CD(Mach) * A / (2m)) * |v_rel| * u_rel</code></li>
+<li><code>dvz/dt = -g - (rho(z) * CD(Mach) * A / (2m)) * |v_rel| * w_rel</code></li>
+<li><code>dx/dt = vx</code>, <code>dz/dt = vz</code></li>
+</ul>
+<p>where <code>u_rel = vx - u_wind</code> is the projectile&#x27;s x-velocity *relative to the</p>
+<p>air* (the wind is assumed purely horizontal), <code>w_rel = vz</code> (no vertical</p>
+<p>wind), <code>CD(Mach)</code> is the Mach-dependent drag coefficient, and</p>
+<p><code>rho(z)</code>/<code>a_sound(z)</code> are plain structured arrays handed in (the ODE code</p>
+<p>itself has no knowledge of which package produced them — source-agnostic</p>
+<p>by design).</p>
+<p><strong>Dimensional gate (first defense line).</strong> All four ODE lines were checked</p>
+<p>for dimensional homogeneity via the Pint-backed gate script: each</p>
+<p>acceleration-level term reduces to the identical base-dimension vector</p>
+<p>(length/time²); the two position-velocity lines trivially check out.</p>
+<p><strong>All four lines PASS.</strong> No term mismatch, no non-dimensionless</p>
+<p>transcendental arguments.</p>
+<p><strong>Numerical solve.</strong> A coarse scan over candidate firing angles</p>
+<p>(30°/40°/45°/50°/55°/60°), root-finding <code>v0</code> to zero the signed miss</p>
+<p>distance at each angle, using the variable-density (ambiance) setup:</p>
+<p>| theta | v0 (m/s) |</p>
+<p>|---|---|</p>
+<p>| 30° | 149.2 |</p>
+<p>| <strong>40°</strong> | <strong>142.3</strong> ← smallest converged v0, chosen as the headline answer |</p>
+<p>| 45° | 143.1 |</p>
+<p>| 50° | 146.8 |</p>
+<p>| 55° | 154.1 |</p>
+<p>| 60° | 166.3 |</p>
+<p>The 45° row is the &quot;natural&quot; reference angle (vacuum-optimal range angle),</p>
+<p>so it&#x27;s useful as a clean single-number generalization anchor for the</p>
+<p>officer-facing formula: **~143 m/s at 45° for the 1200 m / 500 m / no-wind</p>
+<p>case.**</p>
+<p><strong>Error encountered and how it was handled (not papered over).</strong> The very</p>
+<p>first run of the ODE code crashed on an undefined closure variable — a</p>
+<p>plain coding typo (<code>u_wind</code> vs. the actual parameter name), not a</p>
+<p>physics-model error. Fixed in one edit (this counts as one use of the</p>
+<p>downstream-retry quota, 3 → 2; well within the threshold, so no</p>
+<p>hypothesis-layer rollback was triggered). Separately, a mid-run helper</p>
+<p>script accidentally truncated <code>problem_state.json</code> to 0 bytes (opened it</p>
+<p>for writing before re-reading it back); the file was fully reconstructable</p>
+<p>from script outputs already captured earlier in this same session, and the</p>
+<p>reconstruction was cross-checked field-by-field against those outputs</p>
+<p>before being written back — logged as an explicit anomaly, not silently</p>
+<p>recovered.</p>
+<p><strong>Boundary gate (second defense line).</strong> Four degenerate cases + a</p>
+<p>7-point monotonicity sweep, all PASS:</p>
+<ul>
+<li><code>v0 = 1 m/s</code> → miss ≈ −1200 m (finite, strong undershoot, as expected)</li>
+<li><code>v0 = 450 m/s</code> → miss ≈ +2059 m (finite, strong overshoot, as expected)</li>
+<li><code>theta = 89°</code> (nearly straight up) → miss ≈ −1160 m (finite)</li>
+<li><code>theta = 1°</code> (nearly horizontal) → miss ≈ −1132 m (finite)</li>
+<li><code>miss(v0)</code> at fixed 45° is strictly increasing across `v0 = 60 → 450</li>
+</ul>
+<p>  m/s` — the exact monotonicity a hand-bracketing officer&#x27;s method relies on</p>
+<p>  (see Node 3 conclusion), and it holds cleanly.</p>
+<p><strong>Independent cross-check.</strong> With no drag at all, the classic</p>
+<p><code>R = v0² sin(2θ)/g</code> range formula gives ~2034 m for the chosen</p>
+<p><code>v0 = 142.3 m/s, θ = 40°</code> — well *above* the 1200 m target, exactly the</p>
+<p>direction a drag-shortened trajectory is expected to have (drag pulls the</p>
+<p>landing point back toward the cannon). A first-order drag-perturbation</p>
+<p>hand estimate overshoots the ODE answer by ~66%, but that formula&#x27;s own</p>
+<p>stated validity (small drag-to-gravity ratio) is outside the range this</p>
+<p>problem actually sits in, so this is a known, documented limitation of</p>
+<p>*that shortcut*, not a bug in the ODE result — it was consciously examined,</p>
+<p>not silently ignored.</p>
+<p>---</p></div><details class='verify-block'><summary>核验附证 — 这段内容对应的实际工具调用（trace 对照，点开按需核验）</summary><table class='cross-table'><thead><tr><th>声称的 artifact_id / 具体操作</th><th>trace 里是否找到对应调用</th><th>匹配到 seq</th></tr></thead><tbody><tr><td>f6518860b3a646ee1f2fa29be9b37e642fdf1c877fd6fe5a92ecbee8a05192e2</td><td>⚠</td><td>—</td></tr><tr><td>2770455c4fdcf58bfa139b4f1bef6739c3c2f8e1adda8e663c06d974b97f769f</td><td>⚠</td><td>—</td></tr><tr><td>5986fa735cace10568e785d921bbbab14c790143ef781c55b6e938404585a446</td><td>⚠</td><td>—</td></tr><tr><td>0245adae2e665d11104b8dbfbf3af3899247f899fa5c9c0947d1458e43fc93ab</td><td>⚠</td><td>—</td></tr><tr><td>c8399d1bd4e5d6ae224def01834d313f03c1b19f860ca7ff831efdc190936e61</td><td>⚠</td><td>—</td></tr><tr><td>ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81</td><td>⚠</td><td>—</td></tr><tr><td>052553cfbdae174c67970cc1991ec2f2bb7b7e8d72ab12603817b1640ba10b4c</td><td>⚠</td><td>—</td></tr><tr><td>25d91af7b6253ef4a3ef0952e3e31a0e33b50969062a9a9e126afb93ed9f95e7</td><td>⚠</td><td>—</td></tr><tr><td>3d89f30387957119349db8f820d34d2bb14ed6b06b394216e810eb7140586e50</td><td>⚠</td><td>—</td></tr><tr><td>506ec0c1251956ca12611d3bb5c2f9ade42dc55fb341155db93033a503253773</td><td>⚠</td><td>—</td></tr><tr><td>01e37f36a4164dcfe90b554ca3234cf89f3ff082775dd89b7f57c693e8cc3b7b</td><td>⚠</td><td>—</td></tr><tr><td>d45ad22c628dbc07eda285dc739246ffa96d9fe610b490f7e3a86e2937b139b2</td><td>⚠</td><td>—</td></tr><tr><td>2d154fa00f52073bd2164a75feb8520536aaaefa4c1193e5b3d30e1b39828c91</td><td>⚠</td><td>—</td></tr><tr><td>3391ceb861f60fce3f02a8783c96d9891baeddaa92729c0ad5e4308f4685e4b3</td><td>⚠</td><td>—</td></tr><tr><td>7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6</td><td>⚠</td><td>—</td></tr></tbody></table></details><details class='state-block'><summary>数据快照 — problem_state.json 中本节写入/更新的内容</summary><p><em>audit_logs（本文件新增/引用的记录）:</em></p><pre>[
+  {
+    &quot;timestamp&quot;: 1791356890.6759899,
+    &quot;source&quot;: &quot;node_1_task_spec&quot;,
+    &quot;args&quot;: {
+      &quot;problem_id&quot;: &quot;2025B_Artillery&quot;,
+      &quot;note&quot;: &quot;Task spec written: target = (v_muzzle, theta) hit pair for the 1200 m / both-ends-500 m case, plus a hand-computable estimation method generalized across 1000-1500 m range, varied altitudes, varied wind. Hard cap: v_muzzle &lt;= 450 m/s (the era&#x27;s stated &#x27;up to&#x27; limit).&quot;
+    },
+    &quot;artifact_id&quot;: &quot;ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81&quot;
+  },
+  {
+    &quot;timestamp&quot;: 1791356890.679538,
+    &quot;source&quot;: &quot;node_1_internal_prior&quot;,
+    &quot;args&quot;: {
+      &quot;note&quot;: &quot;internal_prior sketch recorded in problem_state.json&#x27;s dedicated field: private intuition-only estimate, NOT evidence. Dominant regime expected to be ballistic; order-of-magnitude estimate v0 ~ 130-170 m/s, theta ~ 35-50 deg for the 1200 m case. Divergence check vs Node 2b&#x27;s verified number is required later.&quot;
+    },
+    &quot;artifact_id&quot;: &quot;7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6&quot;
+  },
+  {
+    &quot;timestamp&quot;: 1791356890.6957643,
+    &quot;source&quot;: &quot;ambiance_atmosphere_level0_sample&quot;,
+    &quot;args&quot;: {
+      &quot;z_m&quot;: [
+        0,
+        500,
+        3000
+      ],
+      &quot;sample_values&quot;: {
+        &quot;0_m&quot;: {
+          &quot;T_K&quot;: 288.15,
+          &quot;rho_kg_m3&quot;: 1.225,
+          &quot;speed_of_sound_m_s&quot;: 340.29,
+          &quot;P_Pa&quot;: 101325.0
+        },
+        &quot;500_m&quot;: {
+          &quot;T_K&quot;: 284.9,
+          &quot;rho_kg_m3&quot;: 1.16727,
+          &quot;speed_of_sound_m_s&quot;: 338.37,
+          &quot;P_</pre><p><em>anomalies:</em></p><pre>[
+  {
+    &quot;type&quot;: &quot;state_file_truncation_recovery&quot;,
+    &quot;note&quot;: &quot;Mid-run, a buggy helper script opened problem_state.json for write (truncating it to 0 bytes) before re-reading it back, losing the on-disk copy. The content was fully recoverable from the in-session script outputs already captured in this run&#x27;s transcript, so it was reconstructed and every field cross-checked for consistency against those outputs before being written back. Logged here (not silently papered over) per the protocol&#x27;s &#x27;write-back verification&#x27; principle - the recovery is real, and this record is the evidence that it happened and was consciously handled, not an accident walked back later.&quot;
+  },
+  {
+    &quot;type&quot;: &quot;code_bug_quota_decrement&quot;,
+    &quot;note&quot;: &quot;artillery_model.py&#x27;s simulate() referenced an undefined closure variable (u_wind instead of u_wind_m_s) on first run - a plain coding error, not a physics-model error. Fixed in one edit; quota decremented 3 -&gt; 2 (annealing threshold not reached, no hypothesis rollback needed).&quot;
+  }
+]</pre><p><em>verification:</em></p><pre>{
+  &quot;benchmark_source&quot;: &quot;Independent hand-computable estimate: vacuum range formula + first-order quadratic-drag perturbation, using ONLY a uniform sea-level density (rho=1.225, a_sound=340.29) - no T(z)/rho(z) source, hence genuinely independent of the ambiance variable-density modeling input chosen at Node 1.5&quot;,
+  &quot;comparison_result&quot;: {
+    &quot;ode_variable_density&quot;: {
+      &quot;v0_m_s&quot;: 142.3,
+      &quot;theta_deg&quot;: 40.0,
+      &quot;R_m&quot;: 1200.0,
+      &quot;wind_m_s&quot;: 0.0,
+      &quot;residual_m&quot;: 2.66e-05
+    },
+    &quot;independent_hand_estimate&quot;: {
+      &quot;v0_vac_m_s&quot;: 109.31,
+      &quot;drag_corrected_v0_m_s&quot;: 235.96,
+      &quot;note&quot;: &quot;The first-order drag-perturbation formula v0 ~ v0_vac*sqrt(1+K*R*v0_vac/(2g)) is only valid for K*R*v0_vac/(2g) &lt;&lt; 1; here that argument is ~0.5, so this estimate is a known overestima</pre></details></section><section class='report-section' id='sec-4'><h2>Node 3 — Conclusion &amp; The Officer&#x27;s Hand Method</h2><div class='sec-body'><p><strong>Headline answer (variable-density, no wind):</strong> <code>theta ≈ 40°</code>,</p>
+<p><code>v0 ≈ 142 m/s</code> for <code>R = 1200 m</code>, launch &amp; target both at <code>500 m</code> —</p>
+<p>comfortably under the <code>450 m/s</code> cap, with the 45°-angle variant</p>
+<p>(<code>v0 ≈ 143 m/s</code>) as the cleaner &quot;one number&quot; reference.</p>
+<p><strong>How the required <code>v0</code> scales (all at 45°, variable-density model):</strong></p>
+<p>| Scenario | Required v0 (m/s) |</p>
+<p>|---|---|</p>
+<p>| <code>R = 1000 m</code>, 500 m ↔ 500 m, no wind | ~124 |</p>
+<p>| <code>R = 1200 m</code>, 500 m ↔ 500 m, no wind | ~143 |</p>
+<p>| <code>R = 1500 m</code>, 500 m ↔ 500 m, no wind | ~173 |</p>
+<p>| <code>R = 1200 m</code>, 5 m/s <strong>headwind</strong> | ~148 |</p>
+<p>| <code>R = 1200 m</code>, 5 m/s <strong>tailwind</strong> | ~139 |</p>
+<p>| <code>R = 1200 m</code>, launch from 1000 m, target 500 m | ~119 |</p>
+<p>| <code>R = 1200 m</code>, launch 500 m, target at 1000 m | ~80 |</p>
+<p>Read: range scales roughly *linearly* with the required muzzle velocity at</p>
+<p>fixed angle; wind matters (a 5 m/s headwind costs ~5 m/s of required</p>
+<p>muzzle velocity, a 5 m/s tailwind saves ~4 m/s); and the *altitude</p>
+<p>difference* between launch and target is the biggest single lever — a</p>
+<p>trajectory going 500 m *uphill* needs far less muzzle velocity than one</p>
+<p>going to the same flat distance.</p>
+<p><strong>What a mathematically trained officer without a calculator does.</strong></p>
+<p>1. <strong>Vacuum first.</strong> Pick a trial angle (45° is the natural starting</p>
+<p>   point — it maximizes vacuum range for a given <code>v0</code>). Compute the</p>
+<p>   *vacuum* muzzle velocity needed: <code>v0_vac = sqrt(R·g / sin(2θ))</code>. For</p>
+<p>   <code>R = 1200 m</code>, <code>θ = 45°</code>: <code>v0_vac ≈ 108 m/s</code>. This step needs only</p>
+<p>   multiplication, a square root, and a single trig value — all</p>
+<p>   hand-doable with a slide rule or table.</p>
+<p>2. <strong>Estimate the drag penalty.</strong> Compute the drag-to-gravity scale</p>
+<p>   <code>K = ρ·CD·A/(2m)</code> (one line of arithmetic using known projectile</p>
+<p>   mass, diameter, and an approximate sea-level <code>ρ</code>). If</p>
+<p>   <code>K·R·v0_vac/(2g)</code> is well under 1 (a gentle check — a single</p>
+<p>   multiplication + division), drag is a *small* correction: bump</p>
+<p>   <code>v0_vac</code> up by roughly <code>½·(K·R·v0_vac/(2g))</code> of itself. If that</p>
+<p>   check fails (the ratio is not small, as it turns out to be in this</p>
+<p>   exact problem), don&#x27;t force the linear correction — go straight to</p>
+<p>   step 3.</p>
+<p>3. <strong>Bracket by hand.</strong> Evaluate the landing distance (by the same</p>
+<p>   hand formulas, or a rough table lookup) at 2–3 trial <code>v0</code> values</p>
+<p>   around the step-1/step-2 estimate. Because <code>miss(v0)</code> is strictly</p>
+<p>   monotone in <code>v0</code> at fixed angle (verified in this run&#x27;s boundary</p>
+<p>   gate), the officer just interpolates between the two bracketing</p>
+<p>   trial values — no iterative solver needed, just one or two</p>
+<p>   linearly-interpolated guesses.</p>
+<p>4. <strong>Angle tradeoff, if needed.</strong> If the required <code>v0</code> from step 3 comes</p>
+<p>   in near the <code>450 m/s</code> cap (only relevant for the far end of the</p>
+<p>   1000–1500 m range at high target altitudes), drop the angle — the</p>
+<p>   run&#x27;s own 6-angle scan shows <code>v0</code> for a fixed range peaks around</p>
+<p>   45–55° and falls off on either side, so there&#x27;s a cheaper angle to</p>
+<p>   trade against a too-high muzzle speed.</p>
+<p><strong>What would need to change for this conclusion to be wrong:</strong> a</p>
+<p>substantially different (non-quadratic) drag law, a CD value far from the</p>
+<p>smooth-sphere ~0.47/0.25 values actually used, a strong *vertical* wind</p>
+<p>component (the model assumed purely horizontal wind), or a projectile that</p>
+<p>isn&#x27;t actually spherical/solid (e.g. a shaped charge or a very rough</p>
+<p>surface — the CD values would no longer hold). None of these are in</p>
+<p>play for the problem as stated; they&#x27;re flagged here only so the</p>
+<p>conclusion&#x27;s own boundary conditions are explicit, not silently assumed.</p>
+<p>---</p></div><details class='verify-block'><summary>核验附证 — 这段内容对应的实际工具调用（trace 对照，点开按需核验）</summary><table class='cross-table'><thead><tr><th>声称的 artifact_id / 具体操作</th><th>trace 里是否找到对应调用</th><th>匹配到 seq</th></tr></thead><tbody><tr><td>f6518860b3a646ee1f2fa29be9b37e642fdf1c877fd6fe5a92ecbee8a05192e2</td><td>⚠</td><td>—</td></tr><tr><td>2770455c4fdcf58bfa139b4f1bef6739c3c2f8e1adda8e663c06d974b97f769f</td><td>⚠</td><td>—</td></tr><tr><td>5986fa735cace10568e785d921bbbab14c790143ef781c55b6e938404585a446</td><td>⚠</td><td>—</td></tr><tr><td>0245adae2e665d11104b8dbfbf3af3899247f899fa5c9c0947d1458e43fc93ab</td><td>⚠</td><td>—</td></tr><tr><td>c8399d1bd4e5d6ae224def01834d313f03c1b19f860ca7ff831efdc190936e61</td><td>⚠</td><td>—</td></tr><tr><td>ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81</td><td>⚠</td><td>—</td></tr><tr><td>052553cfbdae174c67970cc1991ec2f2bb7b7e8d72ab12603817b1640ba10b4c</td><td>⚠</td><td>—</td></tr><tr><td>25d91af7b6253ef4a3ef0952e3e31a0e33b50969062a9a9e126afb93ed9f95e7</td><td>⚠</td><td>—</td></tr><tr><td>3d89f30387957119349db8f820d34d2bb14ed6b06b394216e810eb7140586e50</td><td>⚠</td><td>—</td></tr><tr><td>506ec0c1251956ca12611d3bb5c2f9ade42dc55fb341155db93033a503253773</td><td>⚠</td><td>—</td></tr><tr><td>01e37f36a4164dcfe90b554ca3234cf89f3ff082775dd89b7f57c693e8cc3b7b</td><td>⚠</td><td>—</td></tr><tr><td>d45ad22c628dbc07eda285dc739246ffa96d9fe610b490f7e3a86e2937b139b2</td><td>⚠</td><td>—</td></tr><tr><td>2d154fa00f52073bd2164a75feb8520536aaaefa4c1193e5b3d30e1b39828c91</td><td>⚠</td><td>—</td></tr><tr><td>3391ceb861f60fce3f02a8783c96d9891baeddaa92729c0ad5e4308f4685e4b3</td><td>⚠</td><td>—</td></tr><tr><td>7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6</td><td>⚠</td><td>—</td></tr></tbody></table></details><details class='state-block'><summary>数据快照 — problem_state.json 中本节写入/更新的内容</summary><p><em>audit_logs（本文件新增/引用的记录）:</em></p><pre>[
+  {
+    &quot;timestamp&quot;: 1791356890.6759899,
+    &quot;source&quot;: &quot;node_1_task_spec&quot;,
+    &quot;args&quot;: {
+      &quot;problem_id&quot;: &quot;2025B_Artillery&quot;,
+      &quot;note&quot;: &quot;Task spec written: target = (v_muzzle, theta) hit pair for the 1200 m / both-ends-500 m case, plus a hand-computable estimation method generalized across 1000-1500 m range, varied altitudes, varied wind. Hard cap: v_muzzle &lt;= 450 m/s (the era&#x27;s stated &#x27;up to&#x27; limit).&quot;
+    },
+    &quot;artifact_id&quot;: &quot;ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81&quot;
+  },
+  {
+    &quot;timestamp&quot;: 1791356890.679538,
+    &quot;source&quot;: &quot;node_1_internal_prior&quot;,
+    &quot;args&quot;: {
+      &quot;note&quot;: &quot;internal_prior sketch recorded in problem_state.json&#x27;s dedicated field: private intuition-only estimate, NOT evidence. Dominant regime expected to be ballistic; order-of-magnitude estimate v0 ~ 130-170 m/s, theta ~ 35-50 deg for the 1200 m case. Divergence check vs Node 2b&#x27;s verified number is required later.&quot;
+    },
+    &quot;artifact_id&quot;: &quot;7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6&quot;
+  },
+  {
+    &quot;timestamp&quot;: 1791356890.6957643,
+    &quot;source&quot;: &quot;ambiance_atmosphere_level0_sample&quot;,
+    &quot;args&quot;: {
+      &quot;z_m&quot;: [
+        0,
+        500,
+        3000
+      ],
+      &quot;sample_values&quot;: {
+        &quot;0_m&quot;: {
+          &quot;T_K&quot;: 288.15,
+          &quot;rho_kg_m3&quot;: 1.225,
+          &quot;speed_of_sound_m_s&quot;: 340.29,
+          &quot;P_Pa&quot;: 101325.0
+        },
+        &quot;500_m&quot;: {
+          &quot;T_K&quot;: 284.9,
+          &quot;rho_kg_m3&quot;: 1.16727,
+          &quot;speed_of_sound_m_s&quot;: 338.37,
+          &quot;P_</pre><p><em>anomalies:</em></p><pre>[
+  {
+    &quot;type&quot;: &quot;state_file_truncation_recovery&quot;,
+    &quot;note&quot;: &quot;Mid-run, a buggy helper script opened problem_state.json for write (truncating it to 0 bytes) before re-reading it back, losing the on-disk copy. The content was fully recoverable from the in-session script outputs already captured in this run&#x27;s transcript, so it was reconstructed and every field cross-checked for consistency against those outputs before being written back. Logged here (not silently papered over) per the protocol&#x27;s &#x27;write-back verification&#x27; principle - the recovery is real, and this record is the evidence that it happened and was consciously handled, not an accident walked back later.&quot;
+  },
+  {
+    &quot;type&quot;: &quot;code_bug_quota_decrement&quot;,
+    &quot;note&quot;: &quot;artillery_model.py&#x27;s simulate() referenced an undefined closure variable (u_wind instead of u_wind_m_s) on first run - a plain coding error, not a physics-model error. Fixed in one edit; quota decremented 3 -&gt; 2 (annealing threshold not reached, no hypothesis rollback needed).&quot;
+  }
+]</pre><p><em>verification:</em></p><pre>{
+  &quot;benchmark_source&quot;: &quot;Independent hand-computable estimate: vacuum range formula + first-order quadratic-drag perturbation, using ONLY a uniform sea-level density (rho=1.225, a_sound=340.29) - no T(z)/rho(z) source, hence genuinely independent of the ambiance variable-density modeling input chosen at Node 1.5&quot;,
+  &quot;comparison_result&quot;: {
+    &quot;ode_variable_density&quot;: {
+      &quot;v0_m_s&quot;: 142.3,
+      &quot;theta_deg&quot;: 40.0,
+      &quot;R_m&quot;: 1200.0,
+      &quot;wind_m_s&quot;: 0.0,
+      &quot;residual_m&quot;: 2.66e-05
+    },
+    &quot;independent_hand_estimate&quot;: {
+      &quot;v0_vac_m_s&quot;: 109.31,
+      &quot;drag_corrected_v0_m_s&quot;: 235.96,
+      &quot;note&quot;: &quot;The first-order drag-perturbation formula v0 ~ v0_vac*sqrt(1+K*R*v0_vac/(2g)) is only valid for K*R*v0_vac/(2g) &lt;&lt; 1; here that argument is ~0.5, so this estimate is a known overestima</pre></details></section><section class='report-section' id='sec-5'><h2>Traceability</h2><div class='sec-body'><ul>
+<li>Headline <code>v0</code>/<code>theta</code> numbers: <code>dimensional_gate_run</code> (all 4 ODE lines</li>
+</ul>
+<p>  PASS) → <code>ambiance_atmosphere_array_fetch</code> → <code>headline_solve_variable_density</code></p>
+<p>  → <code>boundary_gate_run</code> (PASS).</p>
+<ul>
+<li>Wind/altitude scaling numbers: <code>generalization_sweep</code> audit record.</li>
+<li>Independent sanity anchors: <code>independent_uniform_density_baseline_check</code></li>
+</ul>
+<p>  (vacuum-direction check) + <code>independent_verification_cross_check</code></p>
+<p>  (first-order-perturbation limitation, consciously documented).</p>
+<ul>
+<li>Anomalies consciously logged, not hidden: <code>code_bug_quota_decrement</code>,</li>
+</ul>
+<p>  <code>state_file_truncation_recovery</code>.</p></div><details class='verify-block'><summary>核验附证 — 这段内容对应的实际工具调用（trace 对照，点开按需核验）</summary><table class='cross-table'><thead><tr><th>声称的 artifact_id / 具体操作</th><th>trace 里是否找到对应调用</th><th>匹配到 seq</th></tr></thead><tbody><tr><td>f6518860b3a646ee1f2fa29be9b37e642fdf1c877fd6fe5a92ecbee8a05192e2</td><td>⚠</td><td>—</td></tr><tr><td>2770455c4fdcf58bfa139b4f1bef6739c3c2f8e1adda8e663c06d974b97f769f</td><td>⚠</td><td>—</td></tr><tr><td>5986fa735cace10568e785d921bbbab14c790143ef781c55b6e938404585a446</td><td>⚠</td><td>—</td></tr><tr><td>0245adae2e665d11104b8dbfbf3af3899247f899fa5c9c0947d1458e43fc93ab</td><td>⚠</td><td>—</td></tr><tr><td>c8399d1bd4e5d6ae224def01834d313f03c1b19f860ca7ff831efdc190936e61</td><td>⚠</td><td>—</td></tr><tr><td>ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81</td><td>⚠</td><td>—</td></tr><tr><td>052553cfbdae174c67970cc1991ec2f2bb7b7e8d72ab12603817b1640ba10b4c</td><td>⚠</td><td>—</td></tr><tr><td>25d91af7b6253ef4a3ef0952e3e31a0e33b50969062a9a9e126afb93ed9f95e7</td><td>⚠</td><td>—</td></tr><tr><td>3d89f30387957119349db8f820d34d2bb14ed6b06b394216e810eb7140586e50</td><td>⚠</td><td>—</td></tr><tr><td>506ec0c1251956ca12611d3bb5c2f9ade42dc55fb341155db93033a503253773</td><td>⚠</td><td>—</td></tr><tr><td>01e37f36a4164dcfe90b554ca3234cf89f3ff082775dd89b7f57c693e8cc3b7b</td><td>⚠</td><td>—</td></tr><tr><td>d45ad22c628dbc07eda285dc739246ffa96d9fe610b490f7e3a86e2937b139b2</td><td>⚠</td><td>—</td></tr><tr><td>2d154fa00f52073bd2164a75feb8520536aaaefa4c1193e5b3d30e1b39828c91</td><td>⚠</td><td>—</td></tr><tr><td>3391ceb861f60fce3f02a8783c96d9891baeddaa92729c0ad5e4308f4685e4b3</td><td>⚠</td><td>—</td></tr><tr><td>7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6</td><td>⚠</td><td>—</td></tr></tbody></table></details><details class='state-block'><summary>数据快照 — problem_state.json 中本节写入/更新的内容</summary><p><em>audit_logs（本文件新增/引用的记录）:</em></p><pre>[
+  {
+    &quot;timestamp&quot;: 1791356890.6759899,
+    &quot;source&quot;: &quot;node_1_task_spec&quot;,
+    &quot;args&quot;: {
+      &quot;problem_id&quot;: &quot;2025B_Artillery&quot;,
+      &quot;note&quot;: &quot;Task spec written: target = (v_muzzle, theta) hit pair for the 1200 m / both-ends-500 m case, plus a hand-computable estimation method generalized across 1000-1500 m range, varied altitudes, varied wind. Hard cap: v_muzzle &lt;= 450 m/s (the era&#x27;s stated &#x27;up to&#x27; limit).&quot;
+    },
+    &quot;artifact_id&quot;: &quot;ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81&quot;
+  },
+  {
+    &quot;timestamp&quot;: 1791356890.679538,
+    &quot;source&quot;: &quot;node_1_internal_prior&quot;,
+    &quot;args&quot;: {
+      &quot;note&quot;: &quot;internal_prior sketch recorded in problem_state.json&#x27;s dedicated field: private intuition-only estimate, NOT evidence. Dominant regime expected to be ballistic; order-of-magnitude estimate v0 ~ 130-170 m/s, theta ~ 35-50 deg for the 1200 m case. Divergence check vs Node 2b&#x27;s verified number is required later.&quot;
+    },
+    &quot;artifact_id&quot;: &quot;7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6&quot;
+  },
+  {
+    &quot;timestamp&quot;: 1791356890.6957643,
+    &quot;source&quot;: &quot;ambiance_atmosphere_level0_sample&quot;,
+    &quot;args&quot;: {
+      &quot;z_m&quot;: [
+        0,
+        500,
+        3000
+      ],
+      &quot;sample_values&quot;: {
+        &quot;0_m&quot;: {
+          &quot;T_K&quot;: 288.15,
+          &quot;rho_kg_m3&quot;: 1.225,
+          &quot;speed_of_sound_m_s&quot;: 340.29,
+          &quot;P_Pa&quot;: 101325.0
+        },
+        &quot;500_m&quot;: {
+          &quot;T_K&quot;: 284.9,
+          &quot;rho_kg_m3&quot;: 1.16727,
+          &quot;speed_of_sound_m_s&quot;: 338.37,
+          &quot;P_</pre><p><em>anomalies:</em></p><pre>[
+  {
+    &quot;type&quot;: &quot;state_file_truncation_recovery&quot;,
+    &quot;note&quot;: &quot;Mid-run, a buggy helper script opened problem_state.json for write (truncating it to 0 bytes) before re-reading it back, losing the on-disk copy. The content was fully recoverable from the in-session script outputs already captured in this run&#x27;s transcript, so it was reconstructed and every field cross-checked for consistency against those outputs before being written back. Logged here (not silently papered over) per the protocol&#x27;s &#x27;write-back verification&#x27; principle - the recovery is real, and this record is the evidence that it happened and was consciously handled, not an accident walked back later.&quot;
+  },
+  {
+    &quot;type&quot;: &quot;code_bug_quota_decrement&quot;,
+    &quot;note&quot;: &quot;artillery_model.py&#x27;s simulate() referenced an undefined closure variable (u_wind instead of u_wind_m_s) on first run - a plain coding error, not a physics-model error. Fixed in one edit; quota decremented 3 -&gt; 2 (annealing threshold not reached, no hypothesis rollback needed).&quot;
+  }
+]</pre><p><em>verification:</em></p><pre>{
+  &quot;benchmark_source&quot;: &quot;Independent hand-computable estimate: vacuum range formula + first-order quadratic-drag perturbation, using ONLY a uniform sea-level density (rho=1.225, a_sound=340.29) - no T(z)/rho(z) source, hence genuinely independent of the ambiance variable-density modeling input chosen at Node 1.5&quot;,
+  &quot;comparison_result&quot;: {
+    &quot;ode_variable_density&quot;: {
+      &quot;v0_m_s&quot;: 142.3,
+      &quot;theta_deg&quot;: 40.0,
+      &quot;R_m&quot;: 1200.0,
+      &quot;wind_m_s&quot;: 0.0,
+      &quot;residual_m&quot;: 2.66e-05
+    },
+    &quot;independent_hand_estimate&quot;: {
+      &quot;v0_vac_m_s&quot;: 109.31,
+      &quot;drag_corrected_v0_m_s&quot;: 235.96,
+      &quot;note&quot;: &quot;The first-order drag-perturbation formula v0 ~ v0_vac*sqrt(1+K*R*v0_vac/(2g)) is only valid for K*R*v0_vac/(2g) &lt;&lt; 1; here that argument is ~0.5, so this estimate is a known overestima</pre></details></section><aside class='loop-channel' id='loop-channel' aria-hidden='true'></aside><section class='cross-check'><h2>核验附证（汇总）— 报告中声称的 artifact / 操作 vs. trace 实际工具调用</h2><table class='cross-table'><thead><tr><th>artifact_id / 声称的具体操作</th><th>trace 中是否找到对应调用</th><th>匹配到 seq</th></tr></thead><tbody><tr><td>f6518860b3a646ee1f2fa29be9b37e642fdf1c877fd6fe5a92ecbee8a05192e2</td><td>⚠</td><td>—</td></tr><tr><td>2770455c4fdcf58bfa139b4f1bef6739c3c2f8e1adda8e663c06d974b97f769f</td><td>⚠</td><td>—</td></tr><tr><td>5986fa735cace10568e785d921bbbab14c790143ef781c55b6e938404585a446</td><td>⚠</td><td>—</td></tr><tr><td>0245adae2e665d11104b8dbfbf3af3899247f899fa5c9c0947d1458e43fc93ab</td><td>⚠</td><td>—</td></tr><tr><td>c8399d1bd4e5d6ae224def01834d313f03c1b19f860ca7ff831efdc190936e61</td><td>⚠</td><td>—</td></tr><tr><td>ca28db327dbcdca4155c9178fb986b9f4002320507f7cb6a71cf0e3cd61a7f81</td><td>⚠</td><td>—</td></tr><tr><td>052553cfbdae174c67970cc1991ec2f2bb7b7e8d72ab12603817b1640ba10b4c</td><td>⚠</td><td>—</td></tr><tr><td>25d91af7b6253ef4a3ef0952e3e31a0e33b50969062a9a9e126afb93ed9f95e7</td><td>⚠</td><td>—</td></tr><tr><td>3d89f30387957119349db8f820d34d2bb14ed6b06b394216e810eb7140586e50</td><td>⚠</td><td>—</td></tr><tr><td>506ec0c1251956ca12611d3bb5c2f9ade42dc55fb341155db93033a503253773</td><td>⚠</td><td>—</td></tr><tr><td>01e37f36a4164dcfe90b554ca3234cf89f3ff082775dd89b7f57c693e8cc3b7b</td><td>⚠</td><td>—</td></tr><tr><td>d45ad22c628dbc07eda285dc739246ffa96d9fe610b490f7e3a86e2937b139b2</td><td>⚠</td><td>—</td></tr><tr><td>2d154fa00f52073bd2164a75feb8520536aaaefa4c1193e5b3d30e1b39828c91</td><td>⚠</td><td>—</td></tr><tr><td>3391ceb861f60fce3f02a8783c96d9891baeddaa92729c0ad5e4308f4685e4b3</td><td>⚠</td><td>—</td></tr><tr><td>7e46ecadcc362f1a9a2190924c9ce79d976e1b0d84c89ccca6b68b58815eecf6</td><td>⚠</td><td>—</td></tr></tbody></table></section><script type='application/json' id='loop-data'>[]</script><script>
+(function(){
+  // Placeholder for future return-arc drawing (see _loop_data docstring: v1
+  // does not auto-draw arcs yet; this hook is left in so the mechanism is
+  // already wired without needing a second revision of the page).
+  var data = JSON.parse(document.getElementById('loop-data').textContent || '[]');
+  var channel = document.getElementById('loop-channel');
+  function draw(){
+    channel.innerHTML = '';
+    if(!data.length) return;
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var H = document.body.scrollHeight;
+    var svg = document.createElementNS(svgNS,'svg');
+    svg.setAttribute('width','160'); svg.setAttribute('height', H);
+    svg.style.position='absolute';
+    channel.appendChild(svg);
+    data.forEach(function(a){
+      var fromEl = document.getElementById(a.from), toEl = document.getElementById(a.to);
+      if(!fromEl || !toEl) return;
+      var fr = fromEl.getBoundingClientRect(), tr = toEl.getBoundingClientRect(),
+          cr = channel.getBoundingClientRect();
+      var y1 = fr.top + fr.height/2 - cr.top, y2 = tr.top + tr.height/2 - cr.top, x = 80;
+      var p = document.createElementNS(svgNS,'path');
+      p.setAttribute('d','M '+x+' '+y1+' C '+(x+70)+' '+y1+', '+(x+70)+' '+y2+', '+x+' '+y2);
+      p.setAttribute('class','loop-arc '+(a.sev||'major'));
+      svg.appendChild(p);
+    });
+  }
+  document.querySelectorAll('.verify-block summary, .state-block summary, .step-detail summary')
+    .forEach(function(el){ el.addEventListener('click', function(){ setTimeout(draw,60); }); });
+  setTimeout(draw, 100);
+})();
+</script></body></html>

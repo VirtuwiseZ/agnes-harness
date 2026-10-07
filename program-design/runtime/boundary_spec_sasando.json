@@ -1,0 +1,22 @@
+{
+  "model_module": "sasando_resonator_model",
+  "primary_result": "f_fundamental_Hz",
+  "cases": [
+    {"name": "baseline_candidate_constants", "params": {}, "expectation": "bounded_by:1500"},
+    {"name": "thickness_h_to_0.1mm (softer leaf)", "params": {"h_m": 0.0001}, "expectation": "finite"},
+    {"name": "thickness_h_to_2mm (much stiffer leaf)", "params": {"h_m": 0.002}, "expectation": "finite"},
+    {"name": "elasticity_E_to_5e9 (stiffer fiber)", "params": {"E_Pa": 5.0e9}, "expectation": "finite"},
+    {"name": "elasticity_E_to_0 (rigidity vanishes, unphysical limit)", "params": {"E_Pa": 0.0}, "expectation": "zero"},
+    {"name": "radius_R_to_0.01m (much smaller leaf)", "params": {"R_m": 0.01}, "expectation": "finite"},
+    {"name": "radius_R_to_0.15m (much larger leaf)", "params": {"R_m": 0.15}, "expectation": "finite"},
+    {"name": "damping_zeta_to_0.001 (nearly undamped)", "params": {"zeta": 0.001}, "expectation": "finite"},
+    {"name": "damping_zeta_to_0.5 (heavily overdamped, physically unrealistic for a leaf but a sanity bound)", "params": {"zeta": 0.5}, "expectation": "finite"}
+  ],
+  "sweep": {
+    "param": "R_m",
+    "values": [0.01, 0.02, 0.04, 0.08, 0.15],
+    "order": "decrease",
+    "base_params": {},
+    "_note": "Monotonicity check: f ∝ 1/R^2 (from the base = sqrt(D/(m_s*R^4))/(2*pi) scaling), so as R INCREASES, f must DECREASE - 'decrease' order across an increasing R sweep is the physically correct expectation for the clamped-disk formula."
+  }
+}

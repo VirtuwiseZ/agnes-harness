@@ -1,0 +1,45 @@
+{
+  "description": "Problem domain parameters and candidate sources for 2025B Artillery (ballistic projectile with atmospheric drag + wind). All values here are CANDIDATES to be confirmed or rejected by Node 1.5 / Node 2a — not settled inputs the modeling code may lean on.",
+  "problem_id": "2025B_Artillery",
+  "source_citation": "User-provided problem statement (2025B); physical constants from scipy.constants (standard, independently verifiable values, not problem-specific data).",
+  "primary_target_quantity": "(v_muzzle, theta) hit pair for R=1200 m, both ends at 500 m altitude; plus a parameterized hand-estimation method for R in [1000,1500] m, varied launch/target altitudes, varied wind speed/direction.",
+  "safety_or_acceptance_constraints": {
+    "_note": "Quantified pass/fail criteria for the headline answer.",
+    "values": {
+      "max_muzzle_velocity_m_s": 450.0,
+      "hit_tolerance_m": 0.0
+    },
+    "units": "m/s, m",
+    "rationale": "v_muzzle must stay <= 450 m/s (the stated physical limit of the era's cannon). 'Hit' means the trajectory passes through the target point (horizontal distance R, target altitude z_target) exactly; a sweep's stopping condition is |x_R - R| ~ 0 (not an open-ended 'minimize distance')."
+  },
+  "named_parameters": {
+    "projectile_mass_kg": 5.0,
+    "projectile_diameter_m": 0.11,
+    "projectile_radius_m": 0.055,
+    "cross_sectional_area_m2": "pi * (0.055)^2 = 0.009503... m^2 (derived, not an independent input)",
+    "launch_altitude_m": 500.0,
+    "target_horizontal_range_m": 1200.0,
+    "target_altitude_m": 500.0,
+    "gravity_m_s2": "scipy.constants.g (9.80665, conventional standard value)",
+    "air_density_reference_kg_m3": "candidate: ~1.0-1.1 at 500 m (to be confirmed by a structured T(z)/rho(z) array, not this literal)",
+    "drag_coefficient_solid_sphere_subsonic": "candidate: CD ~ 0.47 (standard smooth-sphere subsonic value, textbook); must be re-checked against the actual flight Mach number range for this problem — a 450 m/s projectile exceeds the speed of sound (~330-340 m/s at these altitudes), so the flight spans subsonic-to-supersonic and CD is not a single constant over the whole path",
+    "speed_of_sound_reference_m_s": "candidate: ~340 m/s at sea level, slightly lower (~320-330 m/s) at 500 m; the projectile's supersonic portion of flight needs a Mach-dependent CD handling, unlike the space-diving template which has an explicit transonic/supersonic CD switching regime (this problem's flight is much shorter, so the transonic transition may be a narrower correction, not a dominant split)"
+  },
+  "candidate_atmosphere_or_field_data_source": {
+    "_note": "Node 1.5 candidate hint only; NOT an input the ODE/trajectory code may reference by name.",
+    "source_name": "ambiance (US Standard Atmosphere 1976-based), for T(z)/rho(z) over 0-15 km span (covers 500 m launch/target altitude comfortably)",
+    "access_method_hint": "Level 0 - locally installed Python package (import + live sample call required, per data-source-routing.md Step 2)",
+    "span_or_range_hint": "0-15 km in ~100-200 m steps is more than enough to cover the 500 m altitude of interest plus trajectory apex margin"
+  },
+  "candidate_verification_baseline": {
+    "_note": "Independent reference to check the model's trajectory against. Must be independent of whatever source Node 1.5 picks for the modeling input.",
+    "name": "Two-pronged: (a) a published/standard analytical result for the drag-included projectile range in a UNIFORM-constant-density approximation (a closed-form or well-known perturbation result that does not depend on a T(z)/rho(z) source at all), used as a genuinely independent cross-check; (b) if a live atmospheric dataset fetch is the modeling input, the verification baseline must NOT be re-derived from the same dataset.",
+    "expected_value": null,
+    "units": "m (range / horizontal distance), deg (angle), m/s (muzzle velocity)",
+    "citation_or_source": "Textbook projectile-motion-with-drag results (e.g. quadratic-drag range formula for constant rho, or a published numerical trajectory table for a comparable projectile) - concrete citation to be decided at Node 1.5 once the modeling-input source is settled, so independence can actually be guaranteed."
+  },
+  "aerodynamic_or_coupling_coefficients": {
+    "_note": "Relevant here: drag coefficient CD and cross-sectional area A are the 'coupling coefficients' that couple the projectile to the air. CD for a smooth solid sphere is regime-dependent (subsonic ~0.47-0.5, transonic/supersonic drops to ~0.2-0.3) - this is analogous to (but much less dramatic than) the space-diving template's CD table, and must be justified against THIS problem's own flight Mach range, not inherited from that template's transonic/supersonic split.",
+    "values": null
+  }
+}
