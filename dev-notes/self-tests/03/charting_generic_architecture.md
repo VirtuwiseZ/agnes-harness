@@ -84,16 +84,57 @@
 }
 ```
 
-- **`kind` 现在共 5 种**（v2 修订，初版只有 `line_scatter`+`interval_highlight`
-  两种）：`curve`/`scatter`/`error_bar`/`interval_highlight`（沿用初版的
-  `line_scatter` 拆成 `curve`（纯线）+`scatter`（纯点）两种，同一张图里可以
-  混合——比如"散点+拟合线"就是两条 series，一条 `kind_hint=scatter`、一条
-  `kind_hint=line`，不需要单独开一种"混合 kind"）和 `heatmap`（二维参数场，
-  用 `pcolormesh`（热力图）或 `contourf`（等高线）渲染，同一个 `grid` 字段
-  两套画法，靠 `heatmap_style: "pcolormesh"|"contourf"` 一个可选开关切换，
-  不做两套数据格式）。**仍然故意不做**：柱状图、饼图、3D 交互曲面（跟初版
-  一致，不因这次加 `heatmap` 而改变"克制"的边界——`heatmap` 是二维平面
-  投影，不是 3D 交互物，不冲突）。
+- **`kind` 现在共 6 种**（v2.1 修订，v2 初版 5 种，另加 `boxplot`）：
+  前 5 种沿用 v2 的说明（`line_scatter` 拆成 `curve`（纯线）+
+  `scatter`（纯点）两种，同一张图里可以混合；`heatmap` 是二维参数场，
+  用 `pcolormesh`（热力图）或 `contourf`（等高线）渲染，同一个 `grid`
+  字段两套画法，靠 `heatmap_style: "pcolormesh"|"contourf"` 一个可选
+  开关切换，不做两套数据格式），外加 `boxplot`（类别×分布对比，每条
+  `series` 是 `{name: 类别名, values: [该类别下的一组 y 值]}`，渲染走
+  matplotlib 原生 `ax.boxplot()`，**不强依赖 seaborn**——seaborn 本身
+  不画任何现有 kind，见下方"seaborn 的定位"条目）。
+- **`heatmap` 的坐标轴可以是数值型或类别型（v2.1 补充，第三方数据测试中撞出）**：
+  `grid` 的 `x_values`/`y_values` 不要求必须是数值——如果某一维（或两维）是
+  字符串（如特征名、国家名、年份等类别标签），脚本自动检测并改用 `imshow`
+  直接画矩阵+类别刻度标签（`pcolormesh`/`meshgrid` 遇到字符串会直接崩溃，
+  这是本次 UCI Wine 特征名矩阵、OWID CO2 国家名×年份矩阵测试中实际撞出
+  的真实缺陷，不是预防性设计）；如果两维都是数值，仍走原来的
+  `pcolormesh`/`contourf` 路径，数值分支行为完全不变。
+  **`heatmap_style:"contourf"` 只能用于两维都是数值的情况**（等高线插值
+  需要坐标数值），如果对类别坐标轴指定了 `contourf`，脚本会直接报错
+  而不是画错或静默降级。**仍然故意不做**：柱状图、饼图、3D 交互曲面、
+  小提琴图、regplot 自动拟合、pairplot（跟初版一致，不因本次加
+  `boxplot` 而改变"克制"的边界——`boxplot` 是类别×分布二维结构，
+  不是把"克制"边界又往外扩）。
+- **对数坐标轴（v2.1 新增，落地评估文档场景①）**：`axes.x.scale` /
+  `axes.y.scale` 字段，取值 `"linear"`（默认，缺省等于这个）或 `"log"`，
+  对全部 6 种 kind（含 `boxplot` 的 y 轴）生效。设计依据：跨 1 个以上
+  数量级的物理量（dB 声压级、指数衰减、功率谱密度）在**坐标值本身**
+  跨数量级时应改用对数坐标轴（本条），而不是对数**色标**（色标是
+  heatmap 专属、应对"值域跨度大、少数大值压扁其余格点颜色区分度"
+  这一不同症状的另一个独立特性，本次未加，见
+  `charting_extension_scenarios_assessment.md` ①的完整评估——log
+  坐标轴和 log 色标是两件事，不要混用）。**准确性底线**：数据里有
+  0 或负值时 log 轴下无法绘制/无意义，本脚本不静默截断或跳过——会像
+  NaN/Inf 一样加脚注说明"N 个值 ≤ 0，log 轴下无法绘制，已按
+  matplotlib 默认行为处理，本脚本未擅自截断"，而不是假装这些点没
+  出现。**类别坐标轴不允许 log**：类别值本身没有"数量级"概念，对类别
+  轴指定 `scale:"log"` 会直接报错（跟"对类别轴指定 contourf 会报错"
+  是同一类一致性校验），而不是静默忽略；`boxplot` 的 x 轴（类别位置）
+  只有 linear 一种取值，指定 log 直接报错，只有 y 轴（实际数值）
+  支持 log。
+- **seaborn 的定位（v2.1 新增，仅为将来扩展预留的可选依赖，不是当前
+  任何 kind 的必需项）**：seaborn 真正的增量价值是高层统计图（violinplot/
+  regplot 的自动拟合+置信带、pairplot 等）。本次评估后确认：`regplot`
+  的核心价值是"自动拟合+自动算置信区间"，而这恰是本项目"脚本不做
+  物理判断"原则明确划给上游建模层（Node 2b）的活——拟合参数应由上游
+  算好、脚本只负责画（现有 `curve` + `y_err` 风格的置信带数据已足够
+  表达"拟合线+置信带"的呈现），所以 **regplot 不作为独立 kind 加入**；
+  `violinplot` 偏小众（2-4 个条件、强调分布形状场景），暂不加；
+  `pairplot` 属探索性分析工具而非报告主线结论图，暂不加。故本次
+  `requirements.txt` 里 seaborn 只是"预留一行，装不装都不影响当前
+  任何 kind 的正确性"，不是为了让某个现有/新增 kind 硬依赖它。
+
 - **`role` 字段（v2 新增）**：给"理论值/实验值/仿真值/残差"这套科研里最常见
   的对照关系一个轻量语义标记。**这只是标签，不是"让脚本自动算残差"的指令**
   ——残差值本身仍然是上游建模 agent 算好之后，作为一条普通 `series`
@@ -105,7 +146,12 @@
   决定"哪些点放进 `series.points`"是上游建模 agent 的责任，不是绘图脚本
   的；脚本拿到什么点就画什么点。
 
-## 3. 新增脚本：`program-design/hooks/make_report_figures.py`（规格，未写代码，v2）
+## 3. 新增脚本：`program-design/hooks/make_report_figures.py`（v2.1 已实现，见该文件本体）
+
+> 注：本节的"规格"部分在 v2 定稿时脚本尚未实现；后续多个版本（v2.1，
+> 类别轴支持、log 坐标轴、`boxplot` kind、脚注溢出自动收缩等）已直接落在
+> `program-design/hooks/make_report_figures.py` 里，代码本体是现在的事实
+> 基准，本节文字仅作历史规格记录，不保证与代码逐字同步。
 
 - 读入：`--state problem_state_<slug>.json`（只读 `numerical_artifacts.figures`
   这一个字段，别的字段一律不读）

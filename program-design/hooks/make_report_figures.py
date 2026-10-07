@@ -122,6 +122,30 @@ def _axis_label(fig_spec, axis, fallback_series_names):
     return fallback_series_names[0] if fallback_series_names else axis
 
 
+def _axis_scale(fig_spec, axis):
+    """Per-axis scale: 'linear' (default, absence of the field) or 'log'.
+    Only meaningful for numeric axes; a categorical/integer-tick axis that
+    is not actually numeric (e.g. a label list used via a categorical heatmap
+    branch) must not ask for 'log' — that combination is rejected at the
+    call site, not silently ignored."""
+    axes = fig_spec.get("axes") or {}
+    return (axes.get(axis) or {}).get("scale", "linear")
+
+
+def _count_nonpositive(vals):
+    """How many of these values are <= 0 (NaN/Inf excluded from the count;
+    they are handled by the existing NaN/Inf footnote, not by this one — a
+    NaN is not 'non-positive', it is simply not a number)."""
+    n = 0
+    for v in vals:
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            if math.isnan(v) or math.isinf(v):
+                continue
+            if v <= 0:
+                n += 1
+    return n
+
+
 def _draw_1d(fig_spec, fig_id):
     kind = fig_spec.get("kind", "curve")
     series = fig_spec.get("series") or []
@@ -140,6 +164,13 @@ def _draw_1d(fig_spec, fig_id):
     footnotes = []
     n_nan_total = 0
     n_inf_total = 0
+
+    x_scale = _axis_scale(fig_spec, "x")
+    y_scale = _axis_scale(fig_spec, "y")
+    for scale, axis_name in ((x_scale, "x"), (y_scale, "y")):
+        if scale not in ("linear", "log"):
+            raise FigureError(
+                f"figure '{fig_id}': axes.{axis_name}.scale={scale!r} is not 'linear' or 'log'.")
 
     for s in series:
         points = s.get("points") or {}
@@ -247,6 +278,30 @@ def _draw_1d(fig_spec, fig_id):
         pad = (hi - lo) * 0.05 or 1.0
         ax.set_ylim(lo - pad, hi + pad)
 
+    # Log-scale support: applied only to numeric axes (i.e. after the limits
+    # above have already confirmed this axis is carrying real numeric data,
+    # not a categorical heatmap's label list — those branches never reach this
+    # point). A log axis with any non-positive data point is a real data
+    # problem, not a presentation detail: matplotlib's default behavior is
+    # to silently skip non-positive points, which would hide the problem — so
+    # count them up front and footnote it, exactly like the NaN/Inf case.
+    if x_scale == "log":
+        ax.set_xscale("log")
+        n_x_nonpos = _count_nonpositive(all_x)
+        if n_x_nonpos:
+            footnotes.append(
+                f"x 轴为对数刻度，共 {n_x_nonpos} 个 x 值 <= 0，log 轴下无法绘制，"
+                f"已按 matplotlib 默认行为处理（这些点被跳过/截断，视版本而定），"
+                f"本脚本未擅自把它们截断成正值——此脚注即为该处理的唯一记录。")
+    if y_scale == "log":
+        ax.set_yscale("log")
+        n_y_nonpos = _count_nonpositive(all_y)
+        if n_y_nonpos:
+            footnotes.append(
+                f"y 轴为对数刻度，共 {n_y_nonpos} 个 y 值 <= 0，log 轴下无法绘制，"
+                f"已按 matplotlib 默认行为处理（这些点被跳过/截断，视版本而定），"
+                f"本脚本未擅自把它们截断成正值——此脚注即为该处理的唯一记录。")
+
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     title = fig_spec.get("title")
@@ -307,6 +362,126 @@ def _draw_1d(fig_spec, fig_id):
     return fig
 
 
+def _draw_boxplot(fig_spec, fig_id):
+    """kind='boxplot': a distribution-comparison figure — each series is one
+    category (x-axis position) carrying a list of y values (NOT an x/y
+    paired sequence, which is what the other 4 kinds use; this is a genuine
+    'category x distribution' 2D structure that none of the existing kinds
+    can express). matplotlib's native boxplot is used — no seaborn dependency
+    is required; seaborn, if installed, is simply an optional nicer-looking
+    restyle, not a hard requirement of this kind."""
+    series = fig_spec.get("series") or []
+    if not series:
+        raise FigureError(f"figure '{fig_id}': kind 'boxplot' requires at least one series.")
+
+    categories = []
+    all_values = []
+    n_nan_total = 0
+    n_inf_total = 0
+    n_nonpositive_if_log = 0
+    for s in series:
+        name = s.get("name")
+        values = s.get("values")
+        if not name or values is None:
+            raise FigureError(
+                f"figure '{fig_id}': boxplot series require both 'name' (the category label) "
+                f"and 'values' (a list of y values for that category); got "
+                f"name={name!r}, values={'present' if values is not None else 'missing'} — "
+                f"boxplot is category->value-list, not x/y-paired points.")
+        if not isinstance(values, (list, tuple)) or not all(
+                isinstance(v, (int, float)) and not isinstance(v, bool) for v in values):
+            raise FigureError(
+                f"figure '{fig_id}': boxplot series '{name}' .values must be a flat list of "
+                f"numbers; refusing to draw (no silent string/None coercion).")
+        if not values:
+            raise FigureError(
+                f"figure '{fig_id}': boxplot series '{name}' .values is an empty list; "
+                f"refusing to draw 2 categories and silently pretend this one doesn't exist "
+                f"— an empty category is a data error upstream, not a rendering detail "
+                f"this script may paper over.")
+        nn, ni = _finite_counts(list(values))
+        n_nan_total += nn
+        n_inf_total += ni
+        categories.append(name)
+        all_values.append(values)
+
+    x_scale = _axis_scale(fig_spec, "x")
+    y_scale = _axis_scale(fig_spec, "y")
+    if x_scale != "linear":
+        raise FigureError(
+            f"figure '{fig_id}': boxplot x axis is a categorical category position "
+            f"(1-indexed slot per series); 'log' (or any non-'linear' scale) is not "
+            f"meaningful for it. Only the y axis supports scale='log'.")
+
+    axes = fig_spec.get("axes") or {}
+    xlabel = (axes.get("x") or {}).get("label") or ""
+    ylabel = (axes.get("y") or {}).get("label") or ""
+
+    fig, ax = plt.subplots(figsize=(7, 4.5), dpi=150)
+    import matplotlib as _mpl
+    _mpl_version = tuple(int(p) for p in _mpl.__version__.split(".")[:2])
+    if _mpl_version >= (3, 9):
+        # 'labels' was renamed to 'tick_labels' in matplotlib 3.9 (kept as a
+        # deprecated alias through 3.11, removed after).
+        bxp = ax.boxplot(all_values, tick_labels=categories, patch_artist=True)
+    else:
+        bxp = ax.boxplot(all_values, labels=categories, patch_artist=True)
+    if y_scale == "log":
+        ax.set_yscale("log")
+        for values in all_values:
+            n_nonpositive_if_log += sum(1 for v in values
+                                        if isinstance(v, (int, float)) and not (math.isnan(v) or math.isinf(v)) and v <= 0)
+
+    if n_nan_total or n_inf_total:
+        footnotes = [f"共 {n_nan_total} 个 NaN、{n_inf_total} 个 Inf 值（横跨所有类别的取值）；"
+                     f"已按 matplotlib 默认行为处理（这些值不会参与分位数计算），本脚本未擅自剔除——"
+                     f"此脚注即为该处理的唯一记录。"]
+    else:
+        footnotes = []
+    if y_scale == "log" and n_nonpositive_if_log:
+        footnotes.append(
+            f"y 轴为对数刻度，共 {n_nonpositive_if_log} 个取值 <= 0，log 轴下无法参与绘制，"
+            f"已按 matplotlib 默认行为处理，本脚本未擅自把它们截断成正值——此脚注即为该处理的唯一记录。")
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    title = fig_spec.get("title")
+    if title:
+        import textwrap
+        ax.set_title(textwrap.fill(title, width=38))
+    else:
+        ax.set_title("（无标题）")
+
+    if footnotes:
+        # Same overflow-safe wrapping as _draw_1d (reuse the same helper-free
+        # approach rather than extracting it, to keep this diff narrow).
+        import textwrap as _textwrap
+        def _fits_and_wrap(text, fontsize):
+            axes_w_px = fig.get_figwidth() * fig.dpi * 0.6
+            chars_per_line = max(20, int(axes_w_px / max(fontsize * 0.55, 4)))
+            return _textwrap.fill(text, width=chars_per_line)
+        fontsize = 7
+        wrapped = "\n".join(_fits_and_wrap(t, fontsize) for t in footnotes)
+        txt_obj = ax.text(0.01, 0.01, wrapped, transform=ax.transAxes, fontsize=fontsize,
+                          va="bottom", ha="left", color="0.4")
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        bb = txt_obj.get_window_extent(renderer)
+        ax_bb = ax.get_window_extent(renderer)
+        guard = 0
+        while (bb.x1 > ax_bb.x1 + 1 or bb.y0 < ax_bb.y0 - 1) and fontsize > 5 and guard < 8:
+            fontsize -= 1
+            wrapped = "\n".join(_fits_and_wrap(t, fontsize) for t in footnotes)
+            txt_obj.set_text(wrapped)
+            txt_obj.set_fontsize(fontsize)
+            fig.canvas.draw()
+            bb = txt_obj.get_window_extent(renderer)
+            guard += 1
+
+    fig.tight_layout()
+    return fig
+
+
 def _draw_heatmap(fig_spec, fig_id):
     series = fig_spec.get("series") or []
     grid = None
@@ -329,6 +504,13 @@ def _draw_heatmap(fig_spec, fig_id):
             f"rows must match y_values ({len(yv)}) and columns must match "
             f"x_values ({len(xv)}). Refusing to draw (no silent padding/transposition)."
         )
+    x_scale = _axis_scale(fig_spec, "x")
+    y_scale = _axis_scale(fig_spec, "y")
+    for scale, axis_name in ((x_scale, "x"), (y_scale, "y")):
+        if scale not in ("linear", "log"):
+            raise FigureError(
+                f"figure '{fig_id}': axes.{axis_name}.scale={scale!r} is not 'linear' or 'log'.")
+
     axes = fig_spec.get("axes") or {}
     xlabel = (axes.get("x") or {}).get("label") or "x"
     ylabel = (axes.get("y") or {}).get("label") or "y"
@@ -348,6 +530,10 @@ def _draw_heatmap(fig_spec, fig_id):
 
     if x_numeric and y_numeric:
         X, Y = np.meshgrid(xv, yv)
+        if x_scale == "log":
+            ax.set_xscale("log")
+        if y_scale == "log":
+            ax.set_yscale("log")
         if style == "contourf":
             cs = ax.contourf(X, Y, arr, levels=12, cmap="viridis")
         else:
@@ -359,6 +545,16 @@ def _draw_heatmap(fig_spec, fig_id):
         # string labels. Use imshow with the matrix directly, and put the
         # category labels on the ticks. (Also handles the mixed case of one
         # categorical + one numeric axis.)
+        if x_scale == "log" and not x_numeric:
+            raise FigureError(
+                f"figure '{fig_id}': axes.x.scale='log' is not meaningful for a categorical "
+                f"x axis (x_values are non-numeric labels); 'log' scale requires numeric "
+                f"x_values. Use scale='linear' (the default) for categorical axes.")
+        if y_scale == "log" and not y_numeric:
+            raise FigureError(
+                f"figure '{fig_id}': axes.y.scale='log' is not meaningful for a categorical "
+                f"y axis (y_values are non-numeric labels); 'log' scale requires numeric "
+                f"y_values. Use scale='linear' (the default) for categorical axes.")
         if style == "contourf":
             raise FigureError(
                 f"figure '{fig_id}': kind 'heatmap' with heatmap_style='contourf' requires "
@@ -406,6 +602,8 @@ def render_all(figures, out_dir, fmt):
         try:
             if kind == "heatmap":
                 fig = _draw_heatmap(spec, fig_id)
+            elif kind == "boxplot":
+                fig = _draw_boxplot(spec, fig_id)
             else:
                 fig = _draw_1d(spec, fig_id)
             out = os.path.join(out_dir, f"{fig_id}.{fmt}")

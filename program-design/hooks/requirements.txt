@@ -18,6 +18,14 @@ scipy>=1.11
 # optional, not-yet-fully-wired step); this line records the dependency now so
 # the install step is one line when Node 2.7 is actually run for real.
 matplotlib>=3.8
+# Node 2.7 charting — OPTIONAL, reserved for future higher-level statistical
+# kinds (e.g. violinplot). The current boxplot kind (kind='boxplot' in
+# make_report_figures.py) deliberately does NOT import seaborn: it renders via
+# matplotlib's native ax.boxplot(), so this dependency is not required for
+# anything shipped today. It is listed here only so the install step is one
+# line when a future statistical kind (one that genuinely needs seaborn's API
+# rather than matplotlib's) is added; no code path in the repo imports it yet.
+seaborn>=0.13
 # Data-source routing (Node 1.5) Level 0 candidate packages, verified installable
 # in this environment but NOT imported by any hook: the ODE code must stay
 # source-agnostic. These are installed only so a runtime availability check can
