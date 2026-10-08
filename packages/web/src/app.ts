@@ -1,10 +1,18 @@
 import {
   type ConfigSnapshot,
+  type ContentBlock,
+  decodeSafeImages,
+  MAX_FRAME_BYTES,
   type ModelSettings,
+  modelImageInputError,
   type PageSessionMeta,
   readSessionTitle,
+  toAcpPrompt,
   type UITimeline,
   type UITurn,
+  USER_MESSAGE_IMAGE_LIMITS,
+  userImagePolicy,
+  validateUserAttachments,
   type WorkspaceEntry,
 } from '@agnes/protocol'
 import {
@@ -89,6 +97,7 @@ function element<K extends keyof HTMLElementTagNameMap>(id: string, tag: K): HTM
 }
 const button = (id: string) => element(id, 'button')
 const composerDraftKey = 'agnes-web-composer-draft'
+// Keep image submissions below the daemon's WebSocket frame cap, including their JSON-RPC envelope.
 const savedComposerDraft = sessionStorage.getItem(composerDraftKey)
 const notice = element('notice', 'p')
 const conversation = element('conversation-shell', 'div')
@@ -282,6 +291,7 @@ const clientModules = await startClientModules({
   composerContainer: document.getElementById('composer-mount') ?? undefined,
   composer: {
     initialDraft: savedComposerDraft ?? '',
+    onAttachmentsChange: renderControls,
     onCancel: handleComposerCancel,
     onDraftChange: handleComposerDraftChange,
     onError: showError,
@@ -289,7 +299,8 @@ const clientModules = await startClientModules({
     onModelSettingsChange: selectModelSettings,
     onPermissionSelect: selectPermission,
     onSubmit: submitComposer,
-    onSendNow: handleQueuedSendNow,
+    onSendNow: (itemId) => handleQueuedAction(itemId, 'sendNow'),
+    onRemoveQueued: (itemId) => handleQueuedAction(itemId, 'removeQueued'),
     onWorkspace: handleComposerWorkspace,
   },
   traceContainer: document.getElementById('trace-panel') ?? undefined,
@@ -377,7 +388,14 @@ let sending = false
 let awaitingPromptStart = false
 let stopping = false
 let queueAction:
-  | { sessionId: string; selection: number; itemId: string; pending: boolean; error?: string }
+  | {
+      sessionId: string
+      selection: number
+      itemId: string
+      kind: 'sendNow' | 'removeQueued'
+      pending: boolean
+      error?: string
+    }
   | undefined
 let sessionPending = false
 let newSessionCreating = false
@@ -598,7 +616,8 @@ function renderControls(): void {
   document.body.classList.toggle('session-switching', sessionPending)
   const available = connected
   const busy = projection ? webView(projection, undefined, t).busy : false
-  const hasInput = composerRuntime.getDraft().trim().length > 0
+  const images = composerRuntime.getAttachmentBlocks()
+  const hasInput = composerRuntime.getDraft().trim().length > 0 || images.length > 0
   const initialSubmissionPending = sending && pendingSessionKey !== undefined
   const action = composerActionPresentation({ busy, loading: sessionPending, sending }, t)
   for (const control of notice.querySelectorAll<HTMLButtonElement>('[data-recovery-action]'))
@@ -609,7 +628,10 @@ function renderControls(): void {
   const selectedRecord = runtimeModels.find(
     (m) => m.route === knownSessionModel?.route && m.id === knownSessionModel?.id,
   )
+  const imageUnsupported =
+    images.some((block) => block.type === 'image') && !userImagePolicy(selectedRecord).supported
   const composerView: ComposerView = {
+    imagePolicy: userImagePolicy(selectedRecord),
     cancel: {
       disabled:
         !connected ||
@@ -618,6 +640,7 @@ function renderControls(): void {
         sessionPending ||
         (queueAction?.sessionId === current?.id &&
           queueAction?.selection === selection &&
+          queueAction.kind === 'sendNow' &&
           queueAction.pending),
       hidden: !busy && !stopping,
       label: stopping ? t('composer.cancel.stopping') : t('composer.cancel.stop'),
@@ -634,17 +657,19 @@ function renderControls(): void {
         }
       : knownSessionModel && !selectedModelAvailable()
         ? { kind: 'state', text: t('composer.hint.modelUnavailable') }
-        : composerHintPresentation(
-            {
-              connected,
-              configured,
-              hasSession: current !== undefined || draftingNew,
-              busy,
-              stopping,
-              loading: sessionPending,
-            },
-            t,
-          ),
+        : imageUnsupported
+          ? { kind: 'state', text: t('composer.hint.imageUnsupported') }
+          : composerHintPresentation(
+              {
+                connected,
+                configured,
+                hasSession: current !== undefined || draftingNew,
+                busy,
+                stopping,
+                loading: sessionPending,
+              },
+              t,
+            ),
     input: {
       disabled:
         !available || (!current && !draftingNew) || stopping || sessionPending || initialSubmissionPending,
@@ -668,7 +693,6 @@ function renderControls(): void {
     ...(knownSessionModel && selectedRecord?.contextWindow
       ? {
           modelSettings: {
-            key: current?.id ?? 'draft',
             settings: knownSessionModel.settings ?? modelDefaults(knownSessionModel).settings ?? {},
             contextWindow: selectedRecord.contextWindow,
             thinkingLevelMap: selectedRecord.thinkingLevelMap,
@@ -688,6 +712,14 @@ function renderControls(): void {
     },
     queue: {
       items: current && projection?.sessionId === current.id ? (projection.pendingInputs ?? []) : [],
+      removeDisabled:
+        !available ||
+        !current ||
+        sessionPending ||
+        stopping ||
+        (queueAction?.sessionId === current?.id &&
+          queueAction.selection === selection &&
+          queueAction.pending),
       disabled:
         !available ||
         !configured ||
@@ -702,7 +734,11 @@ function renderControls(): void {
           queueAction.pending),
       ...(queueAction?.sessionId === current?.id && queueAction?.selection === selection
         ? {
-            ...(queueAction.pending ? { sending: queueAction.itemId } : {}),
+            ...(queueAction.pending
+              ? queueAction.kind === 'sendNow'
+                ? { sending: queueAction.itemId }
+                : { removing: queueAction.itemId }
+              : {}),
             ...(queueAction.error ? { error: queueAction.error } : {}),
           }
         : {}),
@@ -715,6 +751,8 @@ function renderControls(): void {
         !selectedModelAvailable() ||
         (!current && !canStartDraft) ||
         !hasInput ||
+        composerRuntime.hasPendingImages() ||
+        Boolean(imageUnsupported) ||
         sending ||
         stopping ||
         sessionPending ||
@@ -1869,29 +1907,27 @@ function handleComposerCancel(): void {
     }
   })
 }
-function handleQueuedSendNow(itemId: string): void {
+function handleQueuedAction(itemId: string, kind: 'sendNow' | 'removeQueued'): void {
   const session = current
   if (
     !session ||
     !connected ||
-    !configured ||
-    !selectedModelAvailable() ||
+    (kind === 'sendNow' && (!configured || !selectedModelAvailable())) ||
     sessionPending ||
     stopping ||
-    permissionChangePending ||
-    permissionRefreshPending ||
-    sessionYoloEnabled === undefined ||
+    (kind === 'sendNow' &&
+      (permissionChangePending || permissionRefreshPending || sessionYoloEnabled === undefined)) ||
     (queueAction?.pending && queueAction.sessionId === session.id && queueAction.selection === selection) ||
-    !projection?.pendingInputs?.some((item) => item.itemId === itemId)
+    projection?.sessionId !== session.id ||
+    !projection.pendingInputs?.some((item) => item.itemId === itemId)
   )
     return
-  const action = { sessionId: session.id, selection, itemId, pending: true } as NonNullable<
+  const action = { sessionId: session.id, selection, itemId, kind, pending: true } as NonNullable<
     typeof queueAction
   >
   queueAction = action
   renderControls()
-  void session
-    .sendNow(itemId)
+  void session[kind](itemId)
     .then(() => {
       if (current === session && selection === action.selection) live?.refresh()
     })
@@ -1916,11 +1952,33 @@ function handleComposerDraftChange(value: string): void {
   composerRuntime.resize()
   renderControls()
 }
+function imageSubmissionFrameBytes(sessionId: string, content: ContentBlock[], followUp: boolean): number {
+  const params = followUp
+    ? {
+        clientId: 'c'.repeat(128),
+        commandId: 'c'.repeat(128),
+        kind: 'followUp',
+        payload: { sessionId, content },
+      }
+    : { sessionId, prompt: toAcpPrompt(content) }
+  return new TextEncoder().encode(
+    JSON.stringify({
+      jsonrpc: '2.0',
+      id: Number.MAX_SAFE_INTEGER,
+      method: followUp ? '_agnes/v1/submit' : 'session/prompt',
+      params,
+    }),
+  ).byteLength
+}
 function submitComposer(): void {
-  const input = composerRuntime.getDraft().trim()
+  const originalDraft = composerRuntime.getDraft()
+  const input = originalDraft.trim()
+  const attachments = composerRuntime.getAttachmentBlocks()
+  const images = attachments.filter((block) => block.type === 'image')
   let session = current
   if (
-    !input ||
+    (!input && attachments.length === 0) ||
+    composerRuntime.hasPendingImages() ||
     !configured ||
     !selectedModelAvailable() ||
     permissionChangePending ||
@@ -1930,15 +1988,39 @@ function submitComposer(): void {
     !canSubmitComposer({ connected, hasSession: true, sending, stopping, loading: sessionPending })
   )
     return
+  const selectedRecord = runtimeModels.find(
+    (model) => model.route === knownSessionModel?.route && model.id === knownSessionModel?.id,
+  )
+  try {
+    validateUserAttachments(attachments)
+    decodeSafeImages(images, USER_MESSAGE_IMAGE_LIMITS)
+  } catch (error) {
+    showError(error)
+    return
+  }
+  const imageError = modelImageInputError(selectedRecord, [{ content: images }])
+  if (imageError) {
+    showError(new Error(imageError))
+    return
+  }
+  const content: ContentBlock[] = [...(input ? [{ type: 'text' as const, text: input }] : []), ...attachments]
+  const busy = projection?.opState !== null && projection?.opState !== undefined
+  if (
+    attachments.length > 0 &&
+    imageSubmissionFrameBytes(session?.id ?? 's'.repeat(512), content, busy) > MAX_FRAME_BYTES
+  ) {
+    showError(new Error(t('app.error.messageTooLarge')))
+    return
+  }
   notice.textContent = ''
   notice.dataset.kind = ''
   const submission = ++submissionGeneration
   const connectionEpoch = permissionConnectionEpoch
   let ownedSelection = selection
-  const busy = projection?.opState !== null && projection?.opState !== undefined
   sending = true
   awaitingPromptStart = !busy
   composerRuntime.setDraft('')
+  composerRuntime.clearImageBlocks()
   sessionStorage.removeItem(composerDraftKey)
   composerRuntime.resize()
   renderer.pinToBottom()
@@ -1998,8 +2080,8 @@ function submitComposer(): void {
     if (current !== session || selection !== ownedSelection) throw new Error(t('app.error.sessionChanged'))
     if (sessionYoloEnabled === undefined) throw new Error(t('app.error.permissionRequired'))
     const result = await (busy
-      ? session.followUp(input)
-      : session.prompt(input, {
+      ? session.followUp(content)
+      : session.prompt(content, {
           titleLocale: clientModules.locale.getSnapshot() === 'zh-CN' ? 'zh-CN' : 'en',
         }))
     const submittedId = session.id
@@ -2018,9 +2100,15 @@ function submitComposer(): void {
         }
         // Closing the connection on purpose (page unload, manual disconnect) rejects a prompt the daemon
         // already accepted. That is not a failed send, so the sent text must not come back as a draft.
-        if (!intentionalClose && !composerRuntime.getDraft()) {
-          composerRuntime.setDraft(input)
-          sessionStorage.setItem(composerDraftKey, input)
+        if (!intentionalClose) {
+          const laterDraft = composerRuntime.getDraft()
+          if (originalDraft) {
+            const restoredDraft = laterDraft ? `${originalDraft}\n${laterDraft}` : originalDraft
+            composerRuntime.setDraft(restoredDraft)
+            sessionStorage.setItem(composerDraftKey, restoredDraft)
+          }
+          if (!composerRuntime.getAttachmentBlocks().length && !composerRuntime.hasPendingImages())
+            composerRuntime.restoreAttachmentBlocks(attachments)
           composerRuntime.resize()
         }
         showError(error)
