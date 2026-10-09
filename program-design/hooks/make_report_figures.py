@@ -41,9 +41,11 @@ Usage:
         [--format png|svg]
 """
 import argparse
+import html as html_lib
 import json
 import math
 import os
+import re
 import sys
 
 import matplotlib
@@ -600,6 +602,14 @@ def render_all(figures, out_dir, fmt):
     for fig_id, spec in figures.items():
         kind = spec.get("kind", "curve")
         try:
+            if kind == "interactive":
+                out = _render_interactive(spec, fig_id, out_dir)
+                written.append(out)
+                continue
+            if kind == "interactive_live":
+                out = _render_interactive_live(spec, fig_id, out_dir)
+                written.append(out)
+                continue
             if kind == "heatmap":
                 fig = _draw_heatmap(spec, fig_id)
             elif kind == "boxplot":
@@ -622,6 +632,403 @@ def render_all(figures, out_dir, fmt):
             f"are not invalidated by their siblings' errors."
         )
     return written
+
+
+def _render_interactive(spec, fig_id, out_dir):
+    """kind=='interactive' — an OPTIONAL, on-demand branch (not the default
+    path; the six static kinds above stay matplotlib-only and are not touched
+    by this). Renders a self-contained HTML fragment (Plotly, inline
+    plotly.js, no external CDN) that Node 4 inlines directly instead of via
+    a base64 <img>. See dev-notes/interactive_figure_design.md §2 for the
+    exact schema (backend/layout_3d/switcher fields) and §1 for the hard
+    boundary: this branch can only switch between ALREADY-COMPUTED series
+    (no live re-solve of the underlying ODE/model — that is not what a
+    static HTML fragment can do, and pretending it could would be the exact
+    failure mode this project's 'no silent paper-over' rule forbids). If
+    the user genuinely needs to drag a parameter and watch the curve
+    re-draw in real time, use kind 'interactive_live' instead (the only
+    case where that is achievable in a pure static export: when the
+    underlying model is a cheap closed-form expression that can be mirrored
+    in client-side JS — see _render_interactive_live's docstring for the
+    exact boundary and the security notes on the JS sandbox).
+
+    plotly is imported lazily here (not at module top-level) so a task that
+    only ever uses the six static kinds never needs plotly installed at all.
+    """
+    try:
+        import plotly.graph_objects as go
+        import plotly.io
+    except ModuleNotFoundError:
+        raise FigureError(
+            f"figure '{fig_id}': kind 'interactive' requires the 'plotly' package "
+            f"(pip install plotly), which is not installed in this environment. "
+            f"This is a hard dependency for this kind only — the six static kinds "
+            f"(curve/scatter/error_bar/interval_highlight/heatmap/boxplot) do NOT "
+            f"need plotly and still work without it; only 'interactive'/'interactive_live' "
+            f"figures require it. Do not mark this figure as drawn: stop and either "
+            f"(A) install plotly and re-run, or (B) drop this interactive figure "
+            f"and fall back to a static kind for the same data, if the user's "
+            f"tolerance allows a non-interactive presentation.")
+
+    series = spec.get("series") or []
+    if not series:
+        raise FigureError(f"figure '{fig_id}': kind 'interactive' requires at least one series (pre-computed data points to display/switch between).")
+
+    backend = spec.get("backend", "plotly")
+    if backend != "plotly":
+        raise FigureError(
+            f"figure '{fig_id}': kind 'interactive' backend={backend!r} is not supported; "
+            f"only 'plotly' is implemented (see dev-notes/interactive_figure_design.md §1 "
+            f"for why Bokeh/others are not parallel-implemented now).")
+
+    layout_3d = bool(spec.get("layout_3d", False))
+    title = spec.get("title") or "（无标题）"
+
+    fig = go.Figure()
+    n_nan_total = 0
+    n_inf_total = 0
+    for s in series:
+        name = s.get("name") or "(unnamed series)"
+        points = s.get("points") or {}
+        x = points.get("x") or []
+        y = points.get("y") or []
+        _require_same_len(name, x, y)
+        nn, ni = _finite_counts(x + y)
+        n_nan_total += nn
+        n_inf_total += ni
+
+        if layout_3d:
+            z = s.get("z")
+            if z is None:
+                raise FigureError(
+                    f"figure '{fig_id}': layout_3d=true but series '{name}' has no 'z' field "
+                    f"(3D rendering requires x, y AND z per point, same-length). Refusing to "
+                    f"draw a 2D-only series into a 3D layout — do not silently drop the z "
+                    f"dimension; supply real z values upstream.")
+            _require_same_len(name + ".z", x, z)
+            nnz, niz = _finite_counts(z)
+            n_nan_total += nnz
+            n_inf_total += niz
+            fig.add_scatter3d(x=x, y=y, z=z, mode="lines+markers", name=name)
+        else:
+            fig.add_scatter(x=x, y=y, mode="lines+markers", name=name)
+
+    # Optional switcher: toggle visibility between the pre-computed series via
+    # Updatemenu buttons (method='restyle', the dict-form that works on static
+    # to_html export — verified directly; the Python-side `visible=[..]`
+    # short-form documented in older plotly examples does NOT work on
+    # plotly 7.x's updatemenu.button schema, confirmed by direct test).
+    switcher = spec.get("switcher")
+    if switcher and len(series) >= 2:
+        buttons = []
+        for i, s in enumerate(series):
+            visible = [j == i for j in range(len(series))]
+            buttons.append(dict(label=s.get("name") or f"series {i+1}", method="restyle",
+                                args=[["visible"], visible]))
+        menu = go.layout.Updatemenu(buttons=buttons)
+        fig.layout.updatemenus = [menu]
+        # All series start visible=False except the first, so the switcher has
+        # a definite initial state rather than overlapping every line at once.
+        for i, trace in enumerate(fig.data):
+            trace.visible = (i == 0)
+
+    fig.update_layout(title=title, height=560)
+
+    html = plotly.io.to_html(fig, include_plotlyjs="inline")
+    out = os.path.join(out_dir, f"{fig_id}.html")
+    with open(out, "w", encoding="utf-8") as f:
+        f.write(html)
+
+    if n_nan_total or n_inf_total:
+        print(f"NOTE: figure '{fig_id}' (interactive) had {n_nan_total} NaN / "
+              f"{n_inf_total} Inf value(s) across its series; Plotly's default "
+              f"rendering skips/handles these — not silently replaced, same "
+              f"policy as the static kinds.", file=sys.stderr)
+    return out
+
+
+def _render_interactive_live(spec, fig_id, out_dir):
+    """kind=='interactive_live' — an OPTIONAL, on-demand branch that goes
+    further than the plain 'interactive' kind: instead of just switching
+    between pre-computed series, it renders a 2D curve y = f(x; p) where
+    `p` is a set of user-adjustable parameters (sliders), and RE-COMPUTES
+    f live in the browser as the user drags any slider — GeoGebra-style
+    "drag a parameter, watch the curve re-draw in real time", achieved
+    with NO server, NO external CDN, NO Python-side callback: the closed-
+    form function body is mirrored as inline JavaScript, evaluated fresh
+    on every slider 'input' event, and pushed into the existing Plotly
+    trace via Plotly.restyle().
+
+    Only sound for cheap per-point closed-form arithmetic (sum of rational/
+    trig terms, O(n*modes) loop over a handful of modes, etc.) — NOT a
+    substitute for re-solving a genuine numerical ODE/PDE when a parameter
+    changes. If the figure's y really depends on the parameter through a
+    heavy numerical model, use 'interactive' with several pre-computed
+    parameter values and a switcher instead, and say so in the title/note.
+    Silently presenting a slider as if it re-solved a heavy model would be
+    exactly the 'silent paper-over' this project's rules forbid; the
+    optional 'live_model_note' field exists to force that distinction to be
+    written down explicitly rather than assumed.
+
+    plotly is imported lazily here, same as in _render_interactive(): a
+    task that never declares an 'interactive_live' figure still never needs
+    plotly installed.
+
+    Security note (kept deliberately narrow): the JavaScript function body
+    is written by the analysis agent, not arbitrary user input, and is
+    scoped to one function that can only read the fixed x grid, the
+    declared constants, and the current slider values — no DOM access
+    outside the one Plotly div, no fetch/XMLHttpRequest, no eval, no
+    network. Keep the body small and arithmetic-only (+,-,*,/,Math.pow,
+    Math.sqrt, Math.abs, simple loops); do not grow this into a general
+    scriptable environment.
+    """
+    try:
+        import plotly.graph_objects as go
+        import plotly.io
+    except ModuleNotFoundError:
+        raise FigureError(
+            f"figure '{fig_id}': kind 'interactive_live' requires the 'plotly' package "
+            f"(pip install plotly), which is not installed in this environment. "
+            f"Same dependency rule as the plain 'interactive' kind — the six static "
+            f"kinds do NOT need plotly and are unaffected.")
+
+    x_data = spec.get("x_data")
+    if not x_data or "values" not in x_data:
+        raise FigureError(f"figure '{fig_id}': kind 'interactive_live' requires 'x_data': "
+                          f"{{'values': [...], 'label': '...'}} (the fixed grid of x sample points "
+                          f"the live function is evaluated on).")
+    x_values = x_data["values"]
+    x_label = x_data.get("label") or "x"
+    if not x_values:
+        raise FigureError(f"figure '{fig_id}': kind 'interactive_live' x_data.values must be a non-empty list.")
+
+    params = spec.get("params") or []
+    if not params:
+        raise FigureError(f"figure '{fig_id}': kind 'interactive_live' requires at least one entry in 'params' "
+                          f"(each: name/label/min/max/step/initial).")
+    for p in params:
+        for field in ("name", "min", "max", "step", "initial"):
+            if field not in p:
+                raise FigureError(f"figure '{fig_id}': kind 'interactive_live' param missing required field '{field}'.")
+        if not (p["min"] <= p["initial"] <= p["max"]):
+            raise FigureError(
+                f"figure '{fig_id}': kind 'interactive_live' param '{p['name']}' initial value {p['initial']} "
+                f"is outside its slider range [{p['min']}, {p['max']}] — this would start the slider at a value "
+                f"it cannot legally reach; fix the range or the initial value, do not clamp silently.")
+
+    js_fn_body = spec.get("js_function_body")
+    if not js_fn_body or not isinstance(js_fn_body, str):
+        raise FigureError(
+            f"figure '{fig_id}': kind 'interactive_live' requires 'js_function_body' — the BODY of a JS "
+            f"function (not the full 'function(P){{...}}' wrapper, which the renderer adds around it) "
+            f"that returns the new y-array given the current parameter object P, e.g. "
+            f"'return x.map(function(fx){{ ... closed-form eval using P.zeta, P.E ... }})' — keep it "
+            f"arithmetic-only and small; see the security note in this function's docstring.")
+
+    y_label = spec.get("y_label") or "y"
+    live_model_note = spec.get("live_model_note")
+    if not live_model_note:
+        print(f"WARNING: figure '{fig_id}' (kind 'interactive_live') has no 'live_model_note' field explicitly stating "
+              f"that this slider re-computes a cheap closed-form expression client-side, NOT a live re-solve of the "
+              f"underlying numerical model — add one sentence to the figure's note/title so a reader of the rendered "
+              f"HTML does not mistake this for a heavier capability than it actually is. Not a hard error, but the "
+              f"silent-assumption failure mode this project forbids.", file=sys.stderr)
+
+    title = spec.get("title") or "（无标题）"
+
+    fig = go.Figure()
+    fig.add_scatter(x=x_values, y=[0.0] * len(x_values), mode="lines", name="live curve",
+                    line=dict(width=2))
+    fig.update_layout(title=title, xaxis_title=x_label, yaxis_title=y_label, height=480)
+
+    html = plotly.io.to_html(fig, include_plotlyjs="inline")
+
+    div_id = "live-root-" + re.sub(r"[^A-Za-z0-9_-]", "_", fig_id)
+    html = re.sub(r'<div id="plot" ', '<div id="' + div_id + '" ', html, count=1)
+
+    constants_json = spec.get("constants") or {}
+
+    slider_defs_lines = []
+    slider_rows = []
+    for p in params:
+        safe = re.sub(r"[^A-Za-z0-9_-]", "_", p["name"])
+        slider_defs_lines.append(
+            "  {name:" + json.dumps(p["name"]) + ", label:" + json.dumps(p.get("label", p["name"]))
+            + ", min:" + json.dumps(p["min"]) + ", max:" + json.dumps(p["max"])
+            + ", step:" + json.dumps(p["step"]) + ", initial:" + json.dumps(p["initial"]) + "},")
+        slider_rows.append(
+            f'<label style="display:inline-block;margin:4px 0">{html_lib.escape(p.get("label", p["name"]))} '
+            f'<span id="{div_id}-val-{safe}">{p["initial"]}</span></label>'
+            f'<input id="{div_id}-slider-{safe}" type="range" min="{p["min"]}" max="{p["max"]}" step="{p["step"]}" value="{p["initial"]}"'
+            f' style="width:260px;vertical-align:middle;margin-left:6px">')
+    slider_defs = "\n".join(slider_defs_lines)
+    slider_block = "<br>".join(slider_rows)
+
+    js_slider_defs = "[" + ",\n".join(
+        f"    {{name: {json.dumps(p['name'])}, label: {json.dumps(p.get('label', p['name']))}, min: {json.dumps(p['min'])}, "
+        f"max: {json.dumps(p['max'])}, step: {json.dumps(p['step'])}, initial: {json.dumps(p['initial'])}}}"
+        for p in params) + "\n"
+    js_constants = json.dumps(constants_json)
+    js_x_values = json.dumps(x_values)
+    js_js_fn_body = js_fn_body
+    js_div_id = div_id
+
+    # --- Optional enhancements (all backward-compatible: absent => exactly the
+    # previous behavior; nothing new is forced on existing specs). Each one is a
+    # general interactive-figure UX pattern learned from the reference FEM file,
+    # NOT FEM-domain-specific: (1) y_range_pin keeps the y-axis from thrashing
+    # as Plotly re-auto-ranges on every slider drag (the reference file's
+    # autoRange temporal-smoothing pattern, generalized); (2) a live "status"
+    # strip (idle / up-to-date / error + reason), not just an error-only box —
+    # mirrors the reference's running/done/reason tri-state visibility; (3)
+    # verify_reference: an independently-derived reference value (or a JS
+    # expression for one) shown live next to the curve — the reference file's
+    # "cheap analytic model as order-of-magnitude cross-check" idea, generalized
+    # to our closed-form case, so the reader can see the numeric sanity check
+    # on-screen, not just as a build-time diff.
+    y_range_pin = spec.get("y_range_pin")
+    pin_lo = pin_hi = None
+    if y_range_pin is not None:
+        if (not isinstance(y_range_pin, (list, tuple))) or len(y_range_pin) != 2 or \
+                not all(isinstance(v, (int, float)) and v == v for v in y_range_pin) or \
+                not (y_range_pin[0] < y_range_pin[1]):
+            raise FigureError(
+                f"figure '{fig_id}': 'y_range_pin' must be a 2-element [lo, hi] "
+                f"with lo < hi (finite numbers) — got {y_range_pin!r}.")
+        pin_lo, pin_hi = y_range_pin
+    has_pin = pin_lo is not None
+
+    verify_reference_js = spec.get("verify_reference_js")
+    verify_reference_value = spec.get("verify_reference_value")
+    verify_reference_label = spec.get("verify_reference_label") or "独立参考值"
+    has_verify = verify_reference_js is not None or verify_reference_value is not None
+    if verify_reference_js is not None and not isinstance(verify_reference_js, str):
+        raise FigureError(f"figure '{fig_id}': 'verify_reference_js' must be a string "
+                          f"(a JS expression in P, like js_function_body, returning a single "
+                          f"number — the BODY only, no 'function(P){{...}}' wrapper), "
+                          f"got {type(verify_reference_js).__name__}.")
+
+    status_div_id = div_id + "-status"
+    verify_div_id = div_id + "-verify"
+
+    pin_js_lines = ""
+    if has_pin:
+        pin_js_lines = (
+            f"  var PIN_LO = {json.dumps(pin_lo)};\n"
+            f"  var PIN_HI = {json.dumps(pin_hi)};\n"
+        )
+    verify_fn_body = verify_reference_js if verify_reference_js is not None else "return 0;"
+    verify_js_value = json.dumps(verify_reference_value) if verify_reference_value is not None else "null"
+    verify_label_js = json.dumps(verify_reference_label + " = ")
+
+    script_template = """
+<script>
+(function(){
+  var root = document.getElementById('""" + js_div_id + """');
+  var X = """ + js_x_values + """;
+  var PARAMS = [""" + js_slider_defs + """ ];
+  var CONSTANTS = """ + js_constants + """;
+""" + pin_js_lines + """
+  var VERIFY_VALUE = """ + verify_js_value + """;
+  var sliderEls = {}, labelEls = {};
+  PARAMS.forEach(function(p){
+    var safeName = String(p.name).replace(/[^A-Za-z0-9_-]/g, '_');
+    sliderEls[p.name] = document.getElementById('""" + js_div_id + """-slider-' + safeName);
+    labelEls[p.name] = document.getElementById('""" + js_div_id + """-val-' + safeName);
+  });
+  function currentParams(){
+    var P = CONSTANTS ? Object.assign({}, CONSTANTS) : {};
+    PARAMS.forEach(function(p){ P[p.name] = parseFloat(sliderEls[p.name].value); });
+    return P;
+  }
+  // The agent-authored closed-form body: recompute y for every x in X given
+  // the current parameter object P. Scoped sandbox: it can only use X,
+  // PARAMS, P, CONSTANTS, Math, JSON — no DOM access, no fetch, no eval,
+  // no network.
+  var LIVE_FN = function(P){
+""" + js_js_fn_body + """
+  };
+  var VERIFY_FN = null;
+""" + (f"  if ({json.dumps(bool(verify_reference_js))}) {{ VERIFY_FN = function(P){{\n{verify_fn_body}\n  }}; }}\n" if has_verify else "") + """
+  var statusEl = document.getElementById('""" + status_div_id + """');
+  var verifyEl = document.getElementById('""" + verify_div_id + """');
+  function setStatus(msg, ok) {
+    if (!statusEl) return;
+    statusEl.textContent = msg;
+    statusEl.style.color = ok ? '#3c9a55' : '#ff5470';
+  }
+  function refresh(){
+    var P = currentParams();
+    PARAMS.forEach(function(p){ labelEls[p.name].textContent = parseFloat(sliderEls[p.name].value).toFixed(4); });
+    var ynew;
+    try {
+      ynew = LIVE_FN(P);
+      if (!Array.isArray(ynew) || ynew.length !== X.length) {
+        throw new Error('js_function_body must return an array of the same length as X (got '
+          + (Array.isArray(ynew) ? ynew.length : typeof ynew) + ', expected ' + X.length + ').');
+      }
+      for (var i = 0; i < ynew.length; i++) {
+        if (typeof ynew[i] !== 'number' || !isFinite(ynew[i])) {
+          throw new Error('js_function_body returned a non-finite y value (NaN/Inf) at x index ' + i
+            + '; check the formula for a division by zero or log(<=0) at the current parameter values.');
+        }
+      }
+    } catch(e) {
+      // Do not silently paper over a JS error in the live function body —
+      // surface it visibly next to the sliders, matching this project's
+      // "never silently skip a broken piece of output" rule.
+      setStatus('实时重算出错（js_function_body 本身写错了，或参数越界导致公式出现 NaN/Inf，不是滑块控件坏了）: ' + e.message, false);
+      return;
+    }
+    setStatus('正常：曲线已按当前参数实时重算（闭式表达式重新求值，不是重新解方程）', true);
+    var restyle = {y: [ynew]};
+""" + ("    if (typeof PIN_LO !== 'undefined') { Plotly.relayout(root, {yaxis: {range: [PIN_LO, PIN_HI]}}); }\n" if has_pin else "") + """
+    Plotly.restyle(root, restyle, [0]);
+    if (verifyEl) {
+      var refVal = null;
+      if (VERIFY_FN) { try { refVal = VERIFY_FN(P); } catch (e2) { verifyEl.textContent = '参考值计算出错: ' + e2.message; verifyEl.style.color = '#ff5470'; return; } }
+      else if (VERIFY_VALUE !== null) { refVal = VERIFY_VALUE; }
+      if (refVal === null || !isFinite(refVal)) { verifyEl.textContent = ''; return; }
+      var ysum = 0, ycnt = 0;
+      for (var j = 0; j < ynew.length; j++) { ysum += ynew[j]; ycnt++; }
+      var ymean = ycnt ? ysum / ycnt : 0;
+      var dev = ymean - refVal;
+      var rel = refVal !== 0 ? Math.abs(dev / refVal) * 100 : null;
+      verifyEl.textContent = """ + verify_label_js + """ + refVal +
+        "，当前闭式结果网格均值偏差 = " + dev.toFixed(4) + (rel === null ? "" : " (" + rel.toFixed(2) + "%)");
+      verifyEl.style.color = Math.abs(dev) < 1e-3 ? '#3c9a55' : '#d97706';
+    }
+  }
+  PARAMS.forEach(function(p){ sliderEls[p.name].addEventListener('input', refresh); });
+  refresh();
+})();
+</script>
+"""
+
+    controls_block = (
+        '<div class="interactive-live-controls" style="padding:8px 16px;font-family:sans-serif;font-size:13px">'
+        '<div style="font-weight:600;margin-bottom:6px">拖动滑块，实时改变曲线'
+        '（纯浏览器端对闭式表达式重新求值，不是重新解方程；参数范围与精度由上游声明）</div>'
+        + slider_block
+        + f'<div id="{status_div_id}" style="font-size:12px;margin-top:4px;color:#666"></div>'
+    )
+    if has_verify:
+        controls_block += f'<div id="{verify_div_id}" style="font-size:12px;margin-top:2px;color:#666"></div>'
+    controls_block += "</div>"
+
+    inject = controls_block + "\n" + script_template
+
+    html = html.rstrip()
+    if html.endswith("</div>"):
+        html = html[:-6] + inject + "</div>"
+    else:
+        html = html + inject
+
+    out = os.path.join(out_dir, f"{fig_id}.html")
+    with open(out, "w", encoding="utf-8") as f:
+        f.write(html)
+    return out
 
 
 def main(argv=None):

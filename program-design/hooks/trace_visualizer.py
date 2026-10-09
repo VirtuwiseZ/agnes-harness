@@ -505,14 +505,25 @@ def render_html(blocks, cross, events, state, out_path, fallback_legacy=None,
 
 def _figure_tag(figures_dir, block_html, state):
     """Fill every <figure class='report-figure' data-figure-id='...'></figure>
-    placeholder in a report section with its inlined image. figures_dir may be
+    placeholder in a report section with its inlined figure. figures_dir may be
     None (no --figures-dir given), in which case every placeholder becomes an
     explicit "no figure source configured" box — matching this project's
     "never paper over a missing piece of output" principle rather than
     rendering a blank <figure>. State (if provided) is consulted only to look
     up the figure's caption (numerical_artifacts.figures[<id>].title); it is
     not used for anything else, and never for a physics judgment about the
-    figure's content."""
+    figure's content.
+
+    Two file types are inlined, never mixed up: raster/vector images
+    (.png/.svg/.jpg/.jpeg) go in as a base64 <img> (the static matplotlib
+    kinds); an interactive Plotly figure (kind='interactive', see
+    dev-notes/interactive_figure_design.md §3) is a self-contained .html
+    fragment produced by make_report_figures.py's _render_interactive() and
+    is inlined by inlining that fragment's <div>+<script> body directly —
+    not wrapped in an <img>, since it is not an image, it is a live
+    interactive widget (rotation/zoom/hover/button-switching, all client-
+    side, no external CDN dependency thanks to plotly's inline plotly.js).
+    """
     def repl(m):
         fid = html.unescape(m.group(1))
         title = ""
@@ -523,23 +534,39 @@ def _figure_tag(figures_dir, block_html, state):
                 title = fig.get("title") or ""
         if not figures_dir:
             return (f"<figure class='report-figure-missing'>引用了 <code>{html.escape(fid)}</code> 的图，"
-                    f"但未提供 --figures-dir，无法内联对应图片。</figure>")
+                    f"但未提供 --figures-dir，无法内联对应图片/交互片段。</figure>")
+        # Image kinds: .png/.svg/.jpg/.jpeg
         path = None
         for ext in (".png", ".svg", ".jpg", ".jpeg"):
             cand = os.path.join(figures_dir, fid + ext)
             if os.path.exists(cand):
                 path = cand
                 break
-        if path is None:
-            return (f"<figure class='report-figure-missing'>引用了 <code>{html.escape(fid)}</code> 的图，"
-                    f"但在 --figures-dir 下找不到对应的 <code>{html.escape(fid)}</code>.png/.svg/.jpg。</figure>")
-        ext = os.path.splitext(path)[1].lower()
-        mime = {".png": "image/png", ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}[ext]
-        with open(path, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode("ascii")
-        caption = f"<figcaption>{html.escape(title) if title else '（无标题）'}</figcaption>"
-        return (f"<figure class='report-figure-inlined'>"
-                f"<img src='data:{mime};base64,{b64}' alt='{html.escape(fid)}'>{caption}</figure>")
+        if path is not None:
+            ext = os.path.splitext(path)[1].lower()
+            mime = {".png": "image/png", ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}[ext]
+            with open(path, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("ascii")
+            caption = f"<figcaption>{html.escape(title) if title else '（无标题）'}</figcaption>"
+            return (f"<figure class='report-figure-inlined'>"
+                    f"<img src='data:{mime};base64,{b64}' alt='{html.escape(fid)}'>{caption}</figure>")
+        # Interactive kind: <fid>.html (a full self-contained Plotly fragment,
+        # not an image — extract just its rendered <div>+<script> body, not
+        # the fragment's own <!doctype>/<html>/<head> shell, so it composes
+        # cleanly inside this report page rather than nest a second document).
+        html_path = os.path.join(figures_dir, fid + ".html")
+        if os.path.exists(html_path):
+            with open(html_path, "r", encoding="utf-8") as f:
+                frag = f.read()
+            body_m = re.search(r"(<div id='[^']+Plotly[^']*'>[\s\S]*?</div>)\s*(<script>[\s\S]*?</script>)?", frag)
+            body = (body_m.group(1) + (body_m.group(2) or "")) if body_m else frag
+            caption = f"<figcaption>{html.escape(title) if title else '（无标题）'}" \
+                      f"<span class='figure-kind-tag'>交互图</span></figcaption>"
+            return (f"<figure class='report-figure-inlined report-figure-interactive'>"
+                    f"{body}{caption}</figure>")
+        return (f"<figure class='report-figure-missing'>引用了 <code>{html.escape(fid)}</code> 的图，"
+                f"但在 --figures-dir 下找不到对应的 <code>{html.escape(fid)}</code>.png/.svg/.jpg/.jpeg/.html。"
+                f"（.html 对应 kind='interactive' 的交互图分支，见 dev-notes/interactive_figure_design.md。）</figure>")
     return re.sub(r"<figure class='report-figure' data-figure-id='([^']+)'></figure>", repl, block_html)
 
 
@@ -624,6 +651,14 @@ header.report-header h1{font-size:26px;margin:0 0 4px}
 padding:18px 20px;margin:18px 0}
 .report-section h2{font-size:20px;margin:0 0 12px}
 .sec-body p{margin:8px 0}
+.report-figure-inlined,.report-figure-missing{margin:14px 0}
+.report-figure-inlined img{max-width:100%;border:1px solid var(--line);border-radius:8px}
+.report-figure-inlined figcaption,.report-figure-missing{font-size:12.5px;color:var(--muted);margin-top:4px}
+.report-figure-interactive .report-figure-body,.report-figure-interactive>div{max-width:100%}
+.figure-kind-tag{display:inline-block;font-size:10.5px;background:var(--accent);color:#fff;
+padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle}
+.report-figure-missing{border:1px solid var(--orange);background:#1a1d27;padding:10px 12px;
+border-radius:8px}
 .sec-body ul{margin:8px 0 8px 18px}
 .sec-body code{background:#12141c;padding:1px 5px;border-radius:4px;font-size:0.92em}
 .verify-block,.state-block{margin-top:14px;font-size:13px;color:var(--muted);

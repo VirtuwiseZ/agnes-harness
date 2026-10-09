@@ -70,3 +70,72 @@ dimensional/boundary gates upstream) is specified in
 `dev-notes/self-tests/03/charting_generic_architecture.md` §2. `figures`
 may be empty or absent entirely — charting is an optional node (SKILL
 Node 2.7), not a required one.
+
+## Figures sub-schema, extension: `interactive` and `interactive_live` kinds (v2.2/v2.3, optional)
+
+In addition to the six static kinds above, two optional, on-demand Plotly-backed
+kinds are supported (see `dev-notes/interactive_figure_design.md` §2, §6 and
+`dev-notes/self-tests/03/charting_generic_architecture.md` §9, §10 for the full
+field specs — this section is just the schema-level summary, not a duplicate):
+
+- **`interactive`** — renders a self-contained HTML fragment (rotatable/zoomable,
+  can switch between several **pre-computed** series via Updatemenu buttons). Only
+  valid for switching between data that was already computed upstream; it does
+  **not** re-solve anything. Fields: `backend` (currently only `"plotly"`),
+  `layout_3d` (optional bool), `series` (reuses the existing name/points shape,
+  plus an optional `z` when `layout_3d=true`), and an optional `switcher` object
+  that declares the series are meant to be toggled between (adds the button UI).
+- **`interactive_live`** — renders a 2D curve y = f(x; p) where the user drags
+  1..N parameter sliders and y is **re-computed live in the browser** on every
+  slider `input` event (GeoGebra-style "drag a parameter, watch the curve
+  re-draw in real time"), still fully static / no server / no external CDN —
+  the closed-form expression is mirrored as inline JavaScript and pushed into
+  the existing Plotly trace via `Plotly.restyle()`. **Only valid for cheap
+  closed-form re-evaluation, not for re-solving a heavy numerical ODE/PDE**; if
+  a parameter genuinely requires re-simulation to get a new y, use `interactive`
+  (pre-computed parameter sweep + switcher) instead and say so in the title.
+  Fields: `x_data` ({values: [x grid], label}), `y_label`, `params`
+  (list of {name, label, min, max, step, initial} — one slider each),
+  `constants` (optional, extra fixed values the JS body can read, e.g. mode
+  frequencies/amplitudes shared across the curve), `js_function_body` (the
+  inline JS expression — body only, not the full `function(P){...}` wrapper, which
+  the renderer adds — that returns the new y-array given the current parameter
+  object `P`; kept deliberately narrow / arithmetic-only, see the security note
+  in `make_report_figures.py`'s `_render_interactive_live()` docstring), and
+  `live_model_note` (a one-sentence statement that this slider re-computes a
+  cheap closed-form expression client-side, not a live re-solve of the underlying
+  numerical model — strongly encouraged; its absence triggers a WARNING at
+  render time, matching this project's "never silently paper over a missing
+  piece of output" rule).
+
+  Optional enhancement fields (all default-absent, fully backward-compatible —
+  a spec that omits them renders exactly the same widget as before these were
+  added; added 2026-10-09, learning general UX patterns from a third-party
+  self-contained realtime-FEM reference file, see
+  `dev-notes/self-tests/03/figures_interactive_test/
+  reference_fem_realtime_simulation_notes.md`):
+  - `y_range_pin` ([lo, hi], optional): pins the y-axis range so it does not
+    thrash/re-auto-range on every slider drag (previously `Plotly.restyle()`
+    could recompute auto-range each time, causing visible axis jitter — the
+    same UX problem the reference file solves with temporal smoothing of its
+    colorbar range, generalized here to a fixed range instead of a moving
+    average, since our curve is 1-D not a scrolling frame).
+  - `verify_reference_js` (JS expression in `P`, returning a single number,
+    optional) OR `verify_reference_value` (a fixed number, optional), plus an
+    optional `verify_reference_label` (string): when present, the widget
+    shows a live readout next to the curve comparing the current
+    closed-form result's grid-mean against this independently-derived
+    reference value (deviation, absolute + %), turning the numeric
+    sanity check from a build-time-only diff into something a report
+    reader can see on-screen — the reference file's "cheap analytic model
+    as order-of-magnitude cross-check" pattern, generalized to our
+    closed-form case. `verify_reference_js`, when given, is subject to the
+    same narrow sandbox as `js_function_body` (no DOM/fetch/eval/network).
+
+Both kinds write a self-contained `<figure_id>.html` fragment (not a PNG/SVG);
+Node 4's `trace_visualizer.py` inlines it directly (not via base64 `<img>`),
+reusing the same `{{figure: <id>}}` placeholder mechanism and `--figures-dir`
+argument as the static kinds — no new flags or code paths needed on the
+visualizer side. Neither kind changes any of the six static kinds' behavior or
+requirement; both are optional Node 2.7 choices, not new mandatory steps.
+

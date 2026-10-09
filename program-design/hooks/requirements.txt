@@ -18,6 +18,21 @@ scipy>=1.11
 # optional, not-yet-fully-wired step); this line records the dependency now so
 # the install step is one line when Node 2.7 is actually run for real.
 matplotlib>=3.8
+# Node 2.7 charting — OPTIONAL, REQUIRED ONLY for the new kind='interactive'
+# and kind='interactive_live' figure branches (make_report_figures.py's
+# _render_interactive() / _render_interactive_live(): Plotly, static
+# self-contained HTML fragment, no external CDN dependency at render time).
+# The six static kinds (curve/scatter/error_bar/interval_highlight/heatmap/
+# boxplot) still use matplotlib ONLY and never import plotly — this is a
+# lazy import inside those two branches, so a task that only ever uses
+# static figures does NOT need plotly installed. See dev-notes/
+# interactive_figure_design.md §3/§6 for the exact boundary, and §1/§6 for
+# what each branch can/can't do (interactive: switch between pre-computed
+# series; interactive_live: re-compute a cheap closed-form expression live
+# from parameter sliders — NOT a live re-solve of a heavy numerical model,
+# which is not what a static HTML fragment can do and is not claimed by
+# this code).
+plotly>=5.0
 # Node 2.7 charting — OPTIONAL, reserved for future higher-level statistical
 # kinds (e.g. violinplot). The current boxplot kind (kind='boxplot' in
 # make_report_figures.py) deliberately does NOT import seaborn: it renders via

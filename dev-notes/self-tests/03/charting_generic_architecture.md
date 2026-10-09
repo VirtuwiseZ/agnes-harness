@@ -275,3 +275,159 @@
   造假）。
 - 不把"figures/绘图"升级为每道题强制节点（仍是 Node 2.7 可选节点，§7
   第 3 项待单独确认）。
+
+## 9. v2.2 修订：新增可选交互分支（kind='interactive'，Plotly）——放宽"克制"边界，不是删除它
+
+> 触发背景：用户（项目 owner）2026-10-08 明确——"报告绘图规则可以设计
+> 多种选择，之前比较死板的原设计（静态 matplotlib 出图）可以松动成'按需
+> 选择其他技术路线'，比如当用户的课题比较泛、一两张死图无法展现 AI 的科
+> 研成果时，或者用户明确要求得到一定参数范围内的可交互科学图时，可以选
+> 择更复杂专业的绘制技术。设计时注意先利用开源成熟的项目，避免重复造
+> 轮子"。
+>
+> 本节据此新增；**不是**推翻 §8 的克制原则，是**在静态路径之外多一条
+> 按需分支**——默认仍然是 §1-§7 的静态 matplotlib 路径（"克制"不变），
+> 交互分支只在"题目本身要求答案形状是交互式的"这个信号出现时才用，跟
+> Node 2.7 "可选节点"的定法完全一致（多一种可选的 kind，不是新增一个
+> 必须做的节点）。
+
+- **选型：Plotly（plotly>=5.0），不用 Bokeh**——理由见
+  dev-notes/interactive_figure_design.md §1（已实测，不是猜测）：Plotly
+  官方明确支持 to_html(include_plotlyjs="inline") 产出自包含、零外部
+  依赖的 HTML 片段，跟本项目"绝对只读、静态、单文件 HTML 报告"原则的兼容
+  成本最低；Bokeh 等价能力未实测，不预先开两条并行技术路线。
+- **能做到的边界（实测确认，2026-10-08，Plotly 7.1.0）**：纯静态 HTML
+  片段里，3D 可旋转/悬停/缩放；Updatemenu 按钮在**几组已经算好**的
+  series 之间切换可见性（"参数扫描 + 展示层切换"）—— 实测字节数约
+  4.8 MB（plotly.js 本体被内联，不是引用 CDN）。
+- **做不到的边界（必须写死在 schema/docstring，防止后续误判为"能实现"）**：
+  "拖滑块改某个物理参数 → 图实时重新解一次 ODE/重新算数值" 做不到——纯
+  静态片段没有 Python 端回调路径，浏览器端没有重新解方程的机制。如果某
+  道题"需要实时改参重算"级别的交互，不在本分支范围，需要引入 Bokeh
+  server 或 Jupyter 级活体环境，属于完全不同的部署形态，不在"静态单文件
+  报告"这个约束内讨论。
+- **schema 改动**：§2 的 kind 枚举加第 7 种 interactive，新增可选字段
+  backend（当前只实现 "plotly"）、layout_3d（bool，缺省 false）、
+  switcher（可选：声明这几条 series 是可互相切换看的，加 Updatemenu
+  按钮）；series 复用现有结构（name/points），layout_3d=true 时
+  每条 series 额外需要 z 字段（跟 points.x/points.y 等长）。
+  详见 dev-notes/interactive_figure_design.md §2。
+- **代码改动点**：make_report_figures.py 加 _render_interactive()
+  （惰性 import plotly，只有 kind=='interactive' 才真正用到，不影响
+  纯静态任务不装 plotly 也能跑；产物是 <figure_id>.html 片段，不是
+  .png/.svg）；trace_visualizer.py 的 --figures-dir 内联逻辑加
+  一条分支：遇到 .html 文件（interactive kind 的产物）直接内联其
+  div+script 主体，不套 img。详见 §3。
+- **对既有静态 6 种 kind 的影响：零**——本分支是纯新增（新 kind 值 + 新
+  函数 + 新依赖行 + 新渲染分支），不改动 curve/scatter/error_bar/
+  interval_highlight/heatmap/boxplot 任何一条现有渲染路径的代码，
+  跟 §1 第 3 条"判断权单一来源"的原则不冲突（判断"这道题要不要出交互图"
+  仍然发生在 agent 填 numerical_artifacts.figures 那一步，脚本本身只做
+  "照单画"，没有新增判断层）。
+
+
+## 10. v2.3 修订：新增第 8 种 figure kind — `interactive_live`（调参实时重绘，GeoGebra 式）
+
+> 触发背景：用户 2026-10-09 反馈 —— 之前 `interactive` kind 演示的按钮切换
+> "太low"，真正想要的是"像 geogebra.org 那样能够让用户自己对一个函数、方程
+> 调参数，实时改变图形的演示"。
+>
+> 核心结论（实测确认，不是猜测）：**纯静态 HTML 导出确实能做到"拖滑块 →
+> 曲线实时重绘"，但只对一类函数有效：闭式表达式（closed-form）** —— 即曲线 y
+> 对参数 p 的依赖是一次直接的代数/循环求值（比如"4 个阻尼洛伦兹峰的求和"
+> 这种 O(n*modes) 浮点运算），而不是需要重新解一遍 ODE/PDE 才拿得到 y 的
+> 数值模型。做法：把那个闭式表达式的数学结构原样镜像成一段内联 JavaScript，
+> 浏览器端在滑块 'input' 事件里直接重新跑一遍这段 JS、拿到新的 y 数组，再调
+> Plotly.restyle() 更新曲线 —— 全程无服务器、无外部 CDN、无 Python 回调，
+> 纯静态单文件报告里就能实现。
+
+- **跟 `interactive` kind 的区别（这是新分支存在的理由）**：
+  `interactive` = 在**几组已经算好**的 series 之间切换（展示层切换，不算
+  任何东西）；`interactive_live` = 一个滑块/几个滑块**实时重新求值**一条
+  曲线（真正的"调参看图"，算的是同一个闭式表达式、不同的参数值）。两者输出
+  形态相同（都是自包含 .html 片段，走 trace_visualizer.py 的同一条内联路径），
+  但 schema 字段完全不同，不共用一套。
+- **能做到的边界（写死在 schema 字段 `live_model_note` + 函数 docstring，
+  防止误判为"什么都能实时重算"）**：只对"拖某个参数后 y 的变化是一次便宜的
+  闭式重算"这种情况有效。如果某道题"调参 → 重解 ODE/PDE"才是拿 y 的真正
+  方式，本 kind **不能**用来假装能实时重解 —— 那种需求应该退回
+  `interactive` kind（预先扫几组参数值 + 按钮切换）并在标题里如实说明，
+  而不是用 `interactive_live` 硬套一个其实没有真实重解语义的滑块。
+  `live_model_note` 字段是**必填提示**（缺了会打 WARNING，不是硬报错，但
+  要求写明这句话本身，跟"不静默掩盖"原则一致）。
+- **安全边界（JS 沙箱，写在 docstring）**：`js_function_body` 是分析 agent
+  自己写的字符串，作用域被限制在"能读固定的 x 网格 + 声明的 constants +
+  当前滑块值"这一个函数内，没有 DOM 访问、没有 fetch/XMLHttpRequest、没有
+  eval、没有网络。刻意保持窄，不扩大成通用脚本环境。
+- **JS 数学正确性验证（本轮实际做过，不是口头承诺）**：2025A sasando demo
+  （`dev-notes/self-tests/03/figures_interactive_test/
+  build_sasando_interactive_live.py`）里，把内联进最终 HTML 的 `LIVE_FN` 用
+  Node.js 实际执行，跟 Python 端同一套闭式公式（`h_db_py`，逐行对应同一套
+  浮点运算顺序）在 zeta 全量程（0.001/0.005/0.02/0.05/0.15）上逐点对比，
+  最大偏差 = 0.0 dB（浮点精度内一致），确认这段 JS 没有算错、跟 Python
+  参考实现是同一套数学，不是两套。这一步验证脚本会随该 demo 一起留在
+  `figures_interactive_test/` 下，后续任何人改 `js_function_body` 的模板
+  结构都可以重跑这个对比，不是只信一次的口头保证。
+- **对既有 7 种 kind 的影响：零** —— 纯新增（新 kind 值 + 新函数
+  `_render_interactive_live()` + 新 dispatch 分支），不改任何现有静态
+  6 种 kind、也不改 `interactive` kind 的代码路径。
+
+## 11. v2.4 补充（2026-10-09）：`interactive_live` 边界的性质澄清（学习记录，不新增 kind）
+
+> 触发背景：用户 2026-10-09 提供了一份第三方自包含 HTML（
+> `dev-notes/第三方数据/钢针侵彻仿真_V0.1_apfsds_fem_2d.html`，约 2191 行，
+> 一个完整跑在浏览器端的 2D 显式 FEM 侵彻仿真器），要求"参考一下，学习其
+> 技术，视情况融入我们的项目通用预案"。已逐段读完该文件（材料库/网格/
+> 求解器/诊断/WebGL 渲染/UI 主循环共 6 段），完整分析见
+> `dev-notes/self-tests/03/figures_interactive_test/
+> reference_fem_realtime_simulation_notes.md`（下称"FEM 借鉴笔记"）。
+>
+> 本节**不新增任何 figure kind、不改 `make_report_figures.py`、不改 schema
+> 字段**，只澄清一条**已有**边界的性质，防止未来误读：
+
+- **`interactive_live` kind 的"只做闭式重算、不重解 ODE/PDE"这条边界本身
+  保持不变**（继续写死在 schema 的 `live_model_note` 字段 +
+  `_render_interactive_live()` docstring 里，§10 的内容照旧有效）。
+- 澄清的是**这条边界为什么这么定**，不是"该不该这么定"：之前（§10、
+  `dev-notes/interactive_figure_design.md` §6）的措辞暗示"浏览器做不到
+  重数值求解"，这次学习确认**这个说法不够准确 —— 这是范围/成本选择，
+  不是浏览器技术做不到**。FEM 借鉴笔记 §1 列出了 6 条通用配方
+  （每帧子步时间预算、精度/流畅度档位、手动单步 + 自动连跑并存、
+  WebGL 优先 + Canvas2D 回退、便宜解析模型做量级对照、时间历史曲线
+  随仿真滚动刷新），证明"静态单文件里跑一个真正的活体数值求解器"在
+  原理上是通的，只是**不为某一道题的专用求解器去改通用绘图管线**是
+  当前明确的范围选择（违反"克制/最小改动/不把 `js_function_body`
+  作用域扩大成通用脚本环境"这条本项目一贯原则，见 §6/§10）。
+- **不采用的部分**：该参考文件的材料常数（JC/EOS 参数）自声明"工程近似
+  值，不作弹道鉴定依据"，本项目的数据可信度原则不接受把它当成已验证
+  物理数据使用；只学"怎么实现"，不学"报出的数值"。
+- **将来如果真遇到"某道题确实需要一个能实时重解的重数值模型"**：
+  按 FEM 借鉴笔记 §2 第 3 点的建议，应**单独立项评估**是否值得为那一类
+  题目引入一个**独立的、带自己依赖与沙箱边界的重型 figure 分支**（类似
+  这次参考文件的形态），而不是往现在这条"画已算好结果"的通用管线里
+  硬塞重型求解器 —— 那条独立分支如果立项，应另立 dev-note 走完整
+  评审，不在本 §11 范围内预先承诺。
+- **同步落地（本 §11 的配套动作，不是只澄清文档）**：基于这份参考文件里
+  可通用的 3 条交互模式，已经实际增强 `make_report_figures.py` 的
+  `_render_interactive_live()`，全部是**可选** schema 字段、向后兼容、不改动
+  现有任何必填字段/现有 demo 的行为、不扩大 `js_function_body` 那套 JS
+  沙箱边界（无 DOM/fetch/eval/网络）：
+  - `y_range_pin`（[lo, hi]）：钉死 y 轴量程，避免 `Plotly.restyle()`
+    每次滑块拖动都触发自动量程重算导致轴抖动（对应参考文件 `autoRange`
+    时间平滑的通用化，用固定区间而非移动平均实现，因为我们是一维静态
+    重绘不是逐帧滚动仿真）。
+  - 状态条三态外露（正常/出错都显式可见，替换原有"只有出错才显示一行
+    红字、平时完全空白"的单行报错框）：对应参考文件 `sim.done`/`reason`/
+    `running` 的三态可见性思路，不改变"出错必须可见、不许静默"的既有
+    原则，只是把正常状态也如实说出来。
+  - `verify_reference_js`/`verify_reference_value`/`verify_reference_label`
+    （可选）：允许 spec 带一个上游独立算好的参考值或 JS 表达式，JS 端实时
+    显示"当前闭式结果网格均值 vs 独立参考值的偏差"，把上一轮已落地的
+    "JS-vs-Python 数值正确性核对"从构建时一次性检查升级成读报告的人也能
+    当场看到的常驻对照读数。JS 表达式若提供，同样受 `js_function_body`
+    那套沙箱约束。详见 FEM 借鉴笔记 §3、§4 的完整验证记录（原有 base demo
+    重跑确认未泄漏新逻辑；新增 `build_sasando_interactive_live_enhanced.py`
+    + `check_enhanced_frag.cjs` 确认新字段就位、沙箱边界未被破坏、"零外部
+    CDN"性质与改动前一致）。
+- 本轮**不改**：`trace_visualizer.py`、`requirements.txt`（这三条增强不引入
+  新依赖，全部复用已有的 plotly 惰性导入 + 标准库 json/re）。
