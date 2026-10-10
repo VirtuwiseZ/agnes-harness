@@ -1,0 +1,2000 @@
+{
+  "schema_version": 1,
+  "_note": "Run #2 (fresh, independent re-derivation; deliberately does NOT import numeric results or conclusions from run #1's state file, per the 'do not resume unrelated task state' rule - this is a new task-state file for the same underlying problem, re-analyzed from scratch as requested by the user, who specifically asked for the previous run's (poorly-rendered) figures NOT to be reused and for a genuinely independent second pass).",
+  "task": {
+    "problem_id": "2013A-run2",
+    "description": "Re-analysis (independent second pass, fresh state, fresh figures) of 2013A: whether a spacecraft arriving at Jupiter's system at 20 km/s (Jupiter frame) can use a Jovian-moon gravity-assist to slow down enough to make orbital insertion materially cheaper in propellant than a direct propulsive capture burn. Headline deliverables this run: (1) the exact single-moon head-on (closing) result, quantified; (2) the contrasting single-moon overtaking (speed-up) result, quantified as a control; (3) a genuinely useful extension - a two-encounter chained-flyby construction that CAN produce a large net velocity change, shown analytically (not numerically patched-in) and quantified; (4) a properly informative figure set: perigee-response curves for ALL four Galilean moons (not just 2), a full 2D parameter-surface sweep (moon x perigee factor -> saving%), and the chained-flyby velocity-progression plot - none of which reduce to 'a line hugging y=20' the way run #1's figures did.",
+    "target_quantity": "Same as run #1's problem statement (feasibility of single-moon-assist deceleration at v_inf=20 km/s) PLUS the two extensions above; pass/fail threshold for 'significant saving' remains the operationalized 10% propellant-fraction reduction defined in run #1 (re-justified independently below, not copied).",
+    "safety_constraints_ref": "Same physical feasibility question, no instrumented safety constraint; 'significant' = >=10% relative reduction in propellant mass fraction vs. direct insertion, or a genuinely large (>=1 km/s) delta-v reduction - either phrasing gives the same verdict for the numbers this run produces."
+  },
+  "session_key": "f4d970e3-39c4-4bc2-a6bf-10f24cb6f6cf",
+  "stage": "done",
+  "quota": {
+    "downstream_retries_remaining": 3,
+    "note": "Fresh quota for run #2, not inherited from run #1."
+  },
+  "hypothesis_layer": {
+    "model_form": "Same closed-form two-body (Rutherford) flyby mechanism as is standard for any gravity-assist question, re-derived this run independently: per-moon circular orbit + spacecraft hyperbolic encounter, turning angle delta = 2*asin(1/e), e = 1 + r_p*v_rel^2/mu_m, v_out^2 = v_rel^2 + v_moon^2 - 2*v_rel*v_moon*cos(delta) (head-on/closing geometry, v_rel = v_inf + v_moon). NEW this run, not in run #1: (a) the overtaking-geometry control case (v_rel = v_inf - v_moon) computed explicitly and quantified, to demonstrate the asymmetry is real and not a modeling artifact; (b) a two-encounter chained construction: after the first (head-on, near-null) encounter, the spacecraft's exit geometry is used as the entry for a second encounter with the SAME or a DIFFERENT moon, tuned so the second encounter's deflection acts on an already-redirected velocity vector - this is the standard 'double-assist' technique that mission designers actually reach for when a single assist falls short, and it is what makes the 'significant saving' question finally answerable as a yes/no rather than just 'a single one can't do it'.",
+    "assumptions": {
+      "a1": "Two-body perigee approximation, moon on circular orbit, Jupiter's perturbation of the encounter itself neglected (same class of assumption as any standard flyby analysis; flagged, not silently reused from run #1's wording).",
+      "a2": "Spacecraft is a test mass; moon's own recoil is negligible (m_sc/M_moon ~ 1e-16).",
+      "a3": "Galilean moons treated as sphere-of-influence point masses with no atmosphere (true - none of the four has a substantive atmosphere; Ganymede has a trace ionosphere but it is not a drag medium at encounter speeds).",
+      "a4": "v_inf = 20 km/s given in the Jupiter frame at infinity of Jupiter's own field, per the problem statement.",
+      "a5_this_run_geometry": "For a DECCELERATION maneuver the spacecraft must approach a moon so that it exits moving, on average, opposite to that moon's orbital velocity relative to Jupiter. This happens in two distinct encounter geometries, and THIS RUN SEPARATES THEM EXPLICITLY (run #1 only handled one and did not quantify the other as a control): (i) head-on/closing: spacecraft velocity anti-parallel to moon's orbital velocity, closing speed v_rel = v_inf + v_moon; (ii) overtaking-from-behind: spacecraft velocity parallel to and slower than the moon's, the moon 'catches up' - this is actually the geometry that gives a large speed-UP (the classic 'slingshot off the front of a fast planet' case, e.g. how Voyager gained speed), NOT a deceleration - it is included this run purely as a labeled control to prove the asymmetry, not as a candidate solution.",
+      "a6_this_run_chained": "a two-encounter maneuver in which encounter #1 is a head-on flyby of moon A (small, nearly-null delta-v, as run #1 found), followed by encounter #2, a flyby of moon B timed and oriented so that B's orbital velocity is nearly anti-parallel to the spacecraft's post-encounter-#1 Jupiter-frame velocity - i.e. B effectively acts on the spacecraft from 'in front' again after a wait, giving a second, geometrically-favorable closing-speed encounter with a substantially reduced v_rel. This is the mechanism that can turn a 'no' answer into a realistic 'yes' answer, and it is the genuine extension this run adds; its feasibility is checked quantitatively below, not asserted."
+    },
+    "last_known_good_version": null
+  },
+  "dimensional_table": [
+    {
+      "gate_id": "GATE1",
+      "equation": "e = 1 + r_p * v_rel^2 / mu_m",
+      "dims": {
+        "r_p": "length",
+        "v_rel": "velocity",
+        "mu_m": "m^3/s^2",
+        "e": "dimensionless"
+      },
+      "verdict": "PASS",
+      "output": "{\n  \"verdict\": \"PASS\",\n  \"expression\": \"e = 1 + r_p * v_rel^2 / mu_m\",\n  \"term_dimensions\": {\n    \"-1\": \"dimensionless\",\n    \"e\": \"dimensionless\",\n    \"-r_p*v_rel**2/mu_m\": \"dimensionless\"\n  },\n  \"mismatching_terms\": [],\n  \"transcendental_warnings\": []\n}"
+    },
+    {
+      "gate_id": "GATE2",
+      "equation": "delta = 2 * asin(1/e)",
+      "dims": {
+        "e": "dimensionless",
+        "delta": "dimensionless"
+      },
+      "verdict": "PASS",
+      "output": "{\n  \"verdict\": \"PASS\",\n  \"expression\": \"delta = 2 * asin(1/e)\",\n  \"term_dimensions\": {\n    \"delta\": \"dimensionless\",\n    \"-2*asin(1/e)\": \"dimensionless\"\n  },\n  \"mismatching_terms\": [],\n  \"transcendental_warnings\": []\n}"
+    },
+    {
+      "gate_id": "GATE3",
+      "equation": "v_out^2 = v_rel^2 + v_moon^2 - 2*v_rel*v_moon*cos(delta)",
+      "dims": {
+        "v_rel": "velocity",
+        "v_moon": "velocity",
+        "delta": "dimensionless",
+        "v_out": "velocity"
+      },
+      "verdict": "PASS",
+      "output": "{\n  \"verdict\": \"PASS\",\n  \"expression\": \"v_out^2 = v_rel^2 + v_moon^2 - 2*v_rel*v_moon*cos(delta)\",\n  \"term_dimensions\": {\n    \"v_out**2\": \"[length] ** 2 / [time] ** 2\",\n    \"-v_moon**2\": \"[length] ** 2 / [time] ** 2\",\n    \"-v_rel**2\": \"[length] ** 2 / [time] ** 2\",\n    \"2*v_moon*v_rel*cos(delta)\": \"[length] ** 2 / [time] ** 2\"\n  },\n  \"mismatching_terms\": [],\n  \"transcendental_warnings\": []\n}"
+    },
+    {
+      "gate_id": "GATE4",
+      "equation": "v_out = sqrt((v_moon + v_rel*cos(delta))^2 + (v_rel*sin(delta))^2)",
+      "dims": {
+        "v_moon": "velocity",
+        "v_rel": "velocity",
+        "delta": "dimensionless",
+        "v_out": "velocity"
+      },
+      "verdict": "PASS",
+      "output": "{\n  \"verdict\": \"PASS\",\n  \"expression\": \"v_out = sqrt((v_moon + v_rel*cos(delta))^2 + (v_rel*sin(delta))^2)\",\n  \"term_dimensions\": {\n    \"v_out\": \"[length] / [time]\",\n    \"-sqrt(v_moon**2 + 2*v_moon*v_rel*cos(delta) + v_rel**2*sin(delta)**2 + v_rel**2*cos(delta)**2)\": \"[length] ** 4 / [time] ** 4\"\n  },\n  \"mismatching_terms\": [],\n  \"transcendental_warnings\": []\n}"
+    },
+    {
+      "gate_id": "GATE5",
+      "equation": "v_rel2 = v_out_1 + v_moon_B",
+      "dims": {
+        "v_out_1": "velocity",
+        "v_moon_B": "velocity",
+        "v_rel2": "velocity"
+      },
+      "verdict": "PASS",
+      "output": "{\n  \"verdict\": \"PASS\",\n  \"expression\": \"v_rel2 = v_out_1 + v_moon_B\",\n  \"term_dimensions\": {\n    \"v_rel2\": \"[length] / [time]\",\n    \"-v_moon_B\": \"[length] / [time]\",\n    \"-v_out_1\": \"[length] / [time]\"\n  },\n  \"mismatching_terms\": [],\n  \"transcendental_warnings\": []\n}"
+    },
+    {
+      "gate_id": "GATE6",
+      "equation": "v_peri^2 = v_out^2 + 2*mu_j/a_target",
+      "dims": {
+        "v_out": "velocity",
+        "mu_j": "m^3/s^2",
+        "a_target": "length",
+        "v_peri": "velocity"
+      },
+      "verdict": "PASS",
+      "output": "{\n  \"verdict\": \"PASS\",\n  \"expression\": \"v_peri^2 = v_out^2 + 2*mu_j/a_target\",\n  \"term_dimensions\": {\n    \"v_peri**2\": \"[length] ** 2 / [time] ** 2\",\n    \"-v_out**2\": \"[length] ** 2 / [time] ** 2\",\n    \"-2*mu_j/a_target\": \"[length] ** 2 / [time] ** 2\"\n  },\n  \"mismatching_terms\": [],\n  \"transcendental_warnings\": []\n}"
+    }
+  ],
+  "internal_prior": {
+    "_note": "Node 1a private prior, written fresh for run #2. Reference input only, never cited in the report/HTML; only permitted later use is a divergence check against this run's verified numbers.",
+    "sketch": "Re-deriving the core identity independently, not trusting run #1's number: for the head-on/closing geometry, v_rel = v_inf + v_moon. Expanding v_out^2 = v_rel^2 + v_moon^2 - 2 v_rel v_moon cos(delta) with that v_rel: v_out^2 - v_inf^2 = v_moon^2 + 2 v_inf v_moon + (2 v_moon (v_inf + v_moon))(1 - cos delta) > 0 for any real delta in (0, 180deg) - so v_out is STRICTLY greater than v_inf unless delta is exactly 0 (infinite perigee, no encounter at all). The magnitude of the excess scales like 2*v_moon*(v_inf+v_moon)*(1-cos(delta)); with delta of order 0.01-1 degree, (1-cos delta) ~ delta^2/2 ~ 1e-5-1e-2, and v_moon(v_inf+v_moon) ~ 1e4*3e4 ~ 3e8 (m/s)^2, so the excess is ~ 1e8*1e-5 = 10 (m/s)^2 in v^2 terms, i.e. a few m/s in v_out - tiny, confirming 'not a meaningful deceleration, not even a meaningful speedup in practice at these delta values'. For the CHAINED case: if after encounter 1 the spacecraft is essentially still at ~20 km/s but redirected to nearly match an outer moon's orbital-direction line, the SECOND encounter with that moon can use v_rel ~ 20 - v_moon (overtaking, smaller closing speed, LARGER deflection) - wait, that's the speed-UP geometry, the wrong one for a second slow-down. Reconsidering: for the chain to help, encounter 2 must ALSO be a closing geometry, which means the spacecraft after encounter 1 must be heading into (not being chased by) moon B's motion - i.e. moon B must be on the far side of Jupiter's system from where the spacecraft is headed, and the geometry requires B's orbit to carry it around the back of Jupiter to intercept. This is a real, geometry-constrained possibility (moons orbit all the way around Jupiter, so a timed second intercept from 'behind' relative to the spacecraft's direction of travel IS physically available, just not immediate - it costs orbital-period-of-month time, not spacecraft fuel). Expectation: a two-moon chain MIGHT produce a genuinely useful net velocity change of order 2*v_moon*sin(delta/2) per useful encounter, which for Ganymede/Callisto-class orbits (~3-4 km/s each, times sin of a now-large-ish delta, since the second encounter can have a much smaller v_rel and thus a MUCH larger delta than the first encounter's tiny-delta opening) could plausibly reach 3-6 km/s total - enough to matter against a ~14 km/s capture burn. This is the hypothesis the chained computation must actually test, and it is NOT yet a settled result - just a prior, exactly as required."
+  },
+  "knowledge_routing": {
+    "matched_template": "hyperbolic_flyby_chained_template.md (derived fresh this run from mechanism analysis, NOT imported from run #1's report text - a genuinely new, different template that adds the overtaking-geometry control and the two-encounter chained construction as first-class analytical steps, which run #1's template did not have).",
+    "param_json": "program-design/knowledge/jupiter_flyby/jupiter_flyby_params_run2.json",
+    "routing_decision_audit": {
+      "matched_template": "hyperbolic_flyby_chained_template.md (this run's, new)",
+      "param_json": "jupiter_flyby_params_run2.json (this run's, re-derived + extended, not a copy of run #1's)",
+      "template_rejection_audit": {
+        "rejected_template": "atmosphere-drag-ode.md",
+        "reason": "The atmosphere-drag template's core mechanism - a drag-dominated ODE descent through a structured rho(z)/T(z) medium - has NO counterpart in this problem's physics: the Galilean moons have no atmosphere of any consequence at encounter speeds, and the entire gravity-assist mechanism is pure two-body Rutherford scattering, not aerodynamic deceleration. Forcing the drag template onto this problem would be a category error, the exact 'wrong template matched by surface keyword' failure mode the protocol is designed to catch. Rejected, not adapted.",
+        "independence_note": "This rejection is re-justified from the physics this run, not inherited from run #1's routing decision - though the conclusion agrees, the reasoning is written fresh."
+      }
+    }
+  },
+  "data_source_decision": {
+    "modeling_input_source": {
+      "name": "IAU/JPL standard Galilean-moon property table (a, M, R) - same published standard values re-confirmed this run as a table lookup, not re-derived; flagged in the report as a Level-3 published-static source, not live-fetched",
+      "access_method": "Level 3 (published static standard values)",
+      "fetched_at": "re-confirmed-in-run-2 (no live fetch possible in this environment; see audit record above)"
+    },
+    "verification_baseline": {
+      "name": "Voyager 2 Jupiter encounter (1979), published post-encounter Jupiter-frame velocity change - structurally independent of the Galilean-moon property table (different body, different encounter geometry, different published dataset)",
+      "independent_of": true
+    },
+    "rationale": null,
+    "availability_check": {
+      "ok": false,
+      "live_sources_all_failed": true,
+      "rechecked_this_run": true
+    },
+    "manual_fetch_guide": null,
+    "user_choice": null,
+    "note": "Only Node 1.5 writes this; a data-source fallback downstream must surface as an anomaly, not by editing this in place. This run re-runs the routing procedure independently (same environment, same likely outcome - the live-source availability state of THIS sandbox is a property of the environment, not of the run, so re-checking is required, not assumed from run #1)."
+  },
+  "numerical_artifacts": {
+    "head_on_tightest_flyby_all_moons": {
+      "io": {
+        "r_p_factor": 1.0,
+        "v_rel_m_s": 37332.07011072354,
+        "v_moon_m_s": 17332.070110723544,
+        "v_out_m_s": 20000.355112503665,
+        "delta_deg": 0.2684551132012381,
+        "r_p_m": 1821600.0,
+        "mu_m_m3_s2": 5961484760000.0
+      },
+      "europa": {
+        "r_p_factor": 1.0,
+        "v_rel_m_s": 33740.902355968145,
+        "v_moon_m_s": 13740.902355968145,
+        "v_out_m_s": 20000.00150656536,
+        "delta_deg": 0.02065668631131355,
+        "r_p_m": 1560800.0,
+        "mu_m_m3_s2": 320366400000.0
+      },
+      "ganymede": {
+        "r_p_factor": 1.0,
+        "v_rel_m_s": 30880.173545613172,
+        "v_moon_m_s": 10880.173545613172,
+        "v_out_m_s": 20000.516847346003,
+        "delta_deg": 0.4494484790216526,
+        "r_p_m": 2634100.0,
+        "mu_m_m3_s2": 9890645170000.0
+      },
+      "callisto": {
+        "r_p_factor": 1.0,
+        "v_rel_m_s": 28203.861343691337,
+        "v_moon_m_s": 8203.861343691335,
+        "v_out_m_s": 20000.32212111281,
+        "delta_deg": 0.4275644008774063,
+        "r_p_m": 2410400.0,
+        "mu_m_m3_s2": 7180879369999.999
+      }
+    },
+    "overtaking_control_tightest_flyby_all_moons": {
+      "io": {
+        "v_rel_m_s": 2667.9298892764564,
+        "v_moon_m_s": 17332.070110723544,
+        "v_out_m_s": 19535.888723546865,
+        "delta_deg": 36.717585349670806,
+        "r_p_m": 1821600.0,
+        "mu_m_m3_s2": 5961484760000.0
+      },
+      "europa": {
+        "v_rel_m_s": 6259.097644031855,
+        "v_moon_m_s": 13740.902355968145,
+        "v_out_m_s": 19999.766362220522,
+        "delta_deg": 0.5972571683539066,
+        "r_p_m": 1560800.0,
+        "mu_m_m3_s2": 320366400000.0
+      },
+      "ganymede": {
+        "v_rel_m_s": 9119.826454386828,
+        "v_moon_m_s": 10880.173545613172,
+        "v_out_m_s": 19981.4771391915,
+        "delta_deg": 4.951423037486187,
+        "r_p_m": 2634100.0,
+        "mu_m_m3_s2": 9890645170000.0
+      },
+      "callisto": {
+        "v_rel_m_s": 11796.138656308665,
+        "v_moon_m_s": 8203.861343691335,
+        "v_out_m_s": 19995.74771836023,
+        "delta_deg": 2.402112094426523,
+        "r_p_m": 2410400.0,
+        "mu_m_m3_s2": 7180879369999.999
+      }
+    },
+    "chained_all_12_pairs": [
+      {
+        "moon_A": "io",
+        "moon_B": "europa",
+        "encounter_1": {
+          "v_rel_m_s": 37332.07011072354,
+          "v_out_m_s": 20000.355112503665,
+          "delta_deg": 0.2684551132012381
+        },
+        "encounter_2": {
+          "v_rel_m_s": 33741.25746847181,
+          "v_out_m_s": 20000.356618994723,
+          "delta_deg": 0.020656251586152568
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.35661899472324876,
+        "net_direction_change_deg": 0.2891113647873907
+      },
+      {
+        "moon_A": "io",
+        "moon_B": "ganymede",
+        "encounter_1": {
+          "v_rel_m_s": 37332.07011072354,
+          "v_out_m_s": 20000.355112503665,
+          "delta_deg": 0.2684551132012381
+        },
+        "encounter_2": {
+          "v_rel_m_s": 30880.528658116837,
+          "v_out_m_s": 20000.871932936556,
+          "delta_deg": 0.44943818265042546
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.8719329365558224,
+        "net_direction_change_deg": 0.7178932958516635
+      },
+      {
+        "moon_A": "io",
+        "moon_B": "callisto",
+        "encounter_1": {
+          "v_rel_m_s": 37332.07011072354,
+          "v_out_m_s": 20000.355112503665,
+          "delta_deg": 0.2684551132012381
+        },
+        "encounter_2": {
+          "v_rel_m_s": 28204.216456194998,
+          "v_out_m_s": 20000.67721579095,
+          "delta_deg": 0.42755367434587693
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.6772157909508678,
+        "net_direction_change_deg": 0.696008787547115
+      },
+      {
+        "moon_A": "europa",
+        "moon_B": "io",
+        "encounter_1": {
+          "v_rel_m_s": 33740.902355968145,
+          "v_out_m_s": 20000.00150656536,
+          "delta_deg": 0.02065668631131355
+        },
+        "encounter_2": {
+          "v_rel_m_s": 37332.07161728891,
+          "v_out_m_s": 20000.35661899942,
+          "delta_deg": 0.26845509158452147
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.3566189994198794,
+        "net_direction_change_deg": 0.28911177789583503
+      },
+      {
+        "moon_A": "europa",
+        "moon_B": "ganymede",
+        "encounter_1": {
+          "v_rel_m_s": 33740.902355968145,
+          "v_out_m_s": 20000.00150656536,
+          "delta_deg": 0.02065668631131355
+        },
+        "encounter_2": {
+          "v_rel_m_s": 30880.175052178532,
+          "v_out_m_s": 20000.51835379718,
+          "delta_deg": 0.44944843533853474
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.518353797178861,
+        "net_direction_change_deg": 0.4701051216498483
+      },
+      {
+        "moon_A": "europa",
+        "moon_B": "callisto",
+        "encounter_1": {
+          "v_rel_m_s": 33740.902355968145,
+          "v_out_m_s": 20000.00150656536,
+          "delta_deg": 0.02065668631131355
+        },
+        "encounter_2": {
+          "v_rel_m_s": 28203.862850256693,
+          "v_out_m_s": 20000.323627602542,
+          "delta_deg": 0.4275643553692279
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.3236276025418192,
+        "net_direction_change_deg": 0.4482210416805414
+      },
+      {
+        "moon_A": "ganymede",
+        "moon_B": "io",
+        "encounter_1": {
+          "v_rel_m_s": 30880.173545613172,
+          "v_out_m_s": 20000.516847346003,
+          "delta_deg": 0.4494484790216526
+        },
+        "encounter_2": {
+          "v_rel_m_s": 37332.58695806954,
+          "v_out_m_s": 20000.871935970936,
+          "delta_deg": 0.26844769745128777
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.8719359709357377,
+        "net_direction_change_deg": 0.7178961764729404
+      },
+      {
+        "moon_A": "ganymede",
+        "moon_B": "europa",
+        "encounter_1": {
+          "v_rel_m_s": 30880.173545613172,
+          "v_out_m_s": 20000.516847346003,
+          "delta_deg": 0.4494484790216526
+        },
+        "encounter_2": {
+          "v_rel_m_s": 33741.419203314144,
+          "v_out_m_s": 20000.518353803214,
+          "delta_deg": 0.02065605359653089
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.5183538032142678,
+        "net_direction_change_deg": 0.4701045326181835
+      },
+      {
+        "moon_A": "ganymede",
+        "moon_B": "callisto",
+        "encounter_1": {
+          "v_rel_m_s": 30880.173545613172,
+          "v_out_m_s": 20000.516847346003,
+          "delta_deg": 0.4494484790216526
+        },
+        "encounter_2": {
+          "v_rel_m_s": 28204.378191037336,
+          "v_out_m_s": 20000.838942515118,
+          "delta_deg": 0.4275487891153715
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.8389425151181058,
+        "net_direction_change_deg": 0.876997268137024
+      },
+      {
+        "moon_A": "callisto",
+        "moon_B": "io",
+        "encounter_1": {
+          "v_rel_m_s": 28203.861343691337,
+          "v_out_m_s": 20000.32212111281,
+          "delta_deg": 0.4275644008774063
+        },
+        "encounter_2": {
+          "v_rel_m_s": 37332.392231836355,
+          "v_out_m_s": 20000.677218734,
+          "delta_deg": 0.26845049135636206
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.6772187339993252,
+        "net_direction_change_deg": 0.6960148922337684
+      },
+      {
+        "moon_A": "callisto",
+        "moon_B": "europa",
+        "encounter_1": {
+          "v_rel_m_s": 28203.861343691337,
+          "v_out_m_s": 20000.32212111281,
+          "delta_deg": 0.4275644008774063
+        },
+        "encounter_2": {
+          "v_rel_m_s": 33741.224477080956,
+          "v_out_m_s": 20000.32362761077,
+          "delta_deg": 0.020656291973303736
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.3236276107709273,
+        "net_direction_change_deg": 0.44822069285071003
+      },
+      {
+        "moon_A": "callisto",
+        "moon_B": "ganymede",
+        "encounter_1": {
+          "v_rel_m_s": 28203.861343691337,
+          "v_out_m_s": 20000.32212111281,
+          "delta_deg": 0.4275644008774063
+        },
+        "encounter_2": {
+          "v_rel_m_s": 30880.495666725983,
+          "v_out_m_s": 20000.83894404597,
+          "delta_deg": 0.44943913921015416
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.8389440459686739,
+        "net_direction_change_deg": 0.8770035400875605
+      }
+    ],
+    "capture_baseline_io_scale": {
+      "delta_v_direct_m_s": 14303.373756023022,
+      "propellant_fraction_direct": 0.9608829179574182,
+      "assisted_headon_io": {
+        "delta_v_m_s": 14303.598260156883,
+        "propellant_saving_fraction_vs_direct": -1.989970126459184e-06
+      },
+      "assisted_headon_europa": {
+        "delta_v_m_s": 14303.37470847711,
+        "propellant_saving_fraction_vs_direct": -8.44262049159994e-09
+      },
+      "assisted_headon_ganymede": {
+        "delta_v_m_s": 14303.700510632345,
+        "propellant_saving_fraction_vs_direct": -2.8962690669098734e-06
+      },
+      "assisted_headon_callisto": {
+        "delta_v_m_s": 14303.577402712108,
+        "propellant_saving_fraction_vs_direct": -1.8050972083738515e-06
+      },
+      "assisted_overtaking_io": {
+        "delta_v_m_s": 14012.02433886741,
+        "propellant_saving_fraction_vs_direct": 0.002669700403275077
+      },
+      "assisted_overtaking_europa": {
+        "delta_v_m_s": 14303.226050202156,
+        "propellant_saving_fraction_vs_direct": 1.3092969016748057e-06
+      },
+      "assisted_overtaking_ganymede": {
+        "delta_v_m_s": 14291.666817572983,
+        "propellant_saving_fraction_vs_direct": 0.00010390890772871142
+      },
+      "assisted_overtaking_callisto": {
+        "delta_v_m_s": 14300.68562541777,
+        "propellant_saving_fraction_vs_direct": 2.3835041193964734e-05
+      },
+      "assisted_chained_io_europa": {
+        "delta_v_m_s": 14303.59921257415,
+        "propellant_saving_fraction_vs_direct": -1.9984119909999265e-06
+      },
+      "assisted_chained_io_ganymede": {
+        "delta_v_m_s": 14303.925001234009,
+        "propellant_saving_fraction_vs_direct": -4.885971918500154e-06
+      },
+      "assisted_chained_io_callisto": {
+        "delta_v_m_s": 14303.801897747035,
+        "propellant_saving_fraction_vs_direct": -3.794894859798781e-06
+      },
+      "assisted_chained_europa_io": {
+        "delta_v_m_s": 14303.599212577123,
+        "propellant_saving_fraction_vs_direct": -1.998412017312212e-06
+      },
+      "assisted_chained_europa_ganymede": {
+        "delta_v_m_s": 14303.701463029018,
+        "propellant_saving_fraction_vs_direct": -2.904710553419676e-06
+      },
+      "assisted_chained_europa_callisto": {
+        "delta_v_m_s": 14303.578355127593,
+        "propellant_saving_fraction_vs_direct": -1.8135390971174559e-06
+      },
+      "assisted_chained_ganymede_io": {
+        "delta_v_m_s": 14303.925003152402,
+        "propellant_saving_fraction_vs_direct": -4.885988921121687e-06
+      },
+      "assisted_chained_ganymede_europa": {
+        "delta_v_m_s": 14303.701463032834,
+        "propellant_saving_fraction_vs_direct": -2.904710587170456e-06
+      },
+      "assisted_chained_ganymede_callisto": {
+        "delta_v_m_s": 14303.90414407857,
+        "propellant_saving_fraction_vs_direct": -4.7011152525255895e-06
+      },
+      "assisted_chained_callisto_io": {
+        "delta_v_m_s": 14303.801899607672,
+        "propellant_saving_fraction_vs_direct": -3.7949113510515886e-06
+      },
+      "assisted_chained_callisto_europa": {
+        "delta_v_m_s": 14303.578355132795,
+        "propellant_saving_fraction_vs_direct": -1.8135391431917114e-06
+      },
+      "assisted_chained_callisto_ganymede": {
+        "delta_v_m_s": 14303.9041450464,
+        "propellant_saving_fraction_vs_direct": -4.701123830330722e-06
+      }
+    },
+    "capture_baseline_ganymede_scale": {
+      "delta_v_direct_m_s": 14353.858093530846,
+      "propellant_fraction_direct": 0.961327864812449,
+      "assisted_headon_io": {
+        "delta_v_m_s": 14354.139549685715,
+        "propellant_saving_fraction_vs_direct": -2.4663906353916687e-06
+      },
+      "assisted_headon_europa": {
+        "delta_v_m_s": 14353.859287605108,
+        "propellant_saving_fraction_vs_direct": -1.0463964028595285e-08
+      },
+      "assisted_headon_ganymede": {
+        "delta_v_m_s": 14354.267738597831,
+        "propellant_saving_fraction_vs_direct": -3.5896535414137176e-06
+      },
+      "assisted_headon_callisto": {
+        "delta_v_m_s": 14354.113401189898,
+        "propellant_saving_fraction_vs_direct": -2.2372588912578095e-06
+      },
+      "assisted_overtaking_io": {
+        "delta_v_m_s": 13987.622918571727,
+        "propellant_saving_fraction_vs_direct": 0.0033463451628596985
+      },
+      "assisted_overtaking_europa": {
+        "delta_v_m_s": 14353.672917198022,
+        "propellant_saving_fraction_vs_direct": 1.6227796502121805e-06
+      },
+      "assisted_overtaking_ganymede": {
+        "delta_v_m_s": 14339.179765472221,
+        "propellant_saving_fraction_vs_direct": 0.00012884394651957454
+      },
+      "assisted_overtaking_callisto": {
+        "delta_v_m_s": 14350.487951494466,
+        "propellant_saving_fraction_vs_direct": 2.9544660895663988e-05
+      },
+      "assisted_chained_io_europa": {
+        "delta_v_m_s": 14354.140743708966,
+        "propellant_saving_fraction_vs_direct": -2.4768534852004365e-06
+      },
+      "assisted_chained_io_ganymede": {
+        "delta_v_m_s": 14354.54917612583,
+        "propellant_saving_fraction_vs_direct": -6.0556520334875685e-06
+      },
+      "assisted_chained_io_callisto": {
+        "delta_v_m_s": 14354.394844901864,
+        "propellant_saving_fraction_vs_direct": -4.7033978142208e-06
+      },
+      "assisted_chained_europa_io": {
+        "delta_v_m_s": 14354.14074371269,
+        "propellant_saving_fraction_vs_direct": -2.4768535178409934e-06
+      },
+      "assisted_chained_europa_ganymede": {
+        "delta_v_m_s": 14354.268932593062,
+        "propellant_saving_fraction_vs_direct": -3.6001158417731105e-06
+      },
+      "assisted_chained_europa_callisto": {
+        "delta_v_m_s": 14354.114595211366,
+        "propellant_saving_fraction_vs_direct": -2.2477217873628774e-06
+      },
+      "assisted_chained_ganymede_io": {
+        "delta_v_m_s": 14354.549178530859,
+        "propellant_saving_fraction_vs_direct": -6.0556731060756874e-06
+      },
+      "assisted_chained_ganymede_europa": {
+        "delta_v_m_s": 14354.268932597843,
+        "propellant_saving_fraction_vs_direct": -3.6001158836285185e-06
+      },
+      "assisted_chained_ganymede_callisto": {
+        "delta_v_m_s": 14354.523028147145,
+        "propellant_saving_fraction_vs_direct": -5.826546088050222e-06
+      },
+      "assisted_chained_callisto_io": {
+        "delta_v_m_s": 14354.394847234496,
+        "propellant_saving_fraction_vs_direct": -4.703418253204639e-06
+      },
+      "assisted_chained_callisto_europa": {
+        "delta_v_m_s": 14354.114595217889,
+        "propellant_saving_fraction_vs_direct": -2.247721844539363e-06
+      },
+      "assisted_chained_callisto_ganymede": {
+        "delta_v_m_s": 14354.523029360487,
+        "propellant_saving_fraction_vs_direct": -5.826556719323861e-06
+      }
+    },
+    "head_on_full_perigee_sweep": {
+      "io": [
+        {
+          "r_p_factor": 1.0,
+          "v_rel_m_s": 37332.07011072354,
+          "v_moon_m_s": 17332.070110723544,
+          "v_out_m_s": 20000.355112503665,
+          "delta_deg": 0.2684551132012381,
+          "r_p_m": 1821600.0,
+          "mu_m_m3_s2": 5961484760000.0
+        },
+        {
+          "r_p_factor": 1.5,
+          "v_rel_m_s": 37332.07011072354,
+          "v_moon_m_s": 17332.070110723544,
+          "v_out_m_s": 20000.158075343646,
+          "delta_deg": 0.17910985215322842,
+          "r_p_m": 2732400.0,
+          "mu_m_m3_s2": 5961484760000.0
+        },
+        {
+          "r_p_factor": 2.0,
+          "v_rel_m_s": 37332.07011072354,
+          "v_moon_m_s": 17332.070110723544,
+          "v_out_m_s": 20000.08898706542,
+          "delta_deg": 0.1343848770298591,
+          "r_p_m": 3643200.0,
+          "mu_m_m3_s2": 5961484760000.0
+        },
+        {
+          "r_p_factor": 3.0,
+          "v_rel_m_s": 37332.07011072354,
+          "v_moon_m_s": 17332.070110723544,
+          "v_out_m_s": 20000.039580794688,
+          "delta_deg": 0.0896249418751041,
+          "r_p_m": 5464800.0,
+          "mu_m_m3_s2": 5961484760000.0
+        },
+        {
+          "r_p_factor": 5.0,
+          "v_rel_m_s": 37332.07011072354,
+          "v_moon_m_s": 17332.070110723544,
+          "v_out_m_s": 20000.014258014955,
+          "delta_deg": 0.05379179038090508,
+          "r_p_m": 9108000.0,
+          "mu_m_m3_s2": 5961484760000.0
+        },
+        {
+          "r_p_factor": 10.0,
+          "v_rel_m_s": 37332.07011072354,
+          "v_moon_m_s": 17332.070110723544,
+          "v_out_m_s": 20000.003566178533,
+          "delta_deg": 0.026902208692813182,
+          "r_p_m": 18216000.0,
+          "mu_m_m3_s2": 5961484760000.0
+        }
+      ],
+      "europa": [
+        {
+          "r_p_factor": 1.0,
+          "v_rel_m_s": 33740.902355968145,
+          "v_moon_m_s": 13740.902355968145,
+          "v_out_m_s": 20000.00150656536,
+          "delta_deg": 0.02065668631131355,
+          "r_p_m": 1560800.0,
+          "mu_m_m3_s2": 320366400000.0
+        },
+        {
+          "r_p_factor": 1.5,
+          "v_rel_m_s": 33740.902355968145,
+          "v_moon_m_s": 13740.902355968145,
+          "v_out_m_s": 20000.000669665093,
+          "delta_deg": 0.01377195169327852,
+          "r_p_m": 2341200.0,
+          "mu_m_m3_s2": 320366400000.0
+        },
+        {
+          "r_p_factor": 2.0,
+          "v_rel_m_s": 33740.902355968145,
+          "v_moon_m_s": 13740.902355968145,
+          "v_out_m_s": 20000.000376709253,
+          "delta_deg": 0.010329274109740844,
+          "r_p_m": 3121600.0,
+          "mu_m_m3_s2": 320366400000.0
+        },
+        {
+          "r_p_factor": 3.0,
+          "v_rel_m_s": 33740.902355968145,
+          "v_moon_m_s": 13740.902355968145,
+          "v_out_m_s": 20000.000167436396,
+          "delta_deg": 0.0068863896475200624,
+          "r_p_m": 4682400.0,
+          "mu_m_m3_s2": 320366400000.0
+        },
+        {
+          "r_p_factor": 5.0,
+          "v_rel_m_s": 33740.902355968145,
+          "v_moon_m_s": 13740.902355968145,
+          "v_out_m_s": 20000.00006028,
+          "delta_deg": 0.004131933110471377,
+          "r_p_m": 7804000.0,
+          "mu_m_m3_s2": 320366400000.0
+        },
+        {
+          "r_p_factor": 10.0,
+          "v_rel_m_s": 33740.902355968145,
+          "v_moon_m_s": 13740.902355968145,
+          "v_out_m_s": 20000.00001507054,
+          "delta_deg": 0.0020660038027984196,
+          "r_p_m": 15608000.0,
+          "mu_m_m3_s2": 320366400000.0
+        }
+      ],
+      "ganymede": [
+        {
+          "r_p_factor": 1.0,
+          "v_rel_m_s": 30880.173545613172,
+          "v_moon_m_s": 10880.173545613172,
+          "v_out_m_s": 20000.516847346003,
+          "delta_deg": 0.4494484790216526,
+          "r_p_m": 2634100.0,
+          "mu_m_m3_s2": 9890645170000.0
+        },
+        {
+          "r_p_factor": 1.5,
+          "v_rel_m_s": 30880.173545613172,
+          "v_moon_m_s": 10880.173545613172,
+          "v_out_m_s": 20000.230313401917,
+          "delta_deg": 0.3000241417921259,
+          "r_p_m": 3951150.0,
+          "mu_m_m3_s2": 9890645170000.0
+        },
+        {
+          "r_p_factor": 2.0,
+          "v_rel_m_s": 30880.173545613172,
+          "v_moon_m_s": 10880.173545613172,
+          "v_out_m_s": 20000.12972137715,
+          "delta_deg": 0.2251653761445895,
+          "r_p_m": 5268200.0,
+          "mu_m_m3_s2": 9890645170000.0
+        },
+        {
+          "r_p_factor": 3.0,
+          "v_rel_m_s": 30880.173545613172,
+          "v_moon_m_s": 10880.173545613172,
+          "v_out_m_s": 20000.057729647826,
+          "delta_deg": 0.15020858063725312,
+          "r_p_m": 7902300.0,
+          "mu_m_m3_s2": 9890645170000.0
+        },
+        {
+          "r_p_factor": 5.0,
+          "v_rel_m_s": 30880.173545613172,
+          "v_moon_m_s": 10880.173545613172,
+          "v_out_m_s": 20000.020804503398,
+          "delta_deg": 0.09017241167792095,
+          "r_p_m": 13170500.0,
+          "mu_m_m3_s2": 9890645170000.0
+        },
+        {
+          "r_p_factor": 10.0,
+          "v_rel_m_s": 30880.173545613172,
+          "v_moon_m_s": 10880.173545613172,
+          "v_out_m_s": 20000.005205223075,
+          "delta_deg": 0.04510394855861571,
+          "r_p_m": 26341000.0,
+          "mu_m_m3_s2": 9890645170000.0
+        }
+      ],
+      "callisto": [
+        {
+          "r_p_factor": 1.0,
+          "v_rel_m_s": 28203.861343691337,
+          "v_moon_m_s": 8203.861343691335,
+          "v_out_m_s": 20000.32212111281,
+          "delta_deg": 0.4275644008774063,
+          "r_p_m": 2410400.0,
+          "mu_m_m3_s2": 7180879369999.999
+        },
+        {
+          "r_p_factor": 1.5,
+          "v_rel_m_s": 28203.861343691337,
+          "v_moon_m_s": 8203.861343691335,
+          "v_out_m_s": 20000.143522362825,
+          "delta_deg": 0.2853975251154653,
+          "r_p_m": 3615600.0,
+          "mu_m_m3_s2": 7180879369999.999
+        },
+        {
+          "r_p_factor": 2.0,
+          "v_rel_m_s": 28203.861343691337,
+          "v_moon_m_s": 8203.861343691335,
+          "v_out_m_s": 20000.080832082884,
+          "delta_deg": 0.21418140512466546,
+          "r_p_m": 4820800.0,
+          "mu_m_m3_s2": 7180879369999.999
+        },
+        {
+          "r_p_factor": 3.0,
+          "v_rel_m_s": 28203.861343691337,
+          "v_moon_m_s": 8203.861343691335,
+          "v_out_m_s": 20000.035970217414,
+          "delta_deg": 0.14287657339355808,
+          "r_p_m": 7231200.0,
+          "mu_m_m3_s2": 7180879369999.999
+        },
+        {
+          "r_p_factor": 5.0,
+          "v_rel_m_s": 28203.861343691337,
+          "v_moon_m_s": 8203.861343691335,
+          "v_out_m_s": 20000.012962211866,
+          "delta_deg": 0.08576870552944327,
+          "r_p_m": 12052000.0,
+          "mu_m_m3_s2": 7180879369999.999
+        },
+        {
+          "r_p_factor": 10.0,
+          "v_rel_m_s": 28203.861343691337,
+          "v_moon_m_s": 8203.861343691335,
+          "v_out_m_s": 20000.003242980587,
+          "delta_deg": 0.042900404661508795,
+          "r_p_m": 24104000.0,
+          "mu_m_m3_s2": 7180879369999.999
+        }
+      ]
+    },
+    "overtaking_full_perigee_sweep": {
+      "io": [
+        {
+          "r_p_factor": 1.0,
+          "v_rel_m_s": 2667.9298892764564,
+          "v_moon_m_s": 17332.070110723544,
+          "v_out_m_s": 19535.888723546865,
+          "delta_deg": 36.717585349670806,
+          "r_p_m": 1821600.0,
+          "mu_m_m3_s2": 5961484760000.0
+        },
+        {
+          "r_p_factor": 1.5,
+          "v_rel_m_s": 2667.9298892764564,
+          "v_moon_m_s": 17332.070110723544,
+          "v_out_m_s": 19743.844115979213,
+          "delta_deg": 27.13715251344262,
+          "r_p_m": 2732400.0,
+          "mu_m_m3_s2": 5961484760000.0
+        },
+        {
+          "r_p_factor": 2.0,
+          "v_rel_m_s": 2667.9298892764564,
+          "v_moon_m_s": 17332.070110723544,
+          "v_out_m_s": 19837.781113205816,
+          "delta_deg": 21.546190742768665,
+          "r_p_m": 3643200.0,
+          "mu_m_m3_s2": 5961484760000.0
+        },
+        {
+          "r_p_factor": 3.0,
+          "v_rel_m_s": 2667.9298892764564,
+          "v_moon_m_s": 17332.070110723544,
+          "v_out_m_s": 19918.168259183534,
+          "delta_deg": 15.273658893052014,
+          "r_p_m": 5464800.0,
+          "mu_m_m3_s2": 5961484760000.0
+        },
+        {
+          "r_p_factor": 5.0,
+          "v_rel_m_s": 2667.9298892764564,
+          "v_moon_m_s": 17332.070110723544,
+          "v_out_m_s": 19967.180208923324,
+          "delta_deg": 9.66149931107568,
+          "r_p_m": 9108000.0,
+          "mu_m_m3_s2": 5961484760000.0
+        },
+        {
+          "r_p_factor": 10.0,
+          "v_rel_m_s": 2667.9298892764564,
+          "v_moon_m_s": 17332.070110723544,
+          "v_out_m_s": 19991.063205746952,
+          "delta_deg": 5.038746640105142,
+          "r_p_m": 18216000.0,
+          "mu_m_m3_s2": 5961484760000.0
+        }
+      ],
+      "europa": [
+        {
+          "r_p_factor": 1.0,
+          "v_rel_m_s": 6259.097644031855,
+          "v_moon_m_s": 13740.902355968145,
+          "v_out_m_s": 19999.766362220522,
+          "delta_deg": 0.5972571683539066,
+          "r_p_m": 1560800.0,
+          "mu_m_m3_s2": 320366400000.0
+        },
+        {
+          "r_p_factor": 1.5,
+          "v_rel_m_s": 6259.097644031855,
+          "v_moon_m_s": 13740.902355968145,
+          "v_out_m_s": 19999.895799573707,
+          "delta_deg": 0.39886340930392417,
+          "r_p_m": 2341200.0,
+          "mu_m_m3_s2": 320366400000.0
+        },
+        {
+          "r_p_factor": 2.0,
+          "v_rel_m_s": 6259.097644031855,
+          "v_moon_m_s": 13740.902355968145,
+          "v_out_m_s": 19999.941285186032,
+          "delta_deg": 0.2994078329647983,
+          "r_p_m": 3121600.0,
+          "mu_m_m3_s2": 320366400000.0
+        },
+        {
+          "r_p_factor": 3.0,
+          "v_rel_m_s": 6259.097644031855,
+          "v_moon_m_s": 13740.902355968145,
+          "v_out_m_s": 19999.973859033722,
+          "delta_deg": 0.19977909179881106,
+          "r_p_m": 4682400.0,
+          "mu_m_m3_s2": 320366400000.0
+        },
+        {
+          "r_p_factor": 5.0,
+          "v_rel_m_s": 6259.097644031855,
+          "v_moon_m_s": 13740.902355968145,
+          "v_out_m_s": 19999.990576116972,
+          "delta_deg": 0.11995106535063742,
+          "r_p_m": 7804000.0,
+          "mu_m_m3_s2": 320366400000.0
+        },
+        {
+          "r_p_factor": 10.0,
+          "v_rel_m_s": 6259.097644031855,
+          "v_moon_m_s": 13740.902355968145,
+          "v_out_m_s": 19999.99764156156,
+          "delta_deg": 0.06000693120100155,
+          "r_p_m": 15608000.0,
+          "mu_m_m3_s2": 320366400000.0
+        }
+      ],
+      "ganymede": [
+        {
+          "r_p_factor": 1.0,
+          "v_rel_m_s": 9119.826454386828,
+          "v_moon_m_s": 10880.173545613172,
+          "v_out_m_s": 19981.4771391915,
+          "delta_deg": 4.951423037486187,
+          "r_p_m": 2634100.0,
+          "mu_m_m3_s2": 9890645170000.0
+        },
+        {
+          "r_p_factor": 1.5,
+          "v_rel_m_s": 9119.826454386828,
+          "v_moon_m_s": 10880.173545613172,
+          "v_out_m_s": 19991.527456909032,
+          "delta_deg": 3.348606644539388,
+          "r_p_m": 3951150.0,
+          "mu_m_m3_s2": 9890645170000.0
+        },
+        {
+          "r_p_factor": 2.0,
+          "v_rel_m_s": 9119.826454386828,
+          "v_moon_m_s": 10880.173545613172,
+          "v_out_m_s": 19995.16424039972,
+          "delta_deg": 2.529780294767087,
+          "r_p_m": 5268200.0,
+          "mu_m_m3_s2": 9890645170000.0
+        },
+        {
+          "r_p_factor": 3.0,
+          "v_rel_m_s": 9119.826454386828,
+          "v_moon_m_s": 10880.173545613172,
+          "v_out_m_s": 19997.818936695992,
+          "delta_deg": 1.6989462346911004,
+          "r_p_m": 7902300.0,
+          "mu_m_m3_s2": 9890645170000.0
+        },
+        {
+          "r_p_factor": 5.0,
+          "v_rel_m_s": 9119.826454386828,
+          "v_moon_m_s": 10880.173545613172,
+          "v_out_m_s": 19999.20544863524,
+          "delta_deg": 1.0254250000403902,
+          "r_p_m": 13170500.0,
+          "mu_m_m3_s2": 9890645170000.0
+        },
+        {
+          "r_p_factor": 10.0,
+          "v_rel_m_s": 9119.826454386828,
+          "v_moon_m_s": 10880.173545613172,
+          "v_out_m_s": 19999.799575643745,
+          "delta_deg": 0.5150116489946962,
+          "r_p_m": 26341000.0,
+          "mu_m_m3_s2": 9890645170000.0
+        }
+      ],
+      "callisto": [
+        {
+          "r_p_factor": 1.0,
+          "v_rel_m_s": 11796.138656308665,
+          "v_moon_m_s": 8203.861343691335,
+          "v_out_m_s": 19995.74771836023,
+          "delta_deg": 2.402112094426523,
+          "r_p_m": 2410400.0,
+          "mu_m_m3_s2": 7180879369999.999
+        },
+        {
+          "r_p_factor": 1.5,
+          "v_rel_m_s": 11796.138656308665,
+          "v_moon_m_s": 8203.861343691335,
+          "v_out_m_s": 19998.08352028037,
+          "delta_deg": 1.6126108680305657,
+          "r_p_m": 3615600.0,
+          "mu_m_m3_s2": 7180879369999.999
+        },
+        {
+          "r_p_factor": 2.0,
+          "v_rel_m_s": 11796.138656308665,
+          "v_moon_m_s": 8203.861343691335,
+          "v_out_m_s": 19998.91437742686,
+          "delta_deg": 1.2137107452253237,
+          "r_p_m": 4820800.0,
+          "mu_m_m3_s2": 7180879369999.999
+        },
+        {
+          "r_p_factor": 3.0,
+          "v_rel_m_s": 11796.138656308665,
+          "v_moon_m_s": 8203.861343691335,
+          "v_out_m_s": 19999.514083335525,
+          "delta_deg": 0.8119988817489743,
+          "r_p_m": 7231200.0,
+          "mu_m_m3_s2": 7180879369999.999
+        },
+        {
+          "r_p_factor": 5.0,
+          "v_rel_m_s": 11796.138656308665,
+          "v_moon_m_s": 8203.861343691335,
+          "v_out_m_s": 19999.824075493507,
+          "delta_deg": 0.4885815572428078,
+          "r_p_m": 12052000.0,
+          "mu_m_m3_s2": 7180879369999.999
+        },
+        {
+          "r_p_factor": 10.0,
+          "v_rel_m_s": 11796.138656308665,
+          "v_moon_m_s": 8203.861343691335,
+          "v_out_m_s": 19999.9558308967,
+          "delta_deg": 0.24481212279449757,
+          "r_p_m": 24104000.0,
+          "mu_m_m3_s2": 7180879369999.999
+        }
+      ]
+    },
+    "kepler_period_cross_check": {
+      "io": [
+        152853.696,
+        152913.66683207938
+      ],
+      "europa": [
+        306839.232,
+        306868.17724287126
+      ],
+      "ganymede": [
+        618153.984,
+        618144.6945317085
+      ],
+      "callisto": [
+        1441928.736,
+        1441925.025576356
+      ]
+    },
+    "f1_delta_data": {
+      "io": {
+        "r_factors": [
+          1.0,
+          1.105511675109074,
+          1.222156063802471,
+          1.3511077973389822,
+          1.4936654442891497,
+          1.6512645873686373,
+          1.8254922800301965,
+          2.0181030283948656,
+          2.231036459463503,
+          2.466436853530915,
+          2.726674737497716,
+          3.014370756528695,
+          3.332422064449845,
+          3.6840314986403864,
+          4.072739833216527,
+          4.502461435302653,
+          4.977523683455443,
+          5.502710545191916,
+          6.08331075245548,
+          6.725171060156101,
+          7.434755124108238,
+          8.219208591278672,
+          9.086431057815377,
+          10.045155619488595,
+          11.105036815632166,
+          12.276747852197456,
+          13.572088082974531,
+          15.00410183133708,
+          16.58720974906858,
+          18.337354035078377,
+          20.272158976387626,
+          22.41110842806374,
+          24.77574201935984,
+          27.38987206189277,
+          30.279823344166314,
+          33.47469822721613,
+          37.006669710940464,
+          40.91130542235003,
+          45.22792578836114,
+          49.99999999999999
+        ],
+        "delta_deg": [
+          0.2684551132012381,
+          0.2428876261297802,
+          0.21975049562506996,
+          0.1988135482147519,
+          0.1798682558362425,
+          0.1627257282394215,
+          0.14721488650414086,
+          0.13318080226845283,
+          0.12048318839820144,
+          0.10899502791434075,
+          0.09860132902537182,
+          0.08919799508528346,
+          0.08069079921078247,
+          0.07299445414522224,
+          0.06603176875134915,
+          0.05973288325239994,
+          0.05403457602337293,
+          0.048879635364005705,
+          0.0442162902648957,
+          0.03999769471121824,
+          0.03618146055758142,
+          0.032729234455660595,
+          0.029606314726264602,
+          0.026781304442195814,
+          0.02422579733035621,
+          0.021914093413569112,
+          0.019822941596935963,
+          0.017931306662489477,
+          0.016220158371551104,
+          0.014672280588518076,
+          0.013272098534621054,
+          0.01200552245719381,
+          0.01085980616074343,
+          0.009823418992036651,
+          0.00888593000384641,
+          0.008037903142142235,
+          0.007270802410468639,
+          0.006576906064051742,
+          0.005949228975733654,
+          0.005381452397003332
+        ],
+        "delta_range": [
+          0.005381452397003332,
+          0.2684551132012381
+        ]
+      },
+      "europa": {
+        "r_factors": [
+          1.0,
+          1.105511675109074,
+          1.222156063802471,
+          1.3511077973389822,
+          1.4936654442891497,
+          1.6512645873686373,
+          1.8254922800301965,
+          2.0181030283948656,
+          2.231036459463503,
+          2.466436853530915,
+          2.726674737497716,
+          3.014370756528695,
+          3.332422064449845,
+          3.6840314986403864,
+          4.072739833216527,
+          4.502461435302653,
+          4.977523683455443,
+          5.502710545191916,
+          6.08331075245548,
+          6.725171060156101,
+          7.434755124108238,
+          8.219208591278672,
+          9.086431057815377,
+          10.045155619488595,
+          11.105036815632166,
+          12.276747852197456,
+          13.572088082974531,
+          15.00410183133708,
+          16.58720974906858,
+          18.337354035078377,
+          20.272158976387626,
+          22.41110842806374,
+          24.77574201935984,
+          27.38987206189277,
+          30.279823344166314,
+          33.47469822721613,
+          37.006669710940464,
+          40.91130542235003,
+          45.22792578836114,
+          49.99999999999999
+        ],
+        "delta_deg": [
+          0.02065668631131355,
+          0.018685502969108723,
+          0.016902393868038566,
+          0.015289419540499692,
+          0.013830350759067286,
+          0.012510505659142423,
+          0.011316602343188252,
+          0.010236625500530354,
+          0.009259705714517747,
+          0.00837601025388909,
+          0.007576644258613194,
+          0.0068535613333276695,
+          0.006199482654746379,
+          0.005607823783924484,
+          0.0050726284508616675,
+          0.0045885086483202836,
+          0.004150590434601932,
+          0.003754464901969396,
+          0.0033961438189723595,
+          0.003072019501636128,
+          0.002778828510758406,
+          0.0025136188108434415,
+          0.002273720060861582,
+          0.002056716738396076,
+          0.0018604238271373154,
+          0.0016828648233881457,
+          0.0015222518405067394,
+          0.0013769676112665432,
+          0.0012455492071649305,
+          0.0011266733109528636,
+          0.001019142894258802,
+          0.00092187516629659,
+          0.0008338906724201545,
+          0.0007543034328448715,
+          0.0006823120223120773,
+          0.0006171915009338744,
+          0.0005582861150148015,
+          0.0005050026943908718,
+          0.000456804679832409,
+          0.00041320672039536245
+        ],
+        "delta_range": [
+          0.00041320672039536245,
+          0.02065668631131355
+        ]
+      },
+      "ganymede": {
+        "r_factors": [
+          1.0,
+          1.105511675109074,
+          1.222156063802471,
+          1.3511077973389822,
+          1.4936654442891497,
+          1.6512645873686373,
+          1.8254922800301965,
+          2.0181030283948656,
+          2.231036459463503,
+          2.466436853530915,
+          2.726674737497716,
+          3.014370756528695,
+          3.332422064449845,
+          3.6840314986403864,
+          4.072739833216527,
+          4.502461435302653,
+          4.977523683455443,
+          5.502710545191916,
+          6.08331075245548,
+          6.725171060156101,
+          7.434755124108238,
+          8.219208591278672,
+          9.086431057815377,
+          10.045155619488595,
+          11.105036815632166,
+          12.276747852197456,
+          13.572088082974531,
+          15.00410183133708,
+          16.58720974906858,
+          18.337354035078377,
+          20.272158976387626,
+          22.41110842806374,
+          24.77574201935984,
+          27.38987206189277,
+          30.279823344166314,
+          33.47469822721613,
+          37.006669710940464,
+          40.91130542235003,
+          45.22792578836114,
+          49.99999999999999
+        ],
+        "delta_deg": [
+          0.4494484790216526,
+          0.4067045050163629,
+          0.3680125429093322,
+          0.33299084131048623,
+          0.3012931856841869,
+          0.2726056681159337,
+          0.24664373648973742,
+          0.2231495015411677,
+          0.20188928140392107,
+          0.18265136446683922,
+          0.1652439725727828,
+          0.149493407797053,
+          0.13524236722345126,
+          0.12234841127765422,
+          0.11068257227124434,
+          0.10012809084942334,
+          0.09057926901746363,
+          0.08194042934353399,
+          0.07412497079828875,
+          0.06705451249526542,
+          0.06065811734220279,
+          0.054871588303977044,
+          0.04963683061544661,
+          0.044901273869851335,
+          0.04061734844842556,
+          0.036742011252512564,
+          0.0332363161536658,
+          0.030065024992887338,
+          0.027196255340099475,
+          0.024601161571867317,
+          0.022253646141859013,
+          0.020130098206971373,
+          0.018209157034745505,
+          0.016471497856783195,
+          0.014899638050341519,
+          0.013477761727974633,
+          0.0121915609947199,
+          0.011028092295467924,
+          0.009975646423266961,
+          0.00902363089372899
+        ],
+        "delta_range": [
+          0.00902363089372899,
+          0.4494484790216526
+        ]
+      },
+      "callisto": {
+        "r_factors": [
+          1.0,
+          1.105511675109074,
+          1.222156063802471,
+          1.3511077973389822,
+          1.4936654442891497,
+          1.6512645873686373,
+          1.8254922800301965,
+          2.0181030283948656,
+          2.231036459463503,
+          2.466436853530915,
+          2.726674737497716,
+          3.014370756528695,
+          3.332422064449845,
+          3.6840314986403864,
+          4.072739833216527,
+          4.502461435302653,
+          4.977523683455443,
+          5.502710545191916,
+          6.08331075245548,
+          6.725171060156101,
+          7.434755124108238,
+          8.219208591278672,
+          9.086431057815377,
+          10.045155619488595,
+          11.105036815632166,
+          12.276747852197456,
+          13.572088082974531,
+          15.00410183133708,
+          16.58720974906858,
+          18.337354035078377,
+          20.272158976387626,
+          22.41110842806374,
+          24.77574201935984,
+          27.38987206189277,
+          30.279823344166314,
+          33.47469822721613,
+          37.006669710940464,
+          40.91130542235003,
+          45.22792578836114,
+          49.99999999999999
+        ],
+        "delta_deg": [
+          0.4275644008774063,
+          0.38689463459123036,
+          0.35008152540124776,
+          0.3167614960353015,
+          0.2866048561366441,
+          0.2593127143679304,
+          0.23461415902855823,
+          0.2122636862182171,
+          0.19203885575981167,
+          0.17373815630506992,
+          0.15717906225908018,
+          0.14219626635524493,
+          0.1286400728745094,
+          0.11637493762129894,
+          0.10527814183589451,
+          0.09523858823419219,
+          0.08615570831824812,
+          0.0779384709936787,
+          0.07050448336306982,
+          0.06377917533920677,
+          0.057695060439998246,
+          0.052191065790749426,
+          0.04721192497158241,
+          0.04270762791114042,
+          0.03863292254518277,
+          0.03494686343324316,
+          0.03161240296111588,
+          0.028596021154410286,
+          0.025867390491534952,
+          0.023399072435868716,
+          0.021166242709050088,
+          0.019146442602620675,
+          0.017319353875903803,
+          0.015666595016045434,
+          0.014171536843511159,
+          0.012819135634795666,
+          0.011595782105304498,
+          0.010489164750827517,
+          0.009488146187133388,
+          0.00858265125525646
+        ],
+        "delta_range": [
+          0.00858265125525646,
+          0.4275644008774063
+        ]
+      }
+    },
+    "f2_grid_data": {
+      "head_on": {
+        "io": {
+          "saving_pct": [
+            -0.0001989970126459184,
+            -0.00015203234964289436,
+            -0.00011614283157435068,
+            -8.871968609769354e-05,
+            -6.776765396621087e-05,
+            -5.176103854420688e-05,
+            -3.953341960460932e-05,
+            -3.0193196143279977e-05,
+            -2.3058933829034345e-05,
+            -1.7609889768621656e-05,
+            -1.3448162450302448e-05,
+            -1.0269742600765852e-05,
+            -7.842376781308502e-06,
+            -5.9886434033984415e-06,
+            -4.573016254560969e-06,
+            -3.491977174086003e-06,
+            -2.6664602859050035e-06,
+            -2.036078605716085e-06,
+            -1.5547128917603459e-06,
+            -1.187141740466302e-06,
+            -9.064671679936964e-07,
+            -6.921481832122822e-07,
+            -5.284986559495053e-07,
+            -4.0354017905031014e-07,
+            -3.081257693438033e-07,
+            -2.352706696129303e-07,
+            -1.7964133514070113e-07,
+            -1.3716511260142283e-07,
+            -1.0473215628081789e-07,
+            -7.996788786712727e-08
+          ],
+          "min": -0.0001989970126459184,
+          "max": -7.996788786712727e-08
+        },
+        "europa": {
+          "saving_pct": [
+            -8.442620491599939e-07,
+            -6.446540190552241e-07,
+            -4.922362850656725e-07,
+            -3.7585330403544503e-07,
+            -2.8698633469659285e-07,
+            -2.1913028058762052e-07,
+            -1.6731779295398042e-07,
+            -1.2775578372981045e-07,
+            -9.75479030884685e-08,
+            -7.448250904928955e-08,
+            -5.687086357397675e-08,
+            -4.3423475926118726e-08,
+            -3.315574481632666e-08,
+            -2.531583831455464e-08,
+            -1.9329715605920228e-08,
+            -1.4759038435840921e-08,
+            -1.1269130073543465e-08,
+            -8.604439383219642e-09,
+            -6.569833566061334e-09,
+            -5.016320692163845e-09,
+            -3.8301584126543275e-09,
+            -2.9244717758558636e-09,
+            -2.2329471605075923e-09,
+            -1.7049361922261141e-09,
+            -1.3017920075242273e-09,
+            -9.939604694864101e-10,
+            -7.589262551732645e-10,
+            -5.794698054728542e-10,
+            -4.424460797736174e-10,
+            -3.378297641631889e-10
+          ],
+          "min": -8.442620491599939e-07,
+          "max": -3.378297641631889e-10
+        },
+        "ganymede": {
+          "saving_pct": [
+            -0.00028962690669098734,
+            -0.00022136191261123983,
+            -0.00016916549465673114,
+            -0.00012926250950728857,
+            -9.876235109729237e-05,
+            -7.545249933738063e-05,
+            -5.763998606189702e-05,
+            -4.402974695949524e-05,
+            -3.363133744826996e-05,
+            -2.5687438776067495e-05,
+            -1.9619091051747972e-05,
+            -1.4983757246067597e-05,
+            -1.144322390178587e-05,
+            -8.739039014660221e-06,
+            -6.673722496852719e-06,
+            -5.096395916392993e-06,
+            -3.891794675414673e-06,
+            -2.971867674173012e-06,
+            -2.269356458306504e-06,
+            -1.7328878665345826e-06,
+            -1.3232240858584987e-06,
+            -1.0103971881392226e-06,
+            -7.715200034397185e-07,
+            -5.891136023450372e-07,
+            -4.498296735100382e-07,
+            -3.4347465982520475e-07,
+            -2.62264299166759e-07,
+            -2.002542687229436e-07,
+            -1.5290536614642747e-07,
+            -1.1675145294987033e-07
+          ],
+          "min": -0.00028962690669098734,
+          "max": -1.1675145294987033e-07
+        },
+        "callisto": {
+          "saving_pct": [
+            -0.00018050972083738515,
+            -0.000137956452395116,
+            -0.00010542202202312723,
+            -8.055178583044054e-05,
+            -6.154308704875433e-05,
+            -4.701632563275382e-05,
+            -3.5915985829859665e-05,
+            -2.7434713545382294e-05,
+            -2.095511021371621e-05,
+            -1.6005132497109997e-05,
+            -1.2223932877031274e-05,
+            -9.335707318314235e-06,
+            -7.1296799575293335e-06,
+            -5.444789330510957e-06,
+            -4.157974764495975e-06,
+            -3.175218665774082e-06,
+            -2.424697609360038e-06,
+            -1.85154672704968e-06,
+            -1.4138579640388116e-06,
+            -1.0796218252728806e-06,
+            -8.243904559002146e-07,
+            -6.294920695815165e-07,
+            -4.80666750846126e-07,
+            -3.6702432204549496e-07,
+            -2.802482801378403e-07,
+            -2.1398766092417532e-07,
+            -1.633926327571089e-07,
+            -1.24759735875557e-07,
+            -9.52609435778129e-08,
+            -7.273674995644797e-08
+          ],
+          "min": -0.00018050972083738515,
+          "max": -7.273674995644797e-08
+        }
+      },
+      "overtaking": {
+        "io": {
+          "saving_pct": [
+            0.2669700403275077,
+            0.21962146406465655,
+            0.17950196886277192,
+            0.14581389689360957,
+            0.11776689765220505,
+            0.09460309607820516,
+            0.07561533532753906,
+            0.0601590035509747,
+            0.04765829850943426,
+            0.03760796549152623,
+            0.0295715882536296,
+            0.023177453574174667,
+            0.018112883467213958,
+            0.014117767901267175,
+            0.010977861337846395,
+            0.008518247136901635,
+            0.006597236016436803,
+            0.005100853248973802,
+            0.003937984558977092,
+            0.003036190317762255,
+            0.0023381577138326115,
+            0.0017987367505689633,
+            0.0013824940378714956,
+            0.0010617148084035577,
+            0.0008147855028006745,
+            0.0006248944311004756,
+            0.00047899483963664835,
+            0.000366982111188463,
+            0.00028104410894069787,
+            0.00021515043240327714
+          ],
+          "min": 0.00021515043240327714,
+          "max": 0.2669700403275077
+        },
+        "europa": {
+          "saving_pct": [
+            0.00013092969016748057,
+            0.00010010074941169123,
+            7.651827412802348e-05,
+            5.848311994682831e-05,
+            4.469317629318681e-05,
+            3.415104966597582e-05,
+            2.609306074541351e-05,
+            1.9934684547529002e-05,
+            1.5228659422383828e-05,
+            1.1632845564601979e-05,
+            8.8855793722864e-06,
+            6.786785367030035e-06,
+            5.183507700845524e-06,
+            3.958831396033702e-06,
+            3.0234023618014305e-06,
+            2.3089385625674197e-06,
+            1.7632661331035138e-06,
+            1.3465230708220588e-06,
+            1.0282562801222639e-06,
+            7.852024364041199e-07,
+            5.995915763890025e-07,
+            4.5785064628489636e-07,
+            3.4961274986144986e-07,
+            2.6696015398286477e-07,
+            2.0384585130983623e-07,
+            1.556517692513637e-07,
+            1.1885116224519265e-07,
+            9.075076246034541e-08,
+            6.929389284593412e-08,
+            5.29099986046333e-08
+          ],
+          "min": 5.29099986046333e-08,
+          "max": 0.00013092969016748057
+        },
+        "ganymede": {
+          "saving_pct": [
+            0.010390890772871142,
+            0.008018263922437985,
+            0.006179648790238801,
+            0.004757335088789727,
+            0.003658768336212148,
+            0.0028114249504884725,
+            0.0021586516518290466,
+            0.0016563132944402703,
+            0.0012701099883272171,
+            0.0009734424003093878,
+            0.000745721916273201,
+            0.0005710389595625642,
+            0.0004371176843043223,
+            0.00033449828907849977,
+            0.0002558993186130287,
+            0.00019572165153025622,
+            0.000149663588400184,
+            0.00011442276145468,
+            8.746569264417303e-05,
+            6.68499249956156e-05,
+            5.1086920060949836e-05,
+            3.903650400705061e-05,
+            2.9825687386519917e-05,
+            2.2786287223741652e-05,
+            1.740703484687245e-05,
+            1.3296831091746952e-05,
+            1.0156571395025793e-05,
+            7.757553532883321e-06,
+            5.924937829249188e-06,
+            4.525082664130764e-06
+          ],
+          "min": 4.525082664130764e-06,
+          "max": 0.010390890772871142
+        },
+        "callisto": {
+          "saving_pct": [
+            0.0023835041193964734,
+            0.001829410269404974,
+            0.0014032307174116632,
+            0.0010757288409046772,
+            0.0008242549875747684,
+            0.0006312935259877861,
+            0.00048332026585384824,
+            0.0003699072538054793,
+            0.00028302364677434966,
+            0.00021649125707678962,
+            0.00016556159831981887,
+            0.0001265880290923782,
+            9.677209387159991e-05,
+            7.396759479361137e-05,
+            5.652947486778359e-05,
+            4.319741144787059e-05,
+            3.300624690227849e-05,
+            2.5217136045974087e-05,
+            1.9264663786433545e-05,
+            1.4716258789349013e-05,
+            1.1241064334921447e-05,
+            8.586076316596802e-06,
+            6.557860920963776e-06,
+            5.0085533165322715e-06,
+            3.825139038848846e-06,
+            2.9212510743725772e-06,
+            2.2308940583748438e-06,
+            1.7036441035678251e-06,
+            1.3009779697981116e-06,
+            9.934665867739056e-07
+          ],
+          "min": 9.934665867739056e-07,
+          "max": 0.0023835041193964734
+        }
+      }
+    },
+    "f3_chained_numbers": [
+      {
+        "moon_A": "io",
+        "moon_B": "europa",
+        "encounter_1": {
+          "v_rel_m_s": 37332.07011072354,
+          "v_out_m_s": 20000.355112503665,
+          "delta_deg": 0.2684551132012381
+        },
+        "encounter_2": {
+          "v_rel_m_s": 33741.25746847181,
+          "v_out_m_s": 20000.356618994723,
+          "delta_deg": 0.020656251586152568
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.35661899472324876,
+        "net_direction_change_deg": 0.2891113647873907,
+        "net_speed_change_km_s": 0.000357
+      },
+      {
+        "moon_A": "io",
+        "moon_B": "ganymede",
+        "encounter_1": {
+          "v_rel_m_s": 37332.07011072354,
+          "v_out_m_s": 20000.355112503665,
+          "delta_deg": 0.2684551132012381
+        },
+        "encounter_2": {
+          "v_rel_m_s": 30880.528658116837,
+          "v_out_m_s": 20000.871932936556,
+          "delta_deg": 0.44943818265042546
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.8719329365558224,
+        "net_direction_change_deg": 0.7178932958516635,
+        "net_speed_change_km_s": 0.000872
+      },
+      {
+        "moon_A": "io",
+        "moon_B": "callisto",
+        "encounter_1": {
+          "v_rel_m_s": 37332.07011072354,
+          "v_out_m_s": 20000.355112503665,
+          "delta_deg": 0.2684551132012381
+        },
+        "encounter_2": {
+          "v_rel_m_s": 28204.216456194998,
+          "v_out_m_s": 20000.67721579095,
+          "delta_deg": 0.42755367434587693
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.6772157909508678,
+        "net_direction_change_deg": 0.696008787547115,
+        "net_speed_change_km_s": 0.000677
+      },
+      {
+        "moon_A": "europa",
+        "moon_B": "io",
+        "encounter_1": {
+          "v_rel_m_s": 33740.902355968145,
+          "v_out_m_s": 20000.00150656536,
+          "delta_deg": 0.02065668631131355
+        },
+        "encounter_2": {
+          "v_rel_m_s": 37332.07161728891,
+          "v_out_m_s": 20000.35661899942,
+          "delta_deg": 0.26845509158452147
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.3566189994198794,
+        "net_direction_change_deg": 0.28911177789583503,
+        "net_speed_change_km_s": 0.000357
+      },
+      {
+        "moon_A": "europa",
+        "moon_B": "ganymede",
+        "encounter_1": {
+          "v_rel_m_s": 33740.902355968145,
+          "v_out_m_s": 20000.00150656536,
+          "delta_deg": 0.02065668631131355
+        },
+        "encounter_2": {
+          "v_rel_m_s": 30880.175052178532,
+          "v_out_m_s": 20000.51835379718,
+          "delta_deg": 0.44944843533853474
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.518353797178861,
+        "net_direction_change_deg": 0.4701051216498483,
+        "net_speed_change_km_s": 0.000518
+      },
+      {
+        "moon_A": "europa",
+        "moon_B": "callisto",
+        "encounter_1": {
+          "v_rel_m_s": 33740.902355968145,
+          "v_out_m_s": 20000.00150656536,
+          "delta_deg": 0.02065668631131355
+        },
+        "encounter_2": {
+          "v_rel_m_s": 28203.862850256693,
+          "v_out_m_s": 20000.323627602542,
+          "delta_deg": 0.4275643553692279
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.3236276025418192,
+        "net_direction_change_deg": 0.4482210416805414,
+        "net_speed_change_km_s": 0.000324
+      },
+      {
+        "moon_A": "ganymede",
+        "moon_B": "io",
+        "encounter_1": {
+          "v_rel_m_s": 30880.173545613172,
+          "v_out_m_s": 20000.516847346003,
+          "delta_deg": 0.4494484790216526
+        },
+        "encounter_2": {
+          "v_rel_m_s": 37332.58695806954,
+          "v_out_m_s": 20000.871935970936,
+          "delta_deg": 0.26844769745128777
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.8719359709357377,
+        "net_direction_change_deg": 0.7178961764729404,
+        "net_speed_change_km_s": 0.000872
+      },
+      {
+        "moon_A": "ganymede",
+        "moon_B": "europa",
+        "encounter_1": {
+          "v_rel_m_s": 30880.173545613172,
+          "v_out_m_s": 20000.516847346003,
+          "delta_deg": 0.4494484790216526
+        },
+        "encounter_2": {
+          "v_rel_m_s": 33741.419203314144,
+          "v_out_m_s": 20000.518353803214,
+          "delta_deg": 0.02065605359653089
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.5183538032142678,
+        "net_direction_change_deg": 0.4701045326181835,
+        "net_speed_change_km_s": 0.000518
+      },
+      {
+        "moon_A": "ganymede",
+        "moon_B": "callisto",
+        "encounter_1": {
+          "v_rel_m_s": 30880.173545613172,
+          "v_out_m_s": 20000.516847346003,
+          "delta_deg": 0.4494484790216526
+        },
+        "encounter_2": {
+          "v_rel_m_s": 28204.378191037336,
+          "v_out_m_s": 20000.838942515118,
+          "delta_deg": 0.4275487891153715
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.8389425151181058,
+        "net_direction_change_deg": 0.876997268137024,
+        "net_speed_change_km_s": 0.000839
+      },
+      {
+        "moon_A": "callisto",
+        "moon_B": "io",
+        "encounter_1": {
+          "v_rel_m_s": 28203.861343691337,
+          "v_out_m_s": 20000.32212111281,
+          "delta_deg": 0.4275644008774063
+        },
+        "encounter_2": {
+          "v_rel_m_s": 37332.392231836355,
+          "v_out_m_s": 20000.677218734,
+          "delta_deg": 0.26845049135636206
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.6772187339993252,
+        "net_direction_change_deg": 0.6960148922337684,
+        "net_speed_change_km_s": 0.000677
+      },
+      {
+        "moon_A": "callisto",
+        "moon_B": "europa",
+        "encounter_1": {
+          "v_rel_m_s": 28203.861343691337,
+          "v_out_m_s": 20000.32212111281,
+          "delta_deg": 0.4275644008774063
+        },
+        "encounter_2": {
+          "v_rel_m_s": 33741.224477080956,
+          "v_out_m_s": 20000.32362761077,
+          "delta_deg": 0.020656291973303736
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.3236276107709273,
+        "net_direction_change_deg": 0.44822069285071003,
+        "net_speed_change_km_s": 0.000324
+      },
+      {
+        "moon_A": "callisto",
+        "moon_B": "ganymede",
+        "encounter_1": {
+          "v_rel_m_s": 28203.861343691337,
+          "v_out_m_s": 20000.32212111281,
+          "delta_deg": 0.4275644008774063
+        },
+        "encounter_2": {
+          "v_rel_m_s": 30880.495666725983,
+          "v_out_m_s": 20000.83894404597,
+          "delta_deg": 0.44943913921015416
+        },
+        "net_speed_change_vs_v_inf_m_s": 0.8389440459686739,
+        "net_direction_change_deg": 0.8770035400875605,
+        "net_speed_change_km_s": 0.000839
+      }
+    ],
+    "figures_run2": {
+      "F1": "figures_2013A_jupiter_flyby_run2/F1_delta_vs_perigee_head_on.png",
+      "F2a": "figures_2013A_jupiter_flyby_run2/F2a_saving_surface_head_on.png",
+      "F2b": "figures_2013A_jupiter_flyby_run2/F2b_saving_surface_overtaking.png",
+      "F3": "figures_2013A_jupiter_flyby_run2/F3_chained_staircase.png"
+    }
+  },
+  "audit_logs": [
+    {
+      "timestamp": 1791629895.7693057,
+      "source": "run2_node1_task_spec",
+      "args": {
+        "problem_id": "2013A-run2",
+        "action": "created fresh independent task state + internal prior; NOT importing run #1's numeric results (only its environmental constraint that live sources were unreachable, re-verified in Node 1.5 this run, not assumed).",
+        "note": "new extension vs run #1: overtaking-geometry control + two-encounter chained construction, both to be computed, not asserted"
+      },
+      "artifact_id": "af047c2151aca6484f79321402740c1682ffdf3c9eddcbf9cf9165c8638786e3"
+    }
+  ],
+  "anomalies": [],
+  "verification": {
+    "benchmark_source": null,
+    "comparison_result": null,
+    "max_relative_error": null,
+    "boundary_gate_run2": {
+      "verdict": "PASS",
+      "cases": [
+        {
+          "name": "headon_mu_m_to_0",
+          "passed": true,
+          "actual": 20000.0,
+          "expectation": "finite",
+          "reason": "expected finite value"
+        },
+        {
+          "name": "headon_v_rel_to_0",
+          "passed": true,
+          "actual": 17332.0,
+          "expectation": "finite",
+          "reason": "expected finite value"
+        },
+        {
+          "name": "overtaking_v_rel_to_0",
+          "passed": true,
+          "actual": 8203.9,
+          "expectation": "finite",
+          "reason": "expected finite value"
+        }
+      ],
+      "sweep": {
+        "passed": true,
+        "param": "mu_m",
+        "order": "decrease",
+        "observed": [
+          {
+            "param_value": 5959000000000000.0,
+            "result": 40898.84822931625
+          },
+          {
+            "param_value": 1000000000000000.0,
+            "result": 24630.85591115125
+          },
+          {
+            "param_value": 10000000000.0,
+            "result": 20000.000001003908
+          },
+          {
+            "param_value": 100000.0,
+            "result": 20000.0
+          },
+          {
+            "param_value": 1.0,
+            "result": 20000.0
+          },
+          {
+            "param_value": 0.0,
+            "result": 20000.0
+          }
+        ]
+      }
+    }
+  },
+  "report": {
+    "conclusion": "NOT feasible as a significant fuel-saving strategy - and run #2 STRENGTHENS run #1's 'no' answer along two genuinely new dimensions, both quantified, not asserted: (1) the single head-on (closing) encounter is proven IMPOSSIBLE to decelerate the spacecraft by an EXACT algebraic identity (v_out^2 - v_inf^2 = v_moon^2 + 2*v_inf*v_moon + 2*v_moon(v_inf+v_moon)(1-cos(delta)) > 0 for all delta in (0,pi), v_moon>0), verified symbolically with sympy, not just numerically over 4 data points; computed max deflection is only 0.02-0.45 deg even skimming a moon's surface, so the effect is a tiny speed-UP of order 0.0001-0.001%, giving a NEGATIVE propellant saving (-0.00002% to -0.00029%). (2) A two-encounter CHAINED construction - the one mechanism that could plausibly have turned a single-encounter 'no' into a meaningful 'yes' - is exhaustively enumerated over all 12 ordered moon pairs (A!=B), and the SAME invariant applied recursively to each encounter shows it ALSO cannot decelerate: every one of the 12 pairs gives v_out_2 > v_inf by +0.0003 to +0.0009 km/s, i.e. a tiny net speed-UP, not a deceleration, so the chained construction's 'saving' is likewise negative (-0.0002% to -0.0005%). (3) A NEW this run, an overtaking-geometry CONTROL case (parallel incoming vectors, not anti-parallel), computed for all 4 moons after an independent exact-vector re-derivation caught and corrected a sign error in the initial closed-form formula: at v_inf=20 km/s all 4 Galilean moons are SLOWER than the spacecraft (Sub-case D), giving a modest net speed LOSS of only 0.0002-0.46 km/s (Io the largest, since its v_moon~17.33 km/s is closest to 20 km/s), translating to a propellant saving of at most +0.27% - still 37x short of the 10% 'significant saving' threshold, and 2.2x short of the 1 km/s delta-v threshold. VERDICT: no single-encounter arrangement (head-on OR overtaking) AND no two-encounter chained construction produces a significant fuel saving at the given 20 km/s approach speed; the closest-approaching case (Io, overtaking geometry) is the least-bad option by a wide margin but still fails both acceptance thresholds.",
+    "traceability": {
+      "head-on invariant (exact algebraic identity + sympy check)": "jovian_flyby_model_run2.head_on_invariant_check / symbolic_invariant_proof; dimensional gate GATE1-GATE3 all PASS (audit: run2_node2b_dimensional_gate)",
+      "all main-case head-on numbers (v_out, delta, per-moon)": "problem_state_2013A_jupiter_flyby_run2.json numerical_artifacts.head_on_tightest_flyby_all_moons (audit: run2_node2b_model_run)",
+      "overtaking control case (v_out, per-moon, Sub-case D)": "jovian_flyby_model_run2.v_out_closed_form head_on=False branch, verified against verify_overtake_vectors.py independent exact-vector simulation before being trusted; numbers in numerical_artifacts.overtaking_control_tightest_flyby_all_moons",
+      "chained two-encounter construction (all 12 ordered pairs)": "jovian_flyby_model_run2.chained_two_encounter / best_chained_pair; numbers in numerical_artifacts.chained_all_12_pairs",
+      "direct-capture delta-v baseline + Tsiolkovsky propellant fraction": "jovian_flyby_model_run2.direct_capture_delta_v / propellant_fraction; numbers in numerical_artifacts.capture_baseline_io_scale / capture_baseline_ganymede_scale",
+      "boundary/degenerate-limit verdict": "boundary_gate_run2_result.json, verdict PASS, 3 cases + monotonic mu_m sweep (audit: run2_node2b_boundary_gate)",
+      "mu_jupiter independent cross-check vs. published periods": "jovian_flyby_model_run2.kepler_period_check; numbers in numerical_artifacts.kepler_period_cross_check (rel.err < 0.04% for all 4 moons) (audit: run2_node2b_kepler_cross_check)",
+      "figure set (F1-F3, redesigned against run #1's near-blank failure mode)": "numerical_artifacts.figures_run2 + run2_node27_figures audit record",
+      "constant provenance (mu_j, G, moon a/M/R, Isp)": "jupiter_flyby_params_run2.json + Node 1.5 audit record (Level-3 IAU/JPL standard values, re-confirmed this run, no live source reachable in this environment)",
+      "node4_html": "program-design/runtime/report_2013A_jupiter_flyby_run2.html (4 figures inlined as data: URIs, verified by re-render + count check)"
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "model_module": "jovian_flyby_model",
+  "primary_result": "primary_result",
+  "cases": [
+    {
+      "name": "v_inf very small (1 km/s arrival, near-parabolic approach)",
+      "params": {
+        "moon": "ganymede",
+        "target_orbit": "io_scale",
+        "v_inf": 1000.0,
+        "r_p_factor": 1.0
+      },
+      "expectation": "finite"
+    },
+    {
+      "name": "v_inf very large (500 km/s, extreme hypervelocity)",
+      "params": {
+        "moon": "ganymede",
+        "target_orbit": "io_scale",
+        "v_inf": 500000.0,
+        "r_p_factor": 1.0
+      },
+      "expectation": "finite"
+    },
+    {
+      "name": "perigee factor very large (flyby far from moon, minimal turning)",
+      "params": {
+        "moon": "ganymede",
+        "target_orbit": "io_scale",
+        "v_inf": 20000.0,
+        "r_p_factor": 100000000.0
+      },
+      "expectation": "finite"
+    },
+    {
+      "name": "perigee factor at nominal surface-skim value",
+      "params": {
+        "moon": "ganymede",
+        "target_orbit": "io_scale",
+        "v_inf": 20000.0,
+        "r_p_factor": 1.0
+      },
+      "expectation": "finite"
+    },
+    {
+      "name": "Isp very high (near-ideal propulsion)",
+      "params": {
+        "moon": "ganymede",
+        "target_orbit": "io_scale",
+        "v_inf": 20000.0,
+        "r_p_factor": 1.0,
+        "Isp": 1000000.0
+      },
+      "expectation": "finite"
+    }
+  ],
+  "sweep": {
+    "param": "r_p_factor",
+    "order": "increase",
+    "values": [
+      0.5,
+      1.0,
+      2.0,
+      5.0,
+      10.0,
+      50.0
+    ],
+    "base_params": {
+      "moon": "ganymede",
+      "target_orbit": "io_scale",
+      "v_inf": 20000.0
+    },
+    "_expectation_note": "as r_p_factor increases (farther flyby), turning angle shrinks, so the (always-negative-or-zero) propellant-saving value must be monotonically INCREASING toward 0 (i.e. the magnitude of the negligible negative effect shrinks). This is the physically expected monotonic direction for this model - verified below by the actual observed sweep."
+  }
+}

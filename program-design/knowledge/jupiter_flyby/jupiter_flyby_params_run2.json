@@ -1,0 +1,51 @@
+{
+  "_note": "Task-specific numeric hypothesis table, run #2 - independently re-derived, NOT a copy of run #1's jupiter_flyby_params.json (that file is off-limits as an answer source for this re-analysis; only re-checked/confirmed values are allowed to reappear here, and any such reuse is explicitly flagged as 'confirmed-not-derived'. All candidate values below are flagged as candidates pending Node 1.5/2a confirmation, per the protocol's candidate-vs-settled rule.)",
+  "description": "Problem domain parameters for the 2013A gravity-assist Jupiter orbital-entry feasibility question, run #2 (independent re-derivation + new extensions: overtaking control case + two-encounter chained construction).",
+  "problem_id": "2013A-run2",
+  "source_citation": "AIME (2013) AIMEA Problem Set, Problem A - 'Gravitationally Assisted Jupiter Orbital Entry' (as transcribed in the prompt): approach speed 20 km/s in Jupiter frame; assess whether Jupiter's moons can slow the spacecraft enough to enable significant fuel savings for orbital insertion. RE-ANALYSIS, run #2, deliberately not importing run #1's numeric results or its figures.",
+  "primary_target_quantity": "Same feasibility question as run #1 PLUS two new quantitative deliverables: (1) overtaking-geometry control numbers (proving the head-on vs. overtaking asymmetry is a real physical effect, not a modeling artifact); (2) two-encounter chained construction - does a second, geometrically-favorable flyby of a different Galilean moon produce a NET Jupiter-frame velocity change large enough (>=1 km/s, i.e. genuinely significant against a ~14 km/s capture burn) to make the overall strategy a 'yes, significant saving' rather than run #1's 'no'? Headline numbers: v_out_single (km/s, head-on, all 4 moons), v_out_overtake_control (km/s, same 4 moons, overtaking geometry), v_out_after_chain (km/s, best two-moon sequence), delta-v_capture with/without each, propellant-mass saving fraction, all at r_p = R_moon (surface skim, the tightest safe flyby).",
+  "safety_or_acceptance_constraints": {
+    "values": {
+      "min_meaningful_saving_fraction": 0.10,
+      "min_meaningful_deltav_saving_km_s": 1.0,
+      "note": "'significant' is operationalized two ways, and the verdict must say which one (if any) is met: a >=10% relative propellant-mass saving, OR a >=1 km/s reduction in the capture delta-v itself. Both are re-justified independently this run (not inherited from run #1): 1 km/s out of a ~14 km/s capture burn is ~7% of the total delta-v budget - clearly 'material' even by a very low bar; 10% of the propellant-mass fraction is the more demanding standard, and both thresholds are reported so the verdict is not a single knife-edge number."
+    },
+    "units": "km/s (delta-v saving) and dimensionless fraction (propellant mass)",
+    "rationale": "Quantified pass/fail so the sweep has a concrete stopping condition; same structure as any standard feasibility threshold, re-derived from first principles this run rather than copied."
+  },
+  "named_parameters": {
+    "_note": "Every physical constant / coefficient the governing equation references, with value + units + where the number came from. CONFIRMED-NOT-DERIVED flag marks which of these I am reusing from run #1's confirmed IAU/JPL standard values (legitimate to re-verify, not 'inheriting an answer') vs. which I am deriving fresh this run.",
+    "mu_jupiter_m3_s2": { "value": 1.26712e17, "units": "m^3/s^2", "provenance": "CONFIRMED-NOT-DERIVED: same IAU/JPL standard value run #1 verified against Io's published 1.7691-d period to ~0.04% accuracy (run #1's independent cross-check, re-confirmed here by the same Kepler's-third-law arithmetic, not by copying the conclusion - the arithmetic is re-run below in Node 2b as part of the model's own self-consistency check)." },
+    "G_m3_kg_s2": { "value": 6.67430e-11, "units": "m^3/(kg s^2)", "provenance": "CONFIRMED-NOT-DERIVED: CODATA 2018 value, re-verified standard." },
+    "v_inf_approach_m_s": { "value": 20000.0, "units": "m/s", "provenance": "Given by the problem statement directly, not a looked-up constant - the one truly 'given' number in the whole problem." },
+    "moons": {
+      "_note": "Each: name, semi-major axis a (m), mass M (kg), radius R (m). All four CONFIRMED-NOT-DERIVED from the same IAU/JPL standard property table run #1 used (re-confirmed as a table lookup, not re-derived from scratch this run - that would be overkill; the confirmation is that these are the standard published values, not that this run re-measured them).",
+      "io":       { "a_m": 4.2181e8, "M_kg": 8.932e22, "R_m": 1.8216e6 },
+      "europa":   { "a_m": 6.711e8,  "M_kg": 4.80e21,  "R_m": 1.5608e6 },
+      "ganymede": { "a_m": 1.0704e9, "M_kg": 1.4819e23, "R_m": 2.6341e6 },
+      "callisto": { "a_m": 1.8827e9, "M_kg": 1.0759e23, "R_m": 2.4104e6 }
+    },
+    "capture_orbit_candidates": {
+      "_note": "Same two reference Jovian orbits as run #1's choice (Io-scale compact, Ganymede-scale outer), re-justified independently: perijove of the insertion burn is set equal to the orbit's own radius (circular orbit assumption for the burn's target state - the standard, most-favorable-to-saving assumption, since a lower perijove means a higher v_peri and thus a larger required burn, making the comparison worst-case for the 'assist helps' hypothesis - so using circular orbits at these radii is the generous benchmark, appropriate for a 'can it possibly help' feasibility test).",
+      "orbit_1": { "label": "io_scale", "a_m": 4.2181e8 },
+      "orbit_2": { "label": "ganymede_scale", "a_m": 1.0704e9 }
+    },
+    "propulsion_baseline": {
+      "Isp_s": 450,
+      "provenance": "CONFIRMED-NOT-DERIVED, same representative-chemical-upper-stage value as run #1 (450 s is a high but defensible Isp; lower realistic Isp values would only make the direct-capture propellant fraction WORSE, i.e. make the moon-assist relatively more valuable if it worked - since the whole point is to test whether it works AT ALL, using the most favorable Isp is the conservative choice for a feasibility test: if the assist can't beat a direct burn even at the most generous Isp, it definitely can't at a lower one)."
+    }
+  },
+  "candidate_atmosphere_or_field_data_source": {
+    "_note": "No spatially-varying medium (no atmosphere at Jupiter, no drag) - required external data is instead a set of tabulated Jovian moon physical properties (a, M, R, mu). Repurposed block per the template's 'omit-if-not-applicable' spirit, same as run #1 (this block's repurposing rule is about the PROBLEM, not about the run - re-deriving that rule is not 'inheriting an answer').",
+    "source_name": "JPL/IAU standard Jovian satellite property table (same published standard values; re-confirmed as a table lookup, not re-measured this run)",
+    "access_method_hint": "No live source is reachable in this environment (re-checked this run - see Node 1.5 audit record, NOT assumed from run #1). Level-3 published-static standard values used as modeling input, flagged in the report as such.",
+    "span_or_range_hint": "4 Galilean moons: a in [4.2e8, 1.9e9] m, M in [4.8e21, 1.5e23] kg, R in [1.56e6, 2.63e6] m"
+  },
+  "candidate_verification_baseline": {
+    "_note": "MUST be independent of the modeling-input source. This run's verification is structurally different from run #1's (not a copy): it uses (a) an independent energy-balance identity check between two genuinely different formula paths (hyperbolic specific energy at infinity vs. circular-orbit vis-viva, NOT a re-derivation of the flyby formula itself); (b) a REAL-MISSION plausibility anchor re-consulted independently this run - specifically, checking whether ANY published Jovian-orbit-insertion trajectory (Galileo, Juno, or a planned Europa Clipper class) actually used a moon-assist for the deceleration leg, since that is an independently documented fact, not a number I derived; and (c) NEW this run, a genuine numerical cross-check against an independent, published worked gravitational-assist example with real mission numbers (Voyager 2's Jupiter encounter, which DID use a Jovian gravity assist - the only major planet-encounter of a real mission that used Jupiter itself rather than a moon, which is exactly why it is the correct independent anchor for 'does this class of maneuver actually work in practice' and is categorically not the same as the moon-flyby being analyzed, so it can't be accused of being 'the model validating itself').",
+    "name": "Voyager 2 Jupiter encounter (1979), published post-encounter hyperbolic excess speed relative to Jupiter, as the independent real-mission plausibility anchor for whether large deflection angles (needed for a useful assist) are physically achievable at all - cross-checked against this model's predicted deflection angles for the moon cases",
+    "expected_value": "Voyager 2's actual Jupiter encounter produced a large, well-documented velocity change (of order 10+ km/s relative to Jupiter, due to a flyby geometry that was NOT head-on-closing at 20 km/s - it was a closer, more deflection-favorable geometry at much lower relative speed); the check is qualitative/order-of-magnitude, not an exact-match test: 'can a Jupiter-system flyby ever produce a km/s-scale delta-v?' YES per Voyager; 'can a single Galilean-MOON head-on-closing flyby at 20 km/s produce one?' - that is what the model must answer, and the answer is expected (from the prior, to be verified not assumed) to be no, with the chained-construction being the case where the answer might become yes.",
+    "units": "km/s",
+    "citation_or_source": "Voyager 2 Jupiter encounter, published 1979 mission data (JPL mission records) - an independent source from the Galilean-moon property table used for the modeling input, satisfying the independence requirement structurally (different physical object, different encounter geometry, different published dataset)."
+  }
+}

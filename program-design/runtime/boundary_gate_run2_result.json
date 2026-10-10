@@ -1,0 +1,57 @@
+{
+  "verdict": "PASS",
+  "cases": [
+    {
+      "name": "headon_mu_m_to_0",
+      "passed": true,
+      "actual": 20000.0,
+      "expectation": "finite",
+      "reason": "expected finite value"
+    },
+    {
+      "name": "headon_v_rel_to_0",
+      "passed": true,
+      "actual": 17332.0,
+      "expectation": "finite",
+      "reason": "expected finite value"
+    },
+    {
+      "name": "overtaking_v_rel_to_0",
+      "passed": true,
+      "actual": 8203.9,
+      "expectation": "finite",
+      "reason": "expected finite value"
+    }
+  ],
+  "sweep": {
+    "passed": true,
+    "param": "mu_m",
+    "order": "decrease",
+    "observed": [
+      {
+        "param_value": 5959000000000000.0,
+        "result": 40898.84822931625
+      },
+      {
+        "param_value": 1000000000000000.0,
+        "result": 24630.85591115125
+      },
+      {
+        "param_value": 10000000000.0,
+        "result": 20000.000001003908
+      },
+      {
+        "param_value": 100000.0,
+        "result": 20000.0
+      },
+      {
+        "param_value": 1.0,
+        "result": 20000.0
+      },
+      {
+        "param_value": 0.0,
+        "result": 20000.0
+      }
+    ]
+  }
+}

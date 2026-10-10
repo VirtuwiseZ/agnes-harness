@@ -1,0 +1,49 @@
+{
+  "_note": "Task-specific numeric hypothesis table for 2013A Jupiter moon gravity-assist orbital entry. All values are CANDIDATES to be confirmed or rejected by Nodes 1.5/2a; the modeling code must only consume the structured data array + verified baseline those nodes produce, not these literals. Candidate verification baseline is deliberately from a different source than the candidate modeling-input source (independence requirement).",
+  "description": "Problem domain parameters for the 2013A gravity-assist Jupiter orbital-entry feasibility question.",
+  "problem_id": "2013A",
+  "source_citation": "AIME (2013) AIMEA Problem Set, Problem A - 'Gravitationally Assisted Jupiter Orbital Entry' (as transcribed in the prompt): approach speed 20 km/s in Jupiter frame; assess whether Jupiter's moons can slow the spacecraft to enable significant fuel savings for orbital insertion.",
+  "primary_target_quantity": "Feasibility + quantification: maximum reduction in Jupiter-frame hyperbolic excess speed achievable by a single close flyby of a Galilean moon (and whether that reduction materially cuts the propellant needed for Jovian orbit capture vs. a direct insertion burn). Headline numbers: v_inf,post-moon (km/s), delta-v_capture with/without moon assist, propellant-mass saving fraction.",
+  "safety_or_acceptance_constraints": {
+    "values": {
+      "min_meaningful_saving_fraction": 0.10,
+      "min_meaningful_saving_fraction_note": "'significant fuel saving' operationalized as >= 10% reduction in required capture delta-v (or equivalent propellant fraction via Tsiolkovsky); also report whether a single flyby at all reduces v_inf below the direct-insertion threshold."
+    },
+    "units": "dimensionless fraction (of delta-v) / km/s",
+    "rationale": "Quantified pass/fail so the sweep has a concrete stopping condition; problem asks 'realistic strategy to produce significant fuel savings' - 10% is a reasonable threshold for 'significant' in a propulsive-orbit-insertion context where the baseline burn is the whole payload-mass decision driver."
+  },
+  "named_parameters": {
+    "mu_jupiter_m3_s2": { "value": 1.26712365e17, "units": "m^3/s^2", "provenance": "IERS/JPL standard gravitational parameter (NASA/IAU); to be confirmed by Node 1.5 source." },
+    "jupiter_rotation_period_h": { "value": 9.925, "units": "hours", "provenance": "J2000 equatorial rotation (system III approximation); not used directly in two-body idealization, recorded for completeness." },
+    "v_inf_approach_km_s": { "value": 20.0, "units": "km/s", "provenance": "Given by problem statement (Jupiter system approach speed)." },
+    "moons": {
+      "_note": "Each: name, semi-major axis a (m), mass M (kg), radius R (m), mean density rho (kg/m^3), derived mu = G*M, surface escape speed v_esc = sqrt(2*mu/R), orbital speed v_orb = sqrt(mu_j/a). Candidates - to be confirmed by Node 1.5 source; Ganymede, Callisto, Europa, Io all listed since any could be the 'best' candidate; expected winner per the problem's implicit 'Jupiter's moons' is the highest-energy one (Ganymede or Callisto).",
+      "io":       { "a_m": 4.2181e8, "M_kg": 8.932e22, "R_m": 1.8216e6 },
+      "europa":   { "a_m": 6.711e8,  "M_kg": 4.80e21,  "R_m": 1.5608e6 },
+      "ganymede": { "a_m": 1.0704e9, "M_kg": 1.4819e23,"R_m": 2.6341e6 },
+      "callisto": { "a_m": 1.8827e9, "M_kg": 1.0759e23,"R_m": 2.4104e6 }
+    },
+    "capture_orbit_candidates": {
+      "_note": "Two reference Jovian orbits for the insertion-burn comparison, chosen to bracket realistic mission targets: (1) Io-radius orbit a=4.218e8 m (~21 R_J), a compact scientific/lander-insertion orbit; (2) Ganymede-radius orbit a=1.0704e9 m, an outer relay orbit. Perijove altitude set by problem physics: insertion burn executed at perijove; perijove radius chosen = a_moon of the assisting moon (self-consistent: you don't dive deeper than where your flyby actually was).",
+      "orbit_1": { "label": "io-scale compact orbit", "a_m": 4.2181e8 },
+      "orbit_2": { "label": "ganymede-scale outer orbit", "a_m": 1.0704e9 }
+    },
+    "propulsion_baseline": {
+      "isp_s": 450,
+      "provenance": "Assumed-this-run: representative chemical upper stage (RP-1/LOX class, e.g. typical 350-450 s; 450 s is a generous but defensible high-end value since higher Isp only strengthens the fuel-saving conclusion, noted in report as an assumption the conclusion is insensitive to within 350-450 s band)."
+    }
+  },
+  "candidate_atmosphere_or_field_data_source": {
+    "_note": "No spatially-varying medium (no atmosphere at Jupiter, no drag model) - the required external data is instead a set of tabulated Jovian moon physical properties (a, M, R, mu). Block repurposed per template's 'omit if not applicable' spirit: it applies here as a 'candidate physical-constants/tables source', not an atmosphere profile.",
+    "source_name": "JPL Solar System Dynamics: Small-Body Database / Jovian satellite fact sheets (published numeric tables)",
+    "access_method_hint": "published static numeric table (Level 2): JPL small-body database (ssd.jpl.nasa.gov) satellite pages + NASA Planetary Fact Sheet (nssdc.gsfc.nasa.gov) - authoritative, static, no API needed",
+    "span_or_range_hint": "4 Galilean moons (Io, Europa, Ganymede, Callisto): a [4.2e8, 1.9e9 m], M [4.8e21, 1.5e23 kg], R [1.56e6, 2.63e6 m]"
+  },
+  "candidate_verification_baseline": {
+    "_note": "MUST be independent of the modeling-input source. Independent real-world reference: an actual spacecraft that captured at Jupiter, with a published post-capture orbit - the Juno mission (Cassini did a Jovicentric gravity assist en route but did not capture; Juno did capture). Juno's capture/insertion orbit was a low perijove (250 km) high apojove (~35 Gm) elliptical orbit, later averaged; Juno's Jupiter orbit insertion was executed 2016-07-05. The model's predicted maximum deceleration from a large-moon flyby (v_inf reduction of ~3-7 km/s) is checked against the physically-identical kinematics of Juno's actual real Jovian-orbit geometry (its hyperbolic excess and insertion trajectory, published) - specifically: does the model's claimed post-flyby velocity fall inside the range of velocities actually observed at comparable real Jovian orbits? If the model says a single moon flyby can reduce v_inf from 20 to ~13-17 km/s, that is the same order as what Juno-class missions actually entered (their v_inf from Earth departure to Jupiter was ~5.8-6 km/s - far less, but that is the interplanetary leg, not the local Jovicentric excess; the correct independent check is instead against a textbook worked gravitational-assist slowdown example, e.g. the standard 'slingshot in reverse' worked calculation, OR against the published Cassini/Juno encounter geometry numbers themselves as a 'velocity-magnitude at similar orbital radius' sanity anchor). Primary independent baseline chosen: a published worked gravitational-assist example from a standard orbital-mechanics textbook (Vallado / Curtis) for a Jupiter-orbit-class maneuver, cross-checked against NASA Juno/Jupiter-orbit-insertion published orbital elements (apoapsis/periapsis + v at those points via vis-viva, independently computed, not from the same table used for moon masses).",
+    "name": "Published Jovian orbit-insertion orbital elements (NASA/JPL Juno MISSION data: perijove ~250 km, apojove ~34.9e6 km, period ~11.9 days pre-averaging) + independent textbook worked example of a reversed-slingshot deceleration",
+    "expected_value": "Model-predicted post-moon v_inf within physical plausibility: v_out < v_inf (always, by energy/kinematics), and |v_out - v_moon_frame| consistent with pure rotation (speed magnitude in moon frame exactly preserved to within rounding - the 'independence' check that no net energy was gained/lost in the moon frame).",
+    "units": "km/s",
+    "citation_or_source": "NASA/JPL Juno orbital element data (published 2016 insertion + subsequent averaged orbit); cross-checked by vis-viva against JPL Small-Body moon mu values (independent of the modeling-input table IF the two pull from genuinely different publications/datasets - to be confirmed at fetch time; if both trace to the same JPL small-body table, use a second independent source for one side, e.g. NASA Planetary Fact Sheet (different publication lineage from ssd.jpl.nasa.gov)."
+  }
+}

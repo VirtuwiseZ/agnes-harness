@@ -1,0 +1,61 @@
+{
+  "model_module": "jovian_flyby_boundary_adapter",
+  "primary_result": "v_out_m_s",
+  "cases": [
+    {
+      "name": "headon_mu_m_to_0",
+      "params": {
+        "head_on": true,
+        "v_rel": 37332.0,
+        "r_p": 1821600.0,
+        "mu_m": 0.0,
+        "v_moon": 17332.0
+      },
+      "expectation": "finite",
+      "note": "no-op limit: mu_m -> 0 must give delta -> 0 and v_out -> v_rel - v_moon = 20000 m/s (=v_inf), the exact 'no encounter happened' answer; 'finite' is a necessary (not sufficient) check, the monotonic sweep below is the stronger one."
+    },
+    {
+      "name": "headon_v_rel_to_0",
+      "params": {
+        "head_on": true,
+        "v_rel": 0.0,
+        "r_p": 1821600.0,
+        "mu_m": 5959000000000000.0,
+        "v_moon": 17332.0
+      },
+      "expectation": "finite",
+      "note": "maximum-deflection limit: v_rel -> 0 gives delta -> 180 deg, v_out -> v_moon exactly."
+    },
+    {
+      "name": "overtaking_v_rel_to_0",
+      "params": {
+        "head_on": false,
+        "v_rel": 0.0,
+        "r_p": 2410400.0,
+        "mu_m": 7181000000000000.0,
+        "v_moon": 8203.9
+      },
+      "expectation": "finite",
+      "note": "run #2's overtaking branch, v_rel -> 0: v_out -> v_moon (the spacecraft ends up at the moon's own speed, a no-op-limit sanity check specific to the NEW formula)."
+    }
+  ],
+  "sweep": {
+    "param": "mu_m",
+    "order": "decrease",
+    "values": [
+      5959000000000000.0,
+      1000000000000000.0,
+      10000000000.0,
+      100000.0,
+      1.0,
+      0.0
+    ],
+    "base_params": {
+      "head_on": true,
+      "v_rel": 37332.0,
+      "r_p": 1821600.0,
+      "v_moon": 17332.0
+    },
+    "note": "v_out must monotonically DECREASE from ~37.3 km/s (mu_m -> infinity, no encounter) down to exactly 20.0 km/s (=v_inf, the no-op limit) as mu_m -> 0; this is the single most important degeneracy check for the head-on formula, since it directly tests the v_out >= v_inf invariant's no-op endpoint."
+  }
+}
