@@ -13,6 +13,7 @@ scipy==1.18.1
 # 核心数值栈的直接依赖
 mpmath==1.3.0            # sympy 1.14 的外部依赖（1.13 起从内置改成外部包）
 flexparser==0.4         # pint 的底层解析器（PyPI 上这个包的实际版本号就是 0.4，不是 0.4.0，别写成 0.4.0 否则 build_wheels.mjs 下载不到）
+flexcache==0.3           # pint 用到（pint import 链上的缓存层，漏掉它 pint 会在 import 时报 No module named 'flexcache'）
 platformdirs==4.12.4     # pint 用到
 typing-extensions==4.16.0 # pint 用到
 

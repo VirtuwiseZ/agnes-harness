@@ -22,6 +22,7 @@ const checks = [
   ['plotly','plotly','__version__'],
   ['mpmath','mpmath','__version__'],
   ['flexparser','flexparser','__version__'],
+  ['flexcache','flexcache','__version__'],
   ['platformdirs','platformdirs','__version__'],
   ['typing-extensions','typing_extensions','metadata'],
   ['contourpy','contourpy','__version__'],

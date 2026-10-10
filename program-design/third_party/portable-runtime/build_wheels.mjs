@@ -17,7 +17,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const lockPath = resolve(here, 'wheels', 'LOCKED_VERSIONS.txt');
 const Pinned = {};
 readFileSync(lockPath, 'utf8').split('\n').forEach(line => {
-  const m = line.match(/^([A-Za-z0-9_\-]+)==([0-9][^\s]*)\s*$/);
+  // 允许行尾带注释（如 "mpmath==1.3.0  # 说明"），先去掉 # 之后的部分再匹配，
+  // 否则任何带行尾注释的行都会被静默解析失败、漏掉对应包。
+  const clean = line.split('#')[0];
+  const m = clean.match(/^([A-Za-z0-9_\-]+)==([0-9][^\s]*)\s*$/);
   if (m) Pinned[m[1]] = m[2];
 });
 if (Object.keys(Pinned).length === 0) {
