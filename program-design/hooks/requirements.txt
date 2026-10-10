@@ -1,5 +1,13 @@
 # Dependencies for program-design hooks
 # All hooks are standalone scripts; no changes to the AGH host repository.
+#
+# 版本锁定说明：本文件里的 >= 是"最低可用版本"，不是"已验证版本"。
+# 真正在 dev-notes/self-tests 里跑通过的那一版（当前是 Python 3.13.9 + 下面这组具体
+# 版本号）记录在 program-design/third_party/portable-runtime/wheels/LOCKED_VERSIONS.txt，
+# 便携运行时（无安装器、不碰系统的离线 Python + 烘焙好的 wheel）也在那份目录里，
+# 完整设计/伦理边界说明见 program-design/third_party/portable-runtime/PORTABLE_RUNTIME.md。
+# 如果你的机器上没有 Python 或只有 Windows 商店版占位符（where.exe python 第一行落在
+# WindowsApps 就算），不要自己现装，直接用便携运行时，跑法见同目录 INSTALL.md。
 
 # --- 核心数值计算栈（所有物理题通用） ---
 sympy>=1.12   # 用途：拉格朗日方程/哈密顿方程的符号推导（sympy.physics.mechanics）；当前无 hook 直接 import，按需使用
