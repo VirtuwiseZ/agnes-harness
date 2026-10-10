@@ -94,3 +94,18 @@
 - **收尾自检步骤（新增）**：任何一次"写完交付给开发者"的内容（commit message、summary、dev-notes 更新记录）在最终确认前，要过一遍这份自检清单，按顺序逐条确认，不是写完直接交：① 有没有对话口吻（"我完成了 xx，需要你审核"）；② 有没有只有当事人才懂的指代（"步骤 C""待办 2"）；③ 每条改动是否自包含（做了什么/为什么/影响范围写清了）；④ 事实跟判断/建议是否分开标注；⑤ 有没有虚报完成（没做的东西被写成了"已完成"）；⑥ 涉及代码改动的地方有没有写文件路径；⑦ **语言是否全程中文（专有名词保留原文不算违规，整段英文算违规）**——第 ⑦ 条是新增的显式步骤，排在最后，专门针对"语言约束跟前面 6 条内容约束没有绑定检查、容易被内容达标掩盖"这个问题。
 - **克制长度，不重复啰嗦**：同一事实不在多处重复表述；该写的都写清楚，但不过度展开背景铺垫。
 - **git 状态如实陈述，不用请求语气**：例如写“已提交到 `physics-agent` 分支，尚未推送到远程”（事实），不写“等你同意再 push”（请求）；如果是自己发起的、需要他人决策的事项，单独列一节明确写“以下为待你决策的事项”，把它跟“已完成事实”分开，不混写。
+
+---
+
+## 7. 环境依赖边界与项目内便携运行时 (Portable Runtime Boundary)
+
+配套 `self-tests` 第 4 轮（木星引力助推题）日志暴露的真实卡点：用户机器可能没装 Python（或只有一个 Windows 商店占位符 `python.exe`），而本项目进 AGH 会话后真正要跑的确定性防线（量纲门 `program-design/hooks/dimensional_gate.py`、边界门 `program-design/hooks/boundary_gate.py`、审计日志 `program-design/hooks/audit_log.py`、图表 `program-design/hooks/make_report_figures.py`）全部依赖 Python 及 numpy/sympy/pint/scipy/matplotlib/plotly 等第三方包。这条共识把“环境缺失问题”正式划成两个互不重叠的范围，避免后续被反复重新讨论：
+
+- **进 AGH 前端会话区之前（AGH 构建/运行前置阶段）的环境缺失：不管**。例如 AGH 仓库自身的依赖安装、Node 版本、AGH 构建产物是否成功，属于使用 AGH 宿主本身的成本，不列入本项目的治理范围；需要给队友准备一份一次性的人类检查清单（装什么、shell 里敲什么），那是清单层面的事，不在本共识里展开，也不进代码库留痕（用户拍板的界限，2026-10-10）。
+- **进 AGH 会话之后、跟项目本身强相关的依赖（Python 本体、绘图库、文档解析库）：快速静默安装版必须预置在项目内**，不假设用户机器上已有可用的 Python。落地形式：`program-design/third_party/portable-runtime/`（embeddable Python 3.13.9 + 锁定版本 wheel + CJK 字体，详见该目录内 `PORTABLE_RUNTIME.md`/`INSTALL.md`）。
+- **伦理边界（跟上面两条同样级别，不是一条附注）**：自动安装/使用这套便携运行时的动作，**只能落在项目目录内部**（解压 embeddable 包、`pip install --target` 到 `python/Lib/site-packages`、放置字体文件）；**永远不默认**改用户系统的 PATH、注册表、或其他已装好的 Python 环境；任何需要碰用户系统层面的操作（加 PATH、替换系统 Python）必须另起一个明确的、用户点头才执行的动作，不是脚本的默认行为。依据见 `PORTABLE_RUNTIME.md` 开头“伦理边界”一节。
+- **版本锁定原则**：便携运行时里的包版本不是 `requirements.txt` 里的 `>=` 最低值，而是 `dev-notes/self-tests` 实际跑通过的那一版（当前清单见 `program-design/third_party/portable-runtime/wheels/LOCKED_VERSIONS.txt`，唯一事实来源，不写死进脚本）；升级/降级版本要改这份清单、同步更新 `build_wheels.mjs` 重新烘焙，不是随手换个 pip 包版本。
+- **明确排除项（不是漏掉，是有理由不做）**：MinerU（Tier 2 文档解析，模型依赖重、体积/下载时间不可控，且当前只是“备选”不是主路径）；`ambiance`/`pymsis`（数据源路由 Level 0 候选包，当前没有任何 hook 真的 import 它们，只是保留在 `requirements.txt` 里做运行时可用性检查）。这两类保持“用时按 `SKILL.md` §6 / `data-source-routing.md` 的指引由使用者手动装”的现状，不预烘焙进便携包，避免把体积不可控的依赖也塞进“快速静默安装版”里。
+- **对 Agent 的绑定规则（这条才是“让用户端 AI 记得用”的落点）**：任何一次需要 Python/绘图/解析依赖的 hook 调用，在升级成正式的“缺依赖→停等用户”之前，**先查一遍** `program-design/third_party/portable-runtime/` 里的便携包能不能直接用；只有这套包覆盖不到的重依赖（上面排除项清单里的）才走正式的缺依赖停等流程。这条规则同时写在 `.agh/skills/physics-agent-governance/SKILL.md` §4a-0（“便携运行时 fast-path”）和文件顶部环境提醒里，两个位置指向同一件事，以 `SKILL.md` §4a-0 为权威表述，本节只记录“为什么要划这条界限 + 伦理边界”本身，不重复 `SKILL.md` 里的执行细节。
+
+事实与判断分开标注：上面第 1、4 条是已落地的既定设计（`portable-runtime/` 目录已经建好并实测跑通过 `dimensional_gate.py`，见 `156182ca` commit）；第 3 条伦理边界和第 6 条“对 Agent 的绑定规则”是本次写进共识的、此前只在 `PORTABLE_RUNTIME.md`/`SKILL.md` 里零散存在但没被提升到“项目共识”这个分量的既有约定，属于“把已有做法固化成可追溯的共识条目”，不是新发明；第 5 条排除项是明确的判断/取舍，写在这里是为了防止日后被当成“疏忽没做”。
