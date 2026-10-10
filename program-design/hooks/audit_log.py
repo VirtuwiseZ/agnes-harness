@@ -40,11 +40,19 @@ Usage (from a node / hook, in-process):
     )
     # -> {"artifact_id": "<sha256>", "record": {...}}
 
-Usage (CLI, for ad-hoc or hook-side logging):
-    python audit_log.py --state problem_state.json --source my_tool \
-        --args-json '{"key": "value"}'
+CLI — full, copy-paste-runnable command lines (do not flatten all flags
+into one positional argument the way a one-off guess might; this script
+is a subcommand-based CLI, not a flat-args one):
+    python audit_log.py append --state <path-to-problem_state.json> \
+        --source <source_name> --args-json '{"key": "value"}'
+    python audit_log.py verify --state <path-to-problem_state.json>
 
-CLI exit codes: 0 = written OK, 2 = state file unreadable / write failed.
+  The subcommand word (append / verify) is mandatory and must come
+  before the -- flags; running `python audit_log.py --state ... --source ...`
+  with no subcommand is a usage error (exit code 2), not a write.
+
+CLI exit codes: 0 = written OK / verify PASS, 1 = verify FAIL, 2 =
+state file unreadable / write failed / usage error.
 """
 
 import argparse

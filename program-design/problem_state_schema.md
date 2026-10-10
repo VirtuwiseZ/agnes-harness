@@ -21,7 +21,7 @@ handing off. No other file or chat context may be the authoritative copy.
 | `audit_logs` | array | Append-only audit records (see `audit_log.py`); only `audit_log.append_record` may mutate this |
 | `anomalies` | array | Log of failures / boundary violations / annealing triggers encountered this run |
 | `verification` | object | Empirical benchmark comparison result (model vs. real data, e.g. Baumgartner) with quantified error |
-| `report` | object | Node 3 output: conclusion text + `traceability` map (claim -> `artifact_id`). The full incremental markdown research report is a separate file on disk: `program-design/runtime/report_<task-slug>.md` — the schema's `report` field holds only the conclusion + traceability index; the narrative itself lives in that file, which Node 4 consumes directly. |
+| `report` | object | Node 3 output: conclusion text + `traceability` map (claim -> `artifact_id`). The full incremental markdown research report is a separate file on disk, in the task's own subdirectory: `program-design/runtime/<task-slug>/report_<task-slug>.md` (see the task-scoped subdirectory convention in the SKILL protocol §0 — per-task artifacts, not just the report, are all grouped under `program-design/runtime/<task-slug>/`, never flat under the `runtime/` root) — the schema's `report` field holds only the conclusion + traceability index; the narrative itself lives in that file, which Node 4 consumes directly. |
 
 ## Quota & Annealing (per consensus §2.3)
 
