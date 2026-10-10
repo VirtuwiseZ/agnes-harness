@@ -26,11 +26,11 @@ You must execute the following hooks before advancing to the next pipeline node:
    - **It must not masquerade as a settled result.** The sketch lives in its own field for exactly so it can never be confused with, or later read back as, the `verification`/`report` numbers. If at any later point the agent finds it reaching for `internal_prior`'s content to fill a gap in the actual analysis (rather than re-deriving it through the pipeline's own gates and verification), stop: that is the same failure mode §4 forbids for hand-replayed gate checks — an unverified sketch standing in for a verified one.
 2. **Node 1.5 (Data-Source Routing)**: For whatever external data this problem needs (modeling inputs AND the independent verification baseline), search online / assess what public source is actually appropriate *for this specific problem's conditions*, and decide the access method (API / published numeric table / analytical approximation). Record the decision + rationale into `problem_state.json` audit logs. The source name must NOT be hardcoded into the method templates or the numerical model code — the code only ever consumes a structured data array that this step produces.
    - **Fault-tolerance branch**: if the agent recommends a source it cannot fetch itself, it MUST pause, summarize its progress to the user, and present two options — (A) a concrete manual-fetch guide the user follows and hands the data back, or (B) proceed with a clearly-flagged analytical approximation instead — and wait for the user's choice before continuing. The agent may not unilaterally pick option B. See `program-design/knowledge/data-source-routing.md` step 5a for the full protocol.
-3. **Node 2a (Knowledge Routing + Template Adaptation Check)**: Match the problem against method templates in `program-design/knowledge/`. Once a template matches at the domain level, you MUST NOT blindly execute its steps — **first run an explicit, written "mechanism-match" check, not just a numeric one**: state, in `problem_state.json` (a `template_adaptation_notes`-style entry, or under `hypothesis_layer`), which *physical mechanism* the matched template is actually built around (e.g. "atmosphere-drag-ode.md is built around a drag-dominated, 1D, variable-density vertical descent") and then check, line by line, whether **this specific problem's stated conditions actually instantiate that same mechanism** — not merely the same general topic. A problem can be "in the same general subject area" as a template (both are "about descent from altitude") while instantiating a *different mechanism* (e.g. this run's descent problem is drag-dominated, but a hypothetical "re-entry heating" problem would be radiative/ablation-dominated even though the altitude span overlaps) — matching on topic words alone, not on mechanism, is the "张冠李戴" (putting one hat on the wrong head) failure mode this check exists to catch. Concretely, before running ANY of the template's numbered steps, the agent must be able to answer, in the record: "which of this template's concrete assumptions (regime splits, specific CD/A values, altitude spans, threshold Mach numbers, a named data-source candidate, etc.) actually apply to THIS problem's conditions, and which of them are merely carried over from the example the template was first written around (the 2023 space-diving walkthrough) and need to be re-derived or dropped because this problem does not have that feature (e.g. a problem that never crosses a sonic regime has no Mach-threshold to re-derive and should simply not have one)?" Every assumption that *cannot* be justified by this problem's own stated conditions must be explicitly flagged as "inherited from the example, not validated for this problem" and either re-derived or dropped — never silently reused, and never presented in the report as if it were this problem's own justified choice. If no existing template fits even after this check (mechanism genuinely different, not just different numbers), derive a new one following the same structure (applicable domain / required parameters / numbered steps / failure-rollback triggers) — do not force a mismatched template into service by adjusting its numbers, and do not free-form invent a workflow without that structure.
+3. **Node 2a (Knowledge Routing + Template Adaptation Check)**: Match the problem against method templates in `program-design/knowledge/`. Once a template matches at the domain level, you MUST NOT blindly execute its steps — **first run an explicit, written "mechanism-match" check, not just a numeric one**: state, in `problem_state.json` (a `template_adaptation_notes`-style entry, or under `hypothesis_layer`), which *physical mechanism* the matched template is actually built around, and then check, line by line, whether **this specific problem's stated conditions actually instantiate that same mechanism** — not merely the same general topic. Every assumption in the matched template that *cannot* be justified by this problem's own stated conditions must be explicitly flagged as "inherited from the example, not validated for this problem" and either re-derived or dropped — never silently reused, and never presented in the report as if it were this problem's own justified choice. If no existing template fits even after this check (mechanism genuinely different, not just different numbers), derive a new one following the same structure (applicable domain / required parameters / numbered steps / failure-rollback triggers) — do not force a mismatched template into service by adjusting its numbers, and do not free-form invent a workflow without that structure. Worked examples of what this "张冠李戴" failure mode looks like concretely (and what a justified-drop of an inapplicable assumption looks like) live in `program-design/knowledge/pipeline_example_walkthroughs.md` §Node 2a, not here — read that file once for the examples; the hard rule above (run the written mechanism-match check before executing any template step, flag every un-justifiable assumption, derive a new template with the same structure if none fits) is the part that must be executed every run.
 4. **Node 2b (Modeling, Execution & Verification)**: Execute the Dimensional Gate, fetch/parse the external data chosen in Node 1.5, run numerical integration — write a **fresh model module for this specific problem** (any ODE/numerical system you need; `program-design/hooks/ode_model.py` is only a reference example from the first project problem and is NOT required to be imported or adapted, even for another descent-type problem with different assumptions — see that file's docstring, which explicitly says to write a new module rather than patch the old one) — code stays source-agnostic: it receives a structured T(z)/ρ(z)-style array (or whatever structured array this problem's governing equation needs), not a named data source — and compare against the empirical baseline chosen in Node 1.5. **Independence rule**: the verification baseline must be an independent source from the modeling input data (do not validate a model against data pulled from the same source the model was built on, if independence is achievable); record whether this was achieved in `problem_state.json`'s `data_source_decision.verification_baseline.independent_of` field.
 4a. **Node 2.7 (Optional, problem-dependent) — Numerical-results charting, static or interactive**: if this problem's numerical results are worth presenting as curves/scatter/error bars/interval highlights/2-D parameter fields (heatmaps or contour plots) — the default, static path — add a `figures` field under `problem_state.json`'s `numerical_artifacts` using one of the six static `kind` values (`curve`/`scatter`/`error_bar`/`interval_highlight`/`heatmap`/`boxplot`), documented in `program-design/problem_state_schema.md` §Figures and the fuller v2 design doc `dev-notes/self-tests/03/charting_generic_architecture.md` §2. Fill in each curve/highlight interval/annotated point/2-D grid as the **presentation fact** of "what these points look like once drawn" — not a re-judgment of whether those points are physically correct (that has already been the job of the dimensional/boundary gates, do not redo it here).
    **Optional interactive branch (v1, on-demand, not the default)**: if the user's problem itself asks for an **answer shape that is a parameter response surface rather than a single number/curve** — e.g. "show me how the optimum shifts as I vary these 2-3 parameters" or "give me an interactive 3D view of this model's response" — and a couple of static figures genuinely cannot carry that, add a `kind: "interactive"` figure instead (or alongside a static one for the same data, as two separate `figure_id` records — see `dev-notes/interactive_figure_design.md` §2 for the exact fields: `backend: "plotly"`, `layout_3d`, `switcher`). This renders to a self-contained HTML fragment (`make_report_figures.py`'s `_render_interactive()`, lazy-loads plotly so the six static kinds never need plotly installed) and inlines into Node 4's HTML as a live, rotatable/zoomable/button-switchable widget — **but only between pre-computed series; it does NOT re-solve the underlying model live from a slider drag** (that capability boundary is stated explicitly in the design doc and in the function's docstring; do not present it as something more). This branch is **optional and on-demand**, exactly like the rest of Node 2.7: the static path remains the default and the "克制" principle (one clearly-scoped charting step, no over-claiming scope) still applies — an interactive kind is not a mandate to add more figures than the static path would justify, it is a different *kind* of figure for a different *shape* of answer, not a larger quantity of the same static figure type. When it has run for this task, pass its output directory to Node 4 as `--figures-dir` (interactive figures produce `.html` files, static figures produce `.png`/`.svg`; `trace_visualizer.py`'s figure-inlining logic already handles both, no extra flag needed). Then, when writing the Node 3 report body, reference each figure you filled in using the `{{figure: <figure_id>}}` syntax (see the report-reference convention in `program-design/problem_state_schema.md`). If this problem's numerical results are **not** suitable for any chart (static or interactive), leave `figures` empty or absent — this is allowed, not an omission. This is an **optional node**, not a mandatory one: it does not mean every future problem must be charted, static or interactive; it defines the generic mechanism to use *when* charting is appropriate — and "appropriate" now includes the on-demand case where a static picture would genuinely be the wrong tool, not just a less-rich version of the right one.
-5. **Node 3 (Research Report, incremental)**: From the very first analysis node, and at the end of *each* node (1 / 1.5 / 2a / 2b, not just once at the very end), append a short markdown section — written **for the user, not for the developer log** — to the task's own report draft file `program-design/runtime/report_<task-slug>.md` (created on first append; path is stable for the whole task, one file per task, never mixed with a different task's draft). Each section must answer, in the user's language: what was done at this step, what evidence/assumption it relied on, what error or fallback happened and how it was corrected or routed back to an earlier assumption, and how this step's result compares against the model built so far. This file is the **primary narrative source** for Node 4 (the HTML render) — not the raw trace log — so it must be written *as the work happens*, not reconstructed from memory at the very end (by which point an earlier node's reasoning detail may no longer be in active context). The final Node 3 pass (after Node 2b) integrates all prior appended sections into a coherent concluding section (final answer, sanity check of why the conclusion is or is not reasonable, what would need to change for it to be wrong) without deleting the earlier incremental sections.
+5. **Node 3 (Research Report, incremental)**: From the very first analysis node, and at the end of *each* node (1 / 1.5 / 2a / 2b, not just once at the very end), append a short markdown section — written **for the user, not for the developer log** — to the task's own report draft file `program-design/runtime/report_<task-slug>.md` (created on first append; path is stable for the whole task, one file per task, never mixed with a different task's draft). Each section must answer, in the user's language: what was done at this step, what evidence/assumption it relied on, what error or fallback happened and how it was corrected or routed back to an earlier assumption, and how this step's result compares against the model built so far. This file is the **primary narrative source** for Node 4 (the HTML render) — not the raw trace log — so it must be written *as the work happens*, not reconstructed from memory at the very end (by which point an earlier node's reasoning detail may no longer be in active context). The final Node 3 pass (after Node 2b) integrates all prior appended sections into a coherent concluding section (final answer, sanity check of why the conclusion is or is not reasonable, what would need to change for it to be wrong) without deleting the earlier incremental sections. **When organizing the final integrated report's section order (abstract / introduction / assumptions / modelling / verification / results / strengths-weaknesses / discussion), refer to `program-design/knowledge/report_structure_guide.md` for the standard ordering convention and the three style rules (conclusion-first framing per section, assumptions grouped and numbered in a dedicated section, verification data source must be independent of the modelling data source). That document is a methodology-level structural guide distilled from published competition reference solutions; it is NOT an answer source — §5's reference-answer containment rule applies in full: no value, formula, or conclusion in this task's report may be copied from `dev-notes/reference-solutions/`.
 6. **Node 4 (Trace Visualizer Render)**: Call `program-design/hooks/trace_visualizer.py` with `--trace <raw trace export> --report <the report draft md from Node 3> --state <problem_state.json>` and, if Node 2.7 produced any `figures` blocks, additionally `--figures-dir <the directory make_report_figures.py wrote its .png/.svg files into>` (without it, every `{{figure: <id>}}` placeholder in the report renders as an explicit "missing figure source" box, not a silently-blank one). This renders a self-contained, static single-file HTML. The HTML's main narrative is the Node 3 markdown report; the trace is used only as an **on-demand verification appendix** ("did this claim actually have a supporting tool call?" expandable per section, not the headline content). Absolute read-only frontend — the HTML never writes back to anything.
    - **Trace source — automatic first, manual fallback second**: read `session_key` from this task's `problem_state.json` (written at Node 0/1, see §0). If it is non-null and a live AGH named pipe is reachable on this machine, obtain the trace automatically with `node program-design/hooks/trace_capture.cjs <session_key>` — this script discovers the live `agnes-*` pipe on its own (no hardcoded hash), connects, and streams this session's full history back via the AGH `session/load` mechanism, converting it on the fly into exactly the JSONL shape `trace_visualizer.py`'s `--trace` argument expects (written under `program-design/runtime/` alongside the task's other artifacts). No user action, no `agh export` step, no human-supplied file is involved in this path. Only if `session_key` is null (the case where the runtime context did not expose it at Node 0/1 — see §0's fallback rule) OR the pipe is not reachable from this environment, fall back to a user-supplied `--trace <file>` argument (e.g. a manually exported `agh export --raw` JSONL); do not invent a session key or silently use another session's trace to stand in for the missing one.
    - **Timing rule**: issue this call **before** your final user-facing reply of the session (i.e. it is a closing action, not something you finish and then keep chatting about) — this is what makes it possible for the HTML to cover "everything the agent actually did" without needing to include its own generation step (per project decision: the HTML does not report on itself). If you need to keep working on the analysis after this point, do not call Node 4 yet; call it only at the true end.
@@ -62,30 +62,7 @@ Several steps in this protocol **require** execution that goes beyond read-only 
 
 1. Do **not** substitute "manual re-derivation of what the gate/solver script would have produced" in place of actually running it, and do **not** pretend the step completed on paper when its mechanism (a real subprocess execution) was never exercised — a hand-replayed gate check is not the same guarantee as a gate check that actually ran.
 2. Do **not** fabricate or guess at the result of a step it could not actually execute (e.g. inventing what an ODE sweep would have output, or rounding a pending number into a "settled" answer just to finish the report).
-3. **Stop and emit the fixed escalation message** below — this message is **not** to be freely paraphrased by the agent; the agent only fills in the four bracketed fields (`{current node}`, `{specific permission}`, `{completed artifact IDs}`, `{one-line justification}`), which are the only degree of freedom. The rest of the wording is fixed, so that every permission-shortfall stop looks the same and a reviewer can check "did the agent actually stop with the prescribed message" rather than "did the agent sound reasonably sorry about being stuck":
-
-   ```
-   ⏸ PERMISSION REQUIRED — analysis stopped at Node {current node}.
-
-   This step requires {specific permission} (e.g. shell/command execution to run
-   program-design/hooks/dimensional_gate.py / boundary_gate.py / ode_model.py /
-   audit_log.py, or write permission to update the task's problem_state.json).
-
-   What is already done and verified so far:
-   - {completed artifact IDs, or "none — this is the first step"}
-
-   What is blocked and cannot be honestly completed without that permission:
-   - {one-line justification tied to which protocol node the blocked step belongs to}
-
-   Why I am stopping instead of working around it: this project's guarantee is
-   that deterministic code actually ran, not that the model predicted what it
-   would have produced. A hand-replayed gate/solver step is not the same
-   guarantee as one that actually executed, and I will not present it as if it were.
-
-   Please grant {specific permission} (or confirm you want me to stop here and
-   mark the remaining nodes as "pending user permission"). I will not continue
-   until you respond to this stop message.
-   ```
+3. **Stop and emit the fixed escalation message** — this message is **not** to be freely paraphrased by the agent; the agent only fills in the bracketed fields (`{current node}`, `{specific permission}`, `{completed artifact IDs}`, `{one-line justification}`), which are the only degree of freedom. The rest of the wording is fixed, so that every permission-shortfall stop looks the same and a reviewer can check "did the agent actually stop with the prescribed message" rather than "did the agent sound reasonably sorry about being stuck". **The fixed wording itself (Kind 1 and Kind 2 variants) lives in `program-design/knowledge/permission_shortfall_protocol.md` §权限缺口, not here — read that file once for the exact text, do not retype it from memory or improvise a shorter/paraphrased version on the fly.** The rule that governs *when* to use it (the Kind 1 vs Kind 2 distinction above, the "do not hand-replay" rule in item 1, the "do not fabricate" rule in item 2) stays in this file; only the verbatim message body has been moved out.
 
    - `audit_log.py` itself is a **write-permission** requirement, so this stop message does not depend on being able to run `audit_log.py` first — it is emitted directly as agent output, and *after* the user grants permission, the agent must retroactively log the stop event via `audit_log.py` (type `permission_shortfall_stop`) and the user's grant/denial decision via `audit_log.py` (type `permission_granted` / `permission_denied_by_user`). If the user denies the permission, the agent records that decision verbatim into `problem_state.json`'s `anomalies` (type `permission_denied_by_user`, non-blocking but logged) and states plainly in the report which nodes are "pending user permission" rather than presenting them as complete.
 4. **The agent must not resume on its own after emitting this message.** Resumption happens only on an explicit user grant ("yes, you may run the shell now"), or an explicit user denial (in which case the agent closes out with the pending-permission state recorded, not by continuing as if nothing happened). This is what makes the stop a real stop and not just a well-worded pause the agent quietly walks back after.
@@ -97,11 +74,7 @@ This rule exists because the project's reliability guarantee comes from **determ
 
 1. **Do not** hand-roll a substitute for a missing deterministic hook — the same core principle as §4 applies: a gate/solver/trace step whose mechanism (a real script execution in the real dependency stack) was never exercised is not the same guarantee as one that actually ran. A `ModuleNotFoundError` on `dimensional_gate.py` means the dimensional check did **not** happen; continuing past that by eyeballing the equation yourself silently downgrades the whole defense-line design, exactly as §4 warns.
 2. **Do not** guess a fix and keep going in a loop (e.g. trying `pip install` with a guessed version, or skipping straight to "let's try running the next node instead"). A dependency shortfall is an environment condition, not a code bug, and the agent does not get to unilaterally decide the environment should be different.
-3. **Stop and emit a short, plain escalation message** (this one is intentionally shorter than §4's fixed template — it is a report of a concrete blocker, not a permission negotiation) that identifies, concretely:
-   - which node / hook / script hit the shortfall,
-   - the exact dependency that is missing (e.g. "`pint` is not installed", not just "a dependency is missing"),
-   - whether installing it is a mechanical step the user can do on their end (e.g. "`pip install pint` per `program-design/hooks/requirements.txt`"), or whether it is not something the agent is in a position to resolve (e.g. no package-manager access, no network, or a genuinely unavailable runtime like a Node.js install in an environment that only has Python),
-   - and the two options the user can pick from: **(A)** "please install `<dependency>` and I will re-run this exact step unchanged once it is available", or **(B)** "mark this node as `pending_environment` in `problem_state.json`'s `anomalies` and move on with what does not depend on it" — the agent must not choose (B) on the user's behalf; choosing to skip a deterministic gate is the same epistemic tradeoff §4/§5a force the user to make explicitly, not something to be decided silently.
+3. **Stop and emit a short, plain escalation message** (this one is intentionally shorter than §4's fixed template — it is a report of a concrete blocker, not a permission negotiation). **The exact wording and the four items that must be spelled out concretely (which node/hook/script, which dependency, is installing it a mechanical user-side step, and the A/B options the user can pick) live in `program-design/knowledge/permission_shortfall_protocol.md` §环境缺口, not here — read that file once for the exact checklist, do not improvise a free-form variant on the fly.** The rule that governs *when* to use it (the "do not hand-roll a substitute" and "do not loop on guessed fixes" principles in items 1-2 above, and the "log the shortfall itself first" rule below) stays in this file; only the concrete stop-message checklist has been moved out.
    - Log the shortfall itself into `problem_state.json`'s `audit_logs` via `audit_log.py` (`type: "environment_shortfall_stop"`) before emitting the message, so the stop is auditable even if the user never responds — the audit record must exist independently of whether the user's eventual decision lands in the same file later.
 4. **The agent must not resume on its own after emitting this message** — same rule as §4 item 4: resumption happens only on the user's explicit "yes, I installed it, run it again" (Option A) or explicit "skip it / mark pending" (Option B), never on the agent quietly deciding the dependency "seemed unlikely to matter" and walking back the stop.
 
@@ -138,107 +111,23 @@ When the trigger fires, the **first fork is by file source, not by tier**:
 
 ## 7. Report Charting (Optional Node, see Node 2.7 in §2)
 
-The generic charting mechanism (how to fill `numerical_artifacts.figures` per the
-domain-neutral schema, which figure kinds are supported, how the report body
-references a figure via `{{figure: <id>}}`, and how `trace_visualizer.py`
-inlines it into the final HTML via `--figures-dir`) is specified in
-`program-design/problem_state_schema.md` §Figures (the stable, protocol-level
-summary) and, in fuller detail, in `dev-notes/self-tests/03/charting_generic_architecture.md`
-(v2) until that design doc is moved into `program-design/` once the trial run
-with the 2025 reference data is complete and the schema is finalized. This is a
-**pointer, not a duplicate of the full spec** — read the schema doc for the
-actual field structure. Charting is optional (Node 2.7); a problem's
-`figures` field may be empty or absent if no structured quantity-vs-quantity
-data was ever produced. Note: the rendering script `make_report_figures.py`
-now exists (`program-design/hooks/make_report_figures.py`); Node 2.7 and Node
-4's `--figures-dir` argument are wired on the SKILL/schema/visualizer side
-and there is now a real script to call (5 figure kinds, see its docstring
-for the exact behavior on dimension mismatch / NaN-Inf / missing CJK fonts).
-Charting remains optional (Node 2.7); an empty/absent `figures` field is
-still valid and not an omission.
+本节不再重复 §2 里 Node 2.7 已经写过的静态 6 种 kind 与 `interactive`/
+`interactive_live` 两个可选分支的完整说明——那份说明的正文以 §2 Node 2.7 为
+准，本节只做一件事：给出指针，避免两处各写一遍同一份 kind 说明导致以后
+改了一处忘了另一处。
 
-**Interactive branch (on-demand, optional, not the default)**: in addition to
-the static kinds above, a seventh `kind` value, `interactive` (Plotly-backed,
-renders to a self-contained HTML fragment inlined live into Node 4's page —
-rotatable/zoomable, can switch between several pre-computed series via
-Updatemenu buttons), is now supported for the specific case where the
-problem's answer is itself a parameter response surface or the user has
-explicitly asked for an adjustable/interactive scientific view that a couple
-of static figures genuinely cannot carry. This branch does NOT change any
-of the six static kinds' behavior or requirement, and it does NOT claim
-capabilities it does not have — specifically, it cannot re-solve the
-underlying model live from a parameter slider drag in a static export; it
-only switches between series that were already computed upstream (see
-dev-notes/interactive_figure_design.md §1 and §8 of the v2.2 charting doc
-for the exact capability boundary, stated so a future reader does not
-overpromise this). A future agent should not misread the old
-"克制/static-only" wording as a permanent, hard ban on richer tooling: it
-was a default-policy statement, not a capability ceiling.
+- 完整 spec（字段结构、每个 kind 的边界、`make_report_figures.py` 的尺寸不匹配/
+  NaN-Inf/缺 CJK 字体时的具体行为）：`program-design/problem_state_schema.md`
+  §Figures（稳定的协议级摘要）+ `dev-notes/self-tests/03/charting_generic_
+  architecture.md`（更详细的设计文档，跟 §2 Node 2.7 里指向的是同一份）。
+- `interactive`/`interactive_live` 两个可选分支的能力边界（什么情况下该用
+  `interactive` 而不是 `interactive_live`、为什么不能拿 `interactive_live` 去
+  做"参数变化时重新解一个重型 ODE/PDE"）：§2 Node 2.7 的 Node 2.7 章节
+  末尾两段（"Optional interactive branch" 和 "Live-parameter branch"）已经
+  写清楚，本节不再重复。
+- 本节跟 §2 Node 2.7 里那两段的关系：**以后如果要改"静态 6 种 kind 的说明"
+  或"interactive/interactive_live 的边界说明"，只改 §2 Node 2.7 那一处，
+  本节（§7）永远只是指针，不随内容更新而需要单独维护**——这是本次把 §7
+  从"重复展开"改成"纯指针"的目的，跟 2.5 判断的"分层没收敛"（同一信息
+  在两层里各写一遍）是针对同一个问题的修复。
 
-**Live-parameter branch (on-demand, optional, distinct from the button-switcher
-above)**: an eighth `kind` value, `interactive_live`, adds one capability the
-plain `interactive` kind does not have — instead of switching between
-pre-computed series, it renders a 2D curve y = f(x; p) and re-computes y live
-in the browser as the user drags one or more parameter sliders (the GeoGebra-
-style "drag a parameter, watch the curve re-draw in real time" behavior),
-still with no server / no external CDN, by mirroring the closed-form
-expression as inline JavaScript and calling `Plotly.restyle()` on every
-slider `input` event. **This is only valid for cheap closed-form
-re-evaluation, NOT for re-solving a heavy numerical ODE/PDE when a parameter
-changes** — if that is genuinely what a specific problem needs, use
-`interactive` (pre-computed parameter sweep + button switcher) instead and say
-so in the title, do not force `interactive_live` onto a case where the slider
-has no real "recompute" meaning behind it. See `dev-notes/
-interactive_figure_design.md` §6 and `dev-notes/self-tests/03/
-charting_generic_architecture.md` §10 for the exact schema fields
-(`x_data`/`params`/`js_function_body`/`constants`/`live_model_note`) and the
-boundary that keeps this from being misread as a general "live re-solve any
-model" capability. **Clarification of that boundary's nature (learned 2026-
-10-09, no new figure kind, no schema reorganization):** a user-provided
-third-party self-contained HTML (a full browser-side 2D explicit-FEM
-penetration simulator, 2191 lines, at `dev-notes/第三方数据/
-钢针侵彻仿真_V0.1_apfsds_fem_2d.html`) was studied line-by-line; it confirms
-that "only closed-form re-evaluation, not re-solving a heavy ODE/PDE" is a
-*scope/cost choice for this general drawing pipeline, not a hard browser-
-technical impossibility* — the mechanisms that would make a real-time heavy
-numerical re-solve work in a static single file (per-frame wall-clock
-substep budgeting, quality tiers with auto-coarsening, manual single-step +
-auto-run coexisting, WebGL-with-Canvas2D-fallback rendering, a cheap
-analytic model as an order-of-magnitude cross-check, rolling time-history
-charts) are documented in `dev-notes/self-tests/03/
-figures_interactive_test/reference_fem_realtime_simulation_notes.md` (also
-cross-referenced from `dev-notes/interactive_figure_design.md` §7 and
-`dev-notes/self-tests/03/charting_generic_architecture.md` §11).
-Three of those general interaction patterns WERE landed as bounded,
-backward-compatible, optional enhancements to `interactive_live` itself
-(each a new optional schema field, none touching the existing required
-fields or the JS sandbox boundary — no DOM/fetch/eval/network added):
-`y_range_pin` (pin the y-axis range so `Plotly.restyle()` doesn't re-
-auto-range/jitter on every slider drag — the reference's colorbar
-range-smoothing idea, generalized to a fixed range since our curve is a
-1-D static re-draw, not a scrolling simulation frame); a visible
-tri-state status strip (idle / up-to-date / error + reason, replacing the
-previous "error-only, blank-otherwise" box — mirrors the reference's
-running/done/reason visibility, without changing the "never silently skip a
-broken piece of output" rule, just applying it to the healthy state too);
-and `verify_reference_js`/`verify_reference_value`/`verify_reference_label`
-(optional, an independently-derived reference value shown live next to the
-curve as a running deviation readout — the reference's "cheap analytic
-model as order-of-magnitude cross-check" pattern, generalized to our
-closed-form case, upgrading the numeric sanity check from a build-time-only
-diff to something a report reader can see on-screen; when `verify_reference_js`
-is given it is subject to the same narrow sandbox as `js_function_body`).
-See `make_report_figures.py`'s `_render_interactive_live()` docstring and
-the `dev-notes/self-tests/03/figures_interactive_test/` demo scripts
-(`build_sasando_interactive_live.py` for the unchanged base behavior,
-`build_sasando_interactive_live_enhanced.py` + `check_enhanced_frag.cjs`
-for the new optional fields exercised and verified) for the exact code and
-verification. **What was NOT done**: the specific FEM simulator itself
-(its solver, material library, erosion/contact/hourglass code) was not
-ported into `make_report_figures.py`, and its material constants were not
-adopted as project data — the file self-disclaims "engineering-approximation
-values, not for ballistic verification"; see the reference note's §2 for
-the full rationale. If a future problem genuinely needs a real-time heavy
-numerical re-solve, the documented next step is to stand up a
-*separately-scope-and-reviewed* heavy figure branch (like the reference
-file's shape) — not to cram a heavy specialized solver into this pipeline.

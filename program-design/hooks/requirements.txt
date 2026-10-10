@@ -1,10 +1,11 @@
 # Dependencies for program-design hooks
 # All hooks are standalone scripts; no changes to the AGH host repository.
 
-sympy>=1.12
-pint>=0.22
-numpy>=1.26
-scipy>=1.11
+# --- 核心数值计算栈（所有物理题通用） ---
+sympy>=1.12   # 用途：拉格朗日方程/哈密顿方程的符号推导（sympy.physics.mechanics）；当前无 hook 直接 import，按需使用
+pint>=0.22     # 用途：dimensional_gate.py 量纲门禁的底层单位系统
+numpy>=1.26    # 用途：各 hook 的数组运算、fft、ndimage、random（Monte Carlo）
+scipy>=1.11    # 用途：solve_ivp（ODE 数值积分）、optimize.curve_fit/minimize（参数拟合/优化）、signal（傅里叶/滤波）、integrate.odeint
 # Node 2.7 (optional charting step, make_report_figures.py) — rendering backend only;
 # the physics/numerical results it plots come from numerical_artifacts, already
 # produced by Node 2b, so this dependency never does physics, just faithful
@@ -47,3 +48,8 @@ seaborn>=0.13
 # actually execute them, per data-source-routing.md Step 2 (Level 0).
 ambiance>=1.3
 pymsis>=0.13
+# --- 按需引入（当前无 hook import，等出对应领域题目时装） ---
+# poliastro：天体力学轨道动力学（开普勒轨道传播、引力助推计算、拉格朗日平衡点求解）；
+# 不预装，等真正出轨道力学题时再 `pip install poliastro`，避免引入不必要的依赖。
+# statsmodels：异速标度等幂律拟合的双对数坐标线性回归与残差检验；
+# 不预装，等出生物物理/标度律题时再 `pip install statsmodels`。
