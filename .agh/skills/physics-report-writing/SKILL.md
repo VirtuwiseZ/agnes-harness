@@ -1,0 +1,12 @@
+---
+name: physics-report-writing
+description: 每个 pipeline 节点（Node 1/1.5/2a/2b）结束时都要增量追加一段写给用户的 markdown 汇报；Node 3 收尾阶段把所有增量段整合成完整研究汇报。触发信号是"该写/该更新这次分析的用户可见汇报了"，不是建模/求解本身。
+---
+
+> **占位说明**：本 skill 的具体做法（section 顺序约定、3 条写作风格约束）跟③第 1 点"report_structure_guide.md 补 3 条新约束"是同一批要改的内容，本份当前只做范围划分+触发时机说明，具体写法细节等③第 1 点定稿后回填替换本段，不提前写死。
+
+**当前范围（不占位、已稳定）**：Node 3（Research Report, incremental）这一段的职责划分——"什么时候该追加汇报、追加什么、怎么在收尾时整合"——这个是稳定的协议级划分，不受③第 1 点影响，下面照搬原文，不改动。
+
+**Node 3 原文（不占位，逐字照搬）**：
+
+5. **Node 3 (Research Report, incremental)**: From the very first analysis node, and at the end of *each* node (1 / 1.5 / 2a / 2b, not just once at the very end), append a short markdown section — written **for the user, not for the developer log** — to the task's own report draft file `program-design/runtime/report_<task-slug>.md` (created on first append; path is stable for the whole task, one file per task, never mixed with a different task's draft). Each section must answer, in the user's language: what was done at this step, what evidence/assumption it relied on, what error or fallback happened and how it was corrected or routed back to an earlier assumption, and how this step's result compares against the model built so far. This file is the **primary narrative source** for Node 4 (the HTML render) — not the raw trace log — so it must be written *as the work happens*, not reconstructed from memory at the very end (by which point an earlier node's reasoning detail may no longer be in active context). The final Node 3 pass (after Node 2b) integrates all prior appended sections into a coherent concluding section (final answer, sanity check of why the conclusion is or is not reasonable, what would need to change for it to be wrong) without deleting the earlier incremental sections. **When organizing the final integrated report's section order (abstract / introduction / assumptions / modelling / verification / results / strengths-weaknesses / discussion), refer to `program-design/knowledge/report_structure_guide.md` for the standard ordering convention and the three style rules (conclusion-first framing per section, assumptions grouped and numbered in a dedicated section, verification data source must be independent of the modelling data source). That document is a methodology-level structural guide distilled from published competition reference solutions; it is NOT an answer source — §5's reference-answer containment rule applies in full: no value, formula, or conclusion in this task's report may be copied from `dev-notes/reference-solutions/`.
