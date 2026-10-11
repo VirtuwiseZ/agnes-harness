@@ -39,3 +39,31 @@ docs/task-records/
 # Python bytecode caches from running the program-design hooks/tests.
 __pycache__/
 *.pyc
+
+# 10/11 未跟踪文件处置（_untracked_triage.md）：B 区保留在磁盘/ignore 进 git + C 区定论忽略项
+dev-notes/self-tests/02/viz_from_pipe_capture.html
+dev-notes/self-tests/02/viz_full_report_space_diving.html
+dev-notes/self-tests/02/viz_via_formal_trace_capture.html
+dev-notes/self-tests/03/figures_2025A_sasando/
+dev-notes/self-tests/03/figures_2025B_artillery/
+dev-notes/self-tests/03/figures_edge_cases/
+dev-notes/self-tests/03/figures_synthetic_test/
+dev-notes/self-tests/03/regression_2025A_sasando.html
+dev-notes/self-tests/03/regression_2025B_artillery.html
+dev-notes/self-tests/03/regression_no_figures_dir.html
+dev-notes/self-tests/03/regression_with_figures_dir.html
+dev-notes/self-tests/03/research_report_2025A_sasando.html
+dev-notes/self-tests/03/research_report_2025B_artillery.html
+dev-notes/self-tests/03/problem_state_2025A_sasando.json
+dev-notes/self-tests/03/problem_state_2025A_sasando_nobom.json
+dev-notes/self-tests/03/problem_state_2025B_artillery.json
+dev-notes/self-tests/03/problem_state_2025B_artillery_nobom.json
+dev-notes/self-tests/03/figures_interactive_test/
+dev-notes/self-tests/03/测试3-1trace/
+dev-notes/self-tests/03/测试3-2trace/
+dev-notes/self-tests/04/
+dev-notes/self-tests/05/
+dev-notes/mineru-reference/
+dev-notes/reference-solutions/例题/2025AB/mineru_output/
+# 10/11 补充：正式文档引用的参考样例 HTML，保留磁盘不进历史（同 B 区处理方式）
+dev-notes/第三方数据/钢针侵彻仿真_V0.1_apfsds_fem_2d.html
