@@ -25,14 +25,25 @@
 1. **确认 `python313._pth` 里 `#import site` 的 `#` 已经去掉**（仓库自带这一份默认就是改好的，
    如果手动重建过、或者怀疑被谁动过，打开看一眼，没改就手动去掉）。
 
-2. **如果 `python/Lib/site-packages/` 里还没有那些第三方包**（比如新 clone 的仓库，目录结构在但没跑过烘焙），
-   一次性装好（离线，不需要联网）：
+2. **先跑一条冒烟检测，判断要不要装第三方包（不要跳过这一步直接装）**：
+   ```
+   program-design\third_party\portable-runtime\python\python.exe -c "import sympy, pint, numpy, scipy, matplotlib, plotly; print('site-packages-ok')"
+   ```
+   - 打出 `site-packages-ok`：说明 `python/Lib/site-packages/` 里需要的包已经全部就绪（正常 clone
+     仓库后就会是这个状态，因为 site-packages 本身是随仓库提交进来的，**不需要再执行下面第 3 步**，
+     直接跳到第 4 步"跑 hook 脚本"即可）。
+   - 报 `ModuleNotFoundError`（缺哪个模块就报哪个）：才需要执行下面第 3 步的离线安装。
+   这条检测命令就是"有没有完整环境"的客观判据——不要凭"我没印象装没装过"去主观判断要不要
+   跑安装步骤，以这条命令的输出为准。
+
+3. **仅当第 2 步检测报缺失**，才一次性装好（离线，不需要联网；如果第 2 步已经 `site-packages-ok`，
+   不要执行这一步）：
    ```
    program-design\third_party\portable-runtime\python\python.exe -m pip install --no-deps --target program-design\third_party\portable-runtime\python\Lib\site-packages <wheels 目录下每个 .whl 文件的完整路径，逐个列出，不要用 *.whl 通配符——Windows 下通配符在这个参数位置不会展开>
    ```
    （`--no-deps` 是因为 `LOCKED_VERSIONS.txt` 已经把依赖关系全部展开成扁平清单了，不需要 pip 再去解析一遍依赖树。）
 
-3. **以后跑本项目的 hook 脚本，都用便携 Python 解释器**（不依赖系统装没装 Python，也不受 Windows 商店
+4. **以后跑本项目的 hook 脚本，都用便携 Python 解释器**（不依赖系统装没装 Python，也不受 Windows 商店
    占位符 `python.exe` 干扰）：
    ```
    program-design\third_party\portable-runtime\python\python.exe program-design\hooks\dimensional_gate.py ...
