@@ -4,6 +4,14 @@ Single source of truth for a physics-agent run. Every pipeline node reads
 this file at the start of its turn and writes its deltas back before
 handing off. No other file or chat context may be the authoritative copy.
 
+**Not a user-facing document (Q1 定论，10/12 备忘落地处)**：这份文件只作内部
+核对 AI 运行流程、调试数据追溯用，**不向用户展示、不作为报告/HTML 的正文或
+附件渲染内容**（历史上唯一把它直接渲染给用户点开看的入口——Node 4 的
+`verify_block`/`state_block`/`cross-check` UI——已随 ③第 2 条/Q4 定论删除，
+见 `dev-notes/网页重新设计1011-共识.md` ③第 2/4 条末尾的【本轮…定稿】执行
+记录）。后续任何往报告/HTML 里加"可点开看 problem_state.json 原始字段"这类
+新入口的需求，都要先回来确认这条定位有没有被这次需求推翻，不默认沿用。
+
 ## Top-level fields
 
 | Field | Type | Meaning |
@@ -18,7 +26,7 @@ handing off. No other file or chat context may be the authoritative copy.
 | `data_source_decision` | object | Node 1.5 output: chosen external data source + access method + verification baseline + rationale + availability check |
 | `internal_prior` | object \| null | Node 1a's private, free-form "what do I think the answer is and why" sketch — written ONCE at Node 1a, never shown to the user, never cited in the report; its only permitted later use is a conscious divergence-check against Node 2b's verified result (see SKILL.md §2 Node 1a for the two hard rules). Exists so the sketch can never be silently read back as a settled, gate-verified number. |
 | `numerical_artifacts` | object | Keyed store of computed numbers / ODE solutions, each tagged with an `artifact_id` (from `audit_log.py`). Sub-key `figures` (optional, see `problem_state_schema.md` §Figures below): problem-agnostic data blocks for the optional charting node (SKILL Node 2.7), consumed by `make_report_figures.py` (spec in `dev-notes/self-tests/03/charting_generic_architecture.md` §3, implemented in `physics-agent/hooks/make_report_figures.py`) to produce the image files Node 4 inlines via `--figures-dir`. |
-| `audit_logs` | array | Append-only audit records (see `audit_log.py`); only `audit_log.append_record` may mutate this |
+| `audit_logs` | array | Append-only audit records (see `audit_log.py`); only `audit_log.append_record` may mutate this. Every record carries the 4 core keys (`timestamp`/`source`/`args`/`artifact_id`); records logging an actual *script execution* additionally carry up to 6 A4 keys (③第 4 条, 10/12): `script_path`/`stdin_or_argv`/`stdout_tail`/`stderr`/`exit_code`/`iteration_index` — passed via `append_record(..., extras={...})`, not baked into the function signature, so non-script audit events (data-source decisions, gate verdicts) simply omit them; the full-text stdout/stderr also land in a per-run asset file (③第 4 条 4c, `physics-agent/runtime/<task-slug>/runlogs/<artifact_id>.txt`), not inlined into the HTML body (Q3 定论) |
 | `anomalies` | array | Log of failures / boundary violations / annealing triggers encountered this run |
 | `verification` | object | Empirical benchmark comparison result (model vs. real data, e.g. Baumgartner) with quantified error |
 | `report` | object | Node 3 output: conclusion text + `traceability` map (claim -> `artifact_id`). The full incremental markdown research report is a separate file on disk: `physics-agent/runtime/report_<task-slug>.md` — the schema's `report` field holds only the conclusion + traceability index; the narrative itself lives in that file, which Node 4 consumes directly. |

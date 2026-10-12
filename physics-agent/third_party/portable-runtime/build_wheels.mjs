@@ -1,9 +1,9 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 // 从本机（开发机/已装好 Python 环境的那台）烘焙 wheel 文件到
-// program-design/third_party/portable-runtime/wheels/，
+// physics-agent/third_party/portable-runtime/wheels/，
 // 供便携运行时离线安装使用。本机需要装好 Python 3.13.9 + pip。
 // 用法（从仓库根目录）：
-//   node program-design/third_party/portable-runtime/build_wheels.mjs
+//   node physics-agent/third_party/portable-runtime/build_wheels.mjs
 // 版本号以 wheels/LOCKED_VERSIONS.txt 为唯一事实来源，改版本只改那里。
 'use strict';
 import { execSync } from 'node:child_process';
@@ -40,7 +40,7 @@ execSync(`python -m pip download ${Object.entries(Pinned).map(([n, v]) => `${n}=
 console.log('烘焙完成，wheel 文件在：', target);
 console.log('下一步（embeddable 包本体）：');
 console.log('  ① 下载 https://www.python.org/ftp/python/3.13.9/python-3.13.9-embed-amd64.zip');
-console.log('     解压到 program-design/third_party/portable-runtime/python/');
+console.log('     解压到 physics-agent/third_party/portable-runtime/python/');
 console.log('  ② 打开该目录下 python313._pth，把 "#import site" 的 # 去掉（注意是小写、无空格）');
 console.log('  ③ 下载 https://bootstrap.pypa.io/get-pip.py 放到便携 python 目录旁，');
 console.log('     跑 python/python.exe get-pip.py --target python/Lib/site-packages 装好 pip');

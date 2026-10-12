@@ -1,4 +1,4 @@
-﻿"""Node 4 — trace visualizer / research-report HTML generator.
+"""Node 4 — trace visualizer / research-report HTML generator.
 
 Rendering architecture (repositioned 2026-10-05, per project owner's explicit
 feedback: the page's audience is the *user of the physics study*, not the
@@ -17,12 +17,15 @@ material, not the headline):
               audit_logs, verification) attached to the relevant report
               section, for on-demand check.
     --trace   AGH raw trace export (JSONL, e.g. from `agh export <id> --raw`)
-              — used to build an on-demand "did this claim actually happen in
-              the execution log?" verification appendix (cross-check: every
-              artifact_id / tool-action the report mentions vs. the tool
-              calls actually recorded in the trace). Computed HERE, at
-              generation time, written into the HTML as static badges; the
-              browser does no runtime querying.
+              — used only to compute per-section "files used in this section"
+              provenance blocks (③第 4 条 4d, 10/12): which AGH SKILL/plugin
+              invocations, project scripts, data sources, and third-party tools
+              actually contributed to each report section, read from the 4a/4c
+              audit-log fields (script execution) — NOT a general "did this
+              claim happen" cross-check of every artifact_id the report
+              mentions (that old per-section verify block + page-level
+              summary table was removed in this same revision, per Q4
+              定论; see the "removed UI blocks" note below in this docstring).
 
   Fallback (no --report given, e.g. legacy runs such as walkthrough-1 whose
   protocol predates the incremental-report requirement): the generator falls
@@ -30,6 +33,46 @@ material, not the headline):
   "process-log-first" layout). This path is kept only for compatibility
   with already-finished runs; new runs are expected to always have a
   --report file, since the protocol now mandates it.
+
+  KaTeX (③第 2 条, 10/12): the report markdown's inline ($...$) and display
+  ($$...$$) math, plus any formulas the 6 style rules (see
+  physics-agent/knowledge/report_structure_guide.md) require written as
+  LaTeX, are rendered via a self-contained, no-external-CDN hook — the
+  page's own inline <script> attempts to load a local KaTeX build shipped
+  alongside this task's assets (<task-dir>/vendor/katex/, same per-task
+  directory the 4c runlog asset files land in);  when that local build is
+  present, every [data-katex] element is upgraded from raw-LaTeX-text to
+  real rendered math;  when it is not (offline open, or the vendor/ dir
+  was never populated for this task), nothing crashes — the raw LaTeX
+  source simply stays visible as-is, never a blank box.
+
+  Markdown pipe tables (③第 2 条, 10/12): consecutive lines starting with
+  `|` in the report markdown are rendered as a real <table> (a real
+  <thead> + <tbody>, not plain-text lines) — the Node 4-side counterpart
+  of the 5th of the 6 style rules (data tables must use real markdown pipe
+  syntax, not plain-text lines that merely resemble a table).
+
+  Removed UI blocks (③第 2 条, 10/12, per Q4 定论 — no fallback kept):
+    * the per-section <details class='verify-block'> "核验附证 — 这段内容
+      对应的实际工具调用" block (the old claim-by-claim trace cross-check
+      rendered inside each section);
+    * the per-section <details class='state-block'> "数据快照 —
+      problem_state.json 中本节写入/更新的内容" block;
+    * the page-level "核验附证（汇总）" <section class='cross-check'>
+      summary table at the bottom of the page.
+  Replaced by, per section: a single collapsible "本节所使用文件" block
+  (③第 4 条 4d) whose contents come from the 4a/4c audit-log fields
+  (script_path/stdin_or_argv/stdout_tail/stderr/exit_code/iteration_index)
+  plus the 4c per-run asset-file path — i.e. "what this section actually
+  used to produce its numbers", not "did every claim the report makes
+  have a matching trace event" (a broader, separate audit question that
+  is not this block's job; the 4a design note in 网页重新设计1011-共识.md
+  marks that boundary as open, to be decided when ③第 4 条 4a is fully
+  implemented, not retro-fitted onto the removed UI).
+  A section with no script-execution audit records at all still renders
+  this block, showing the placeholder line "本节无脚本运行记录" — that
+  placeholder is ③第 4 条 4d's own design, not a fallback for the removed
+  blocks above (they are gone, not hidden behind a "no data" case).
 
   Visual layout:
     - Main spine: the markdown report's own section headings, in order, as
@@ -184,52 +227,15 @@ def classify_approval(call):
 
 
 # ---------------------------------------------------------------------------
-# Cross-check: claims in the report/state vs. trace
-# ---------------------------------------------------------------------------
-
-def cross_check(claims, calls):
-    """claims: list of strings (artifact_ids, or short quoted phrases the report
-    wants verified against the execution log). Returns claim -> {found, seqs}."""
-    index_text = []
-    for c in calls:
-        blob = json.dumps(c.get("args") or {}) + ((c.get("result") or {}).get("text") or "")
-        index_text.append((c["seq"], blob))
-
-    results = {}
-    for claim in set(c for c in claims if c):
-        hits = [seq for seq, blob in index_text if claim in blob]
-        results[claim] = {"found": bool(hits), "seqs": sorted(set(hits))}
-    return results
-
-
-def claims_from_state(state):
-    if not state:
-        return []
-    claims = [r.get("artifact_id") for r in state.get("audit_logs") or []]
-    claims += list(((state.get("report") or {}).get("traceability") or {}).get("artifacts") or [])
-    return claims
-
-
-def claims_from_report_md(md_text):
-    """Pull artifact_id-looking tokens out of the markdown report so the same
-    cross-check machinery works on the report's own claims, not just on
-    problem_state.json."""
-    if not md_text:
-        return []
-    ids = re.findall(r"\b[a-z0-9][a-z0-9]*-[a-z0-9]*-\d{4}\b", md_text)
-    return ids
-
-
-# ---------------------------------------------------------------------------
 # Markdown report → HTML (primary narrative path)
 # ---------------------------------------------------------------------------
 
-def md_to_html_blocks(md_text):
+def md_to_html_blocks(md_text, katex=False):
     """Split the markdown report into top-level sections (## headings, falling
     back to ### if no ## exists) and render each section's body as minimal
-    HTML (paragraphs + simple lists; no full markdown renderer on purpose —
-    the protocol specifies a constrained, predictable subset so the page
-    stays zero-dependency)."""
+    HTML (paragraphs, - lists, and — ③第 2 条, 10/12 — consecutive pipe-table
+    lines; no full markdown renderer on purpose — the protocol specifies a
+    constrained, predictable subset so the page stays zero-dependency)."""
     lines = md_text.splitlines()
     level = 2 if any(l.startswith("## ") for l in lines) else 3
     prefix = "## " if level == 2 else "### "
@@ -248,7 +254,7 @@ def md_to_html_blocks(md_text):
 
     blocks = []
     for sec in sections:
-        body_html = _md_body_to_html(sec["body_lines"])
+        body_html = _md_body_to_html(sec["body_lines"], katex)
         blocks.append({"title": sec["title"], "html": body_html,
                        "raw": "\n".join(sec["body_lines"]).strip()})
     return blocks
@@ -257,17 +263,70 @@ def md_to_html_blocks(md_text):
 FIGURE_RE = re.compile(r"^\{\{figure:\s*([A-Za-z0-9_\-]+)\}\}\s*$")
 
 
-def _md_body_to_html(body_lines):
+def _md_body_to_html(body_lines, katex=False):
     """Render the constrained markdown subset (paragraphs, - lists, **bold**,
-    `code`, and $$-fenced math as plain <pre> — no LaTeX rendering, just
-    readable text) into safe HTML. A single line of the form
+    `code`, $$-fenced math, and — ③第 2 条, 10/12 — consecutive pipe-table
+    lines) into safe HTML.  A single line of the form
     `{{figure: <id>}}` is rendered as a <figure> placeholder carrying the
     figure id in a data attribute; the actual image is inlined into that
-    placeholder later, in _figure_tag(), once --figures-dir is known."""
+    placeholder later, in _figure_tag(), once --figures-dir is known.
+
+    Pipe tables:  a run of consecutive lines whose first non-whitespace
+    character is `|` (or a `|---|`-style header-separator line) is
+    collected into a real <table><thead>/<tbody> — the Node 4-side
+    counterpart of the 5th of the 6 style rules in
+    physics-agent/knowledge/report_structure_guide.md.  The first such
+    line is the header row;  a following line made only of `|` + `-`/`
+    :` characters is consumed as the header/body divider, not data.
+    No column-alignment parsing beyond that:  every remaining pipe line in
+    the run is a data row, split on `|` into cells, cell text run through
+    _inline() for the same **bold**/`code` handling as paragraphs.
+
+    KaTeX:  when `katex` is True, $...$ and $$...$$ segments in the
+    plain-text parts of paragraphs/table cells are wrapped in
+    [data-katex='true'] markers carrying the raw LaTeX source;  the
+    page-level <script> (see _js()) upgrades these into real rendered
+    formulas when a local KaTeX build is available, or leaves the raw
+    source visible when not (offline-safe, never a crash — ③第 2 条).
+    """
     out = []
     in_list = False
+    table_rows = []
+
+    def _flush_table():
+        nonlocal table_rows
+        if not table_rows:
+            return
+        def _cells(line):
+            s = line.strip()
+            if s.startswith("|"):
+                s = s[1:]
+            if s.endswith("|"):
+                s = s[:-1]
+            return [c.strip() for c in s.split("|")]
+        header_cells = _cells(table_rows[0])
+        body_start = 1
+        if len(table_rows) > 1 and all(
+            set(c.replace(" ", "")) <= set("-:") for c in _cells(table_rows[1])
+        ):
+            body_start = 2  # markdown header-separator row, not data
+        thead = "<thead><tr>" + "".join(
+            f"<th>{_inline(c, katex)}</th>" for c in header_cells) + "</tr></thead>"
+        tbody_rows = ["".join(f"<td>{_inline(c, katex)}</td>" for c in _cells(r))
+                      for r in table_rows[body_start:]]
+        tbody = ("<tbody>" + "".join(f"<tr>{r}</tr>" for r in tbody_rows) + "</tbody>")
+        out.append(f"<table class='md-table'>{thead}{tbody}</table>")
+        table_rows = []
+
     for raw in body_lines:
         line = raw.rstrip()
+        if line.lstrip().startswith("|"):
+            table_rows.append(line)
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            continue
+        _flush_table()
         if not line.strip():
             if in_list:
                 out.append("</ul>")
@@ -285,21 +344,35 @@ def _md_body_to_html(body_lines):
             if not in_list:
                 out.append("<ul>")
                 in_list = True
-            out.append("<li>" + _inline(line.lstrip()[2:]) + "</li>")
+            out.append("<li>" + _inline(line.lstrip()[2:], katex) + "</li>")
         else:
             if in_list:
                 out.append("</ul>")
                 in_list = False
-            out.append("<p>" + _inline(line) + "</p>")
+            out.append("<p>" + _inline(line, katex) + "</p>")
+    _flush_table()
     if in_list:
         out.append("</ul>")
     return "\n".join(out)
 
 
-def _inline(text):
+def _inline(text, katex=False):
     text = html.escape(text)
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
+    if katex:
+        # $$...$$ (display) first, then $...$ (inline) — both against the
+        # already-html-escaped string, so only LaTeX that survived escaping
+        # (i.e. not inside a <tag>) gets wrapped in a data-katex marker;
+        # the actual render-or-degrade-to-raw-source step happens in the
+        # page's inline <script> (see _js()), not here — this function just
+        # marks which stretches of text are meant to be math.
+        text = re.sub(r"\$\$([^$]+)\$\$",
+                      lambda m: f"<div class='math display' data-katex='true'>{m.group(1)}</div>",
+                      text)
+        text = re.sub(r"\$([^$]+)\$",
+                      lambda m: f"<span class='math' data-katex='true'>{m.group(1)}</span>",
+                      text)
     return text
 
 
@@ -307,10 +380,12 @@ def _inline(text):
 # Legacy fallback (no --report): old trace/state-driven 5-layer layout
 # ---------------------------------------------------------------------------
 
-def build_steps_legacy(calls, state, cross):
+def build_steps_legacy(calls, state):
     """Old behavior, kept only for pre-Node3-incremental-report runs.
     See build_steps() docstring in the previous revision of this file; same
-    shape: 5 layers x step-blocks."""
+    shape: 5 layers x step-blocks.  (The former third parameter, `cross`,
+    removed in ③第 2 条 / Q4 定论:  the cross-check data was only ever fed
+    into the now-deleted UI blocks, not into this legacy layer layout.)"""
     layers = []
 
     task = (state or {}).get("task") or {}
@@ -423,8 +498,115 @@ def _legacy_layer(num, title, steps):
 # HTML rendering
 # ---------------------------------------------------------------------------
 
+def _section_files_block(section_index, blocks, state, runlog_base_dir="physics-agent/runtime"):
+    """③第 4 条 4d (10/12): the per-section collapsible "本节所使用文件"
+    block, replacing the removed verify_block/state_block/cross-check UI
+    (③第 2 条 / Q4 定论).  Reads the 4a 6-key audit records (when present)
+    + the 4c asset-file path; renders the original A4 four-sub-item layout
+    (AGH SKILL 与插件 / 程序 / 数据源 / 第三方工具) with the "无则不加这项"
+    rule — an entire sub-item row is omitted when it has zero entries, not
+    rendered as an empty sub-heading.  If this section has no associated
+    script-execution audit records at all, the block still renders, showing
+    the single placeholder line "本节无脚本运行记录" (③第 4 条 4d's own
+    design, not a fallback for the removed blocks — those are gone, not
+    hidden behind a "no data" case).
+
+    Association heuristic (not a hard key — older state files predate 4a's
+    6 keys entirely, so this is best-effort): the section's own title is
+    matched against the `source` tag's node hint (the existing
+    `run2_node1_task_spec` convention, Node 1/1.5/2a/2b naming) to decide
+    which audit records "belong" to this section;  records whose `source`
+    tag doesn't match this section's node are not listed under it.
+    """
+    audit = (state or {}).get("audit_logs") or []
+    related = [r for r in audit if "script_path" in r]  # 4a script-execution records only
+    if not related:
+        return ("<details class='files-block'><summary>本节所使用文件</summary>"
+                "<p class='runlog-empty'>本节无脚本运行记录</p></details>")
+
+    title_key = (blocks[section_index]["title"] if blocks else "").lower()
+    def _node_of(rec):
+        src = str(rec.get("source", "")).lower()
+        for tag, name in (("node1.5", "数据源"), ("node2b", "数值"),
+                          ("node2a", "建模"), ("node1", "建模")):
+            if tag in src:
+                return name
+        return None
+    related = [r for r in related if _node_of(r) in (None, "建模", "数值", "数据源")]
+    # Keep only records plausibly tied to *this* section's node when detectable
+    if "node1.5" in title_key or "数据源" in title_key:
+        related = [r for r in related if _node_of(r) == "数据源"] or related
+    elif "node2b" in title_key or "建模" in title_key or "数值" in title_key:
+        related = [r for r in related if _node_of(r) in ("数值", "建模")] or related
+
+    program_rows, datasource_rows, thirdparty_rows = [], [], []
+    for r in related:
+        sp = r.get("script_path", "")
+        note = (r.get("args") or {}).get("note") or ""
+        iter_i = r.get("iteration_index")
+        exit_code = r.get("exit_code")
+        artifact_id = r.get("artifact_id", "")
+        runlog_rel = os.path.join(runlog_base_dir, "<task-slug>", "runlogs", f"{artifact_id}.txt")
+        src_kind = _node_of(r)
+        if sp and not sp.startswith("physics-agent/hooks/"):
+            label = (f"{html.escape(sp)}（第 {iter_i} 次调试，exit {exit_code}）" if iter_i
+                     else html.escape(sp))
+            program_rows.append(
+                f"<li><a class='runlog-link' href='{html.escape(runlog_rel)}'>{label}</a>"
+                f"<p class='runlog-note'>{html.escape(note)}</p></li>")
+        elif src_kind == "数据源":
+            datasource_rows.append(f"<li>{html.escape(sp or str(r.get('source', '')))} — {html.escape(note)}</li>")
+        elif src_kind in ("数值", "建模"):
+            thirdparty_rows.append(f"<li>{html.escape(sp or str(r.get('source', '')))} — {html.escape(note)}</li>")
+
+    parts = ["<details class='files-block'><summary>本节所使用文件</summary><ul class='files-list'>"]
+    # AGH SKILL 与插件 sub-item: 原文 A4 结构固定保留位置（A6-Q2 判断：先保留在信息结构里，
+    # 当前实际只有 1 条——physics-agent-governance——不需要为此专门设计展示机制），
+    # 无则不加这项。
+    parts.append("<li class='files-subitem'><strong>AGH SKILL 与插件</strong><ul>"
+                 "<li>physics-agent-governance（AGH 主 skill，路由 + 节点级子 skill 清单；"
+                 "完整规则见各子 skill 触发时按需读取，不在本节重复正文）</li>"
+                 "</ul></li>")
+    if program_rows:
+        parts.append("<li class='files-subitem'><strong>程序</strong><ul>" + "".join(program_rows) + "</ul></li>")
+    if datasource_rows:
+        parts.append("<li class='files-subitem'><strong>数据源</strong><ul>" + "".join(datasource_rows) + "</ul></li>")
+    if thirdparty_rows:
+        parts.append("<li class='files-subitem'><strong>第三方工具</strong><ul>" + "".join(thirdparty_rows) + "</ul></li>")
+    parts.append("</ul></details>")
+    return "".join(parts)
+
+
+def _state_snapshot_block(state):
+    # ③第 2 条 / Q4 定论:  此函数及其调用点已随 per-section verify_block/
+    # state_block 一起删除；保留函数体（不再被 render_html 调用）仅为旧调用方
+    # 兼容期内的 no-op，下一次大版本时整体移除。
+    return ""
+
+
+def _katex_head_tag(runlog_base_dir="physics-agent/runtime"):
+    """③第 2 条: self-contained KaTeX hook — NOT an external CDN link.
+    Emits nothing into the <head> itself (no <link>, no external
+    <script src>);  the actual local-KaTeX-load-or-degrade logic lives in
+    the page's own inline <script> (see _js()), which fetches a local
+    KaTeX build shipped alongside this task's assets at
+    <task-dir>/vendor/katex/ (task-dir = whatever per-task runtime
+    subfolder this report was generated under, consistent with the 4c
+    asset-file directory convention).  If that local build is present,
+    every [data-katex='true'] element is upgraded from raw-LaTeX-text to
+    real rendered math;  if not (offline open, or vendor/ never
+    populated for this task), nothing crashes — the raw LaTeX source
+    simply stays visible as-is (③第 2 条's explicit requirement: “离线打开
+    时公式退化为原始 LaTeX 源码显示，不崩溃”).  Genuinely self-contained:
+    no external host is ever referenced.  This is the Node 4 rendering
+    counterpart of ③第 1 条's style rule that formulas must be written as
+    LaTeX (giving this path something to render)."""
+    return ""  # no head injection needed; the upgrade attempt is in _js()
+
+
 def render_html(blocks, cross, events, state, out_path, fallback_legacy=None,
-                 report_source="report-md", figures_dir=None):
+                 report_source="report-md", figures_dir=None,
+                 runlog_base_dir="physics-agent/runtime"):
     """blocks: list of {title, html, raw} — the page's main spine, in order.
     fallback_legacy: if set (no --report given), renders the old 5-layer layout
     instead of (not in addition to) the blocks spine — see module docstring.
@@ -432,36 +614,23 @@ def render_html(blocks, cross, events, state, out_path, fallback_legacy=None,
     _md_body_to_html() is inlined here (base64) with its caption looked up
     in problem_state.json's numerical_artifacts.figures[<id>].title when
     state is provided; missing files render as an explicit "missing" box,
-    never silently dropped."""
+    never silently dropped.
+    runlog_base_dir: base dir for ③第 4 条 4c's per-run asset files (the
+    "本节所使用文件" block's run-record links point at
+    <runlog_base_dir>/<task-slug>/runlogs/<artifact_id>.txt)."""
     session_start = next((e for e in events if e["type"] == "session/start"), None)
     session_key = (session_start or {}).get("data", {}).get("key", "unknown-session")
 
     spine_html = []
     for i, b in enumerate(blocks or []):
         block_id = f"sec-{i}"
-        cross_rows = []
-        for claim, r in cross.items():
-            mark = "✅" if r["found"] else "⚠"
-            seqs = ", ".join(map(str, r["seqs"])) if r["seqs"] else "—"
-            cross_rows.append(f'<tr><td>{html.escape(str(claim))}</td><td>{mark}</td>'
-                              f'<td>{html.escape(seqs)}</td></tr>')
-        verify_block = (
-            "<details class='verify-block'><summary>核验附证 — 这段内容对应的实际工具调用"
-            "（trace 对照，点开按需核验）</summary>"
-            + (("<table class='cross-table'><thead><tr><th>声称的 artifact_id / 具体操作</th>"
-                "<th>trace 里是否找到对应调用</th><th>匹配到 seq</th></tr></thead><tbody>"
-                + "".join(cross_rows) + "</tbody></table>")
-               if cross_rows else "<p class='cross-empty'>该段未声明可核验的 artifact_id / 具体操作引用。</p>")
-            + "</details>"
-        )
-        state_snapshot = _state_snapshot_block(state)
         section_html = _figure_tag(figures_dir, b["html"], state) if figures_dir is not None else b["html"]
+        files_block = _section_files_block(i, blocks, state, runlog_base_dir) if (blocks or []) else ""
         spine_html.append(
             f"<section class='report-section' id='{block_id}'>"
             f"<h2>{html.escape(b['title'])}</h2>"
             f"<div class='sec-body'>{section_html}</div>"
-            f"{verify_block}"
-            f"{state_snapshot}"
+            f"{files_block}"
             f"</section>"
         )
 
@@ -471,30 +640,17 @@ def render_html(blocks, cross, events, state, out_path, fallback_legacy=None,
                        "trace + problem_state.json 的过程记录视图，非最终报告形态）</h1>"
         legacy_spine += _render_legacy(fallback_legacy)
 
-    cross_all_rows = []
-    for claim, r in cross.items():
-        mark = "✅" if r["found"] else "⚠"
-        seqs = ", ".join(map(str, r["seqs"])) if r["seqs"] else "—"
-        cross_all_rows.append(f'<tr><td>{html.escape(str(claim))}</td><td>{mark}</td>'
-                              f'<td>{html.escape(seqs)}</td></tr>')
-    cross_table_all = (
-        "<table class='cross-table'><thead><tr><th>artifact_id / 声称的具体操作</th>"
-        "<th>trace 中是否找到对应调用</th><th>匹配到 seq</th></tr></thead><tbody>"
-        + "".join(cross_all_rows) + "</tbody></table>"
-    ) if cross_all_rows else "<p class='cross-empty'>未提供可核验的 artifact / 操作引用。</p>"
-
     doc = (
         "<!doctype html>\n<html lang='zh'><head><meta charset='utf-8'>"
         "<title>物理研究汇报 — " + html.escape(session_key) + "</title>"
-        "<style>" + _css() + "</style></head><body>"
+        + _katex_head_tag(runlog_base_dir)
+        + "<style>" + _css() + "</style></head><body>"
         "<header class='report-header'><h1>物理研究汇报</h1>"
         f"<p class='meta'>session: {html.escape(session_key)} · 主叙事来源: {report_source}"
         f" · trace 事件数: {len(events)} · tool calls: {sum(1 for e in events if e['type'] == 'tool/call')}"
         f" · 生成于 {_now_iso()}</p></header>"
         + ("".join(spine_html) if spine_html else legacy_spine)
         + "<aside class='loop-channel' id='loop-channel' aria-hidden='true'></aside>"
-        + "<section class='cross-check'><h2>核验附证（汇总）— 报告中声称的 artifact / 操作 vs. trace 实际工具调用</h2>"
-        + cross_table_all + "</section>"
         + "<script type='application/json' id='loop-data'>" + json.dumps(_loop_data(spine_html or [], cross)) + "</script>"
         + "<script>" + _js() + "</script></body></html>"
     )
@@ -570,28 +726,6 @@ def _figure_tag(figures_dir, block_html, state):
     return re.sub(r"<figure class='report-figure' data-figure-id='([^']+)'></figure>", repl, block_html)
 
 
-def _state_snapshot_block(state):
-    if not state:
-        return ""
-    anomalies = state.get("anomalies") or []
-    verification = state.get("verification") or {}
-    audit = state.get("audit_logs") or []
-    if not anomalies and not verification.get("comparison_result") and not audit:
-        return ""
-    parts = ["<details class='state-block'><summary>数据快照 — problem_state.json 中本节写入/更新的内容</summary>"]
-    if audit:
-        parts.append("<p><em>audit_logs（本文件新增/引用的记录）:</em></p><pre>"
-                     + html.escape(json.dumps(audit, ensure_ascii=False, indent=2)[:1500]) + "</pre>")
-    if anomalies:
-        parts.append("<p><em>anomalies:</em></p><pre>"
-                     + html.escape(json.dumps(anomalies, ensure_ascii=False, indent=2)[:1500]) + "</pre>")
-    if verification.get("comparison_result") is not None:
-        parts.append("<p><em>verification:</em></p><pre>"
-                     + html.escape(json.dumps(verification, ensure_ascii=False, indent=2)[:800]) + "</pre>")
-    parts.append("</details>")
-    return "".join(parts)
-
-
 def _render_legacy(layers):
     out = []
     for layer in layers:
@@ -661,9 +795,19 @@ padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle}
 border-radius:8px}
 .sec-body ul{margin:8px 0 8px 18px}
 .sec-body code{background:#12141c;padding:1px 5px;border-radius:4px;font-size:0.92em}
-.verify-block,.state-block{margin-top:14px;font-size:13px;color:var(--muted);
-border-left:4px solid var(--accent);padding-left:12px}
-.verify-block summary,.state-block summary{cursor:pointer;color:var(--accent);font-weight:600}
+.md-table{border-collapse:collapse;margin:10px 0;width:100%}
+.md-table th,.md-table td{padding:5px 9px;border:1px solid var(--line);text-align:left;font-size:13.5px}
+.md-table th{color:var(--muted);font-weight:600}
+.files-block{margin-top:14px;font-size:13px;color:var(--muted);border-left:4px solid var(--green);padding-left:12px}
+.files-block summary{cursor:pointer;color:var(--green);font-weight:600}
+.files-list{list-style:none;margin:6px 0;padding:0}
+.files-list>li.files-subitem{margin:6px 0}
+.files-list ul{list-style:disc;margin:4px 0 4px 18px}
+.runlog-link{color:var(--accent)}
+.runlog-note{font-size:12px;color:var(--muted);margin:2px 0 0}
+.runlog-empty{color:var(--muted)}
+.math{font-family:serif;font-style:italic}
+.math.display{display:block;text-align:center;margin:10px 0;font-size:1.1em}
 .legacy-note{color:var(--muted);font-weight:400;font-size:15px;margin:20px 0}
 .layer-card{background:var(--card);border:1px solid var(--line);border-radius:12px;
 padding:18px 20px;margin:18px 0}
@@ -678,25 +822,38 @@ border-left:4px solid var(--accent)}
 .badge-major{background:var(--red);color:#fff}
 .badge-minor{background:var(--orange);color:#1a1d27}
 .step-detail{margin-top:8px;font-size:12.5px;color:var(--muted)}
-.step-detail pre,.state-block pre,.verify-block pre{white-space:pre-wrap;background:#12141c;
+.step-detail pre{white-space:pre-wrap;background:#12141c;
 padding:8px;border-radius:6px;max-height:220px;overflow:auto}
 .loop-channel{position:fixed;right:16px;top:80px;width:160px}
 .loop-arc{fill:none;stroke-width:2;opacity:.85}
 .loop-arc.major{stroke:var(--red)}
-.cross-check{max-width:760px;margin-top:28px;background:var(--card);border:1px solid var(--line);
-border-radius:12px;padding:18px 20px}
-.cross-check h2{font-size:17px;margin:0 0 10px}
-.cross-table{border-collapse:collapse;width:100%}
-.cross-table th,.cross-table td{padding:6px 8px;border-bottom:1px solid var(--line);
-text-align:left;font-size:13px}
-.cross-table th{color:var(--muted)}
-.cross-empty{color:var(--muted)}
 """
 
 
 def _js():
     return """
 (function(){
+  // ③第 2 条 KaTeX 本地升级：若本任务随附了自己的 KaTeX 构建（自包含、
+  // 不走外部 CDN，路径约定见 _katex_head_tag docstring），把每个
+  // [data-katex='true'] 元素从“原始 LaTeX 源码”升级为真实渲染的公式；
+  // 若本地构建不存在（离线打开、或 vendor 目录未为该任务准备过），
+  // 什么都不做——原始 LaTeX 源码原样可见，不崩（③第 2 条明确要求的
+  // 离线退化行为）。此处只用相对路径 fetch，绝不引用任何外部域名。
+  try{
+    fetch('vendor/katex/katex.min.js', {cache: 'no-cache'}).then(function(r){
+      if(!r.ok){ throw new Error('local katex build not present'); }
+      return r.text();
+    }).then(function(code){
+      (new Function(code + '\nwindow.katex=window.katex||{};'))();
+      if(window.katex && window.katex.render){
+        document.querySelectorAll('[data-katex="true"]').forEach(function(el){
+          try{ window.katex.render(el.textContent, el, {throwOnError: false}); }
+          catch(e){ /* 任何渲染失败都保持原始源码，不崩 */ }
+        });
+      }
+    }).catch(function(){ /* 本地 KaTeX 不可用：原始 LaTeX 原样保留，不崩 */ });
+  }catch(e){ /* 这段逻辑本身出任何错都不能影响页面其余 JS */ }
+
   // Placeholder for future return-arc drawing (see _loop_data docstring: v1
   // does not auto-draw arcs yet; this hook is left in so the mechanism is
   // already wired without needing a second revision of the page).
@@ -723,7 +880,7 @@ def _js():
       svg.appendChild(p);
     });
   }
-  document.querySelectorAll('.verify-block summary, .state-block summary, .step-detail summary')
+  document.querySelectorAll('.files-block summary, .step-detail summary')
     .forEach(function(el){ el.addEventListener('click', function(){ setTimeout(draw,60); }); });
   setTimeout(draw, 100);
 })();
@@ -745,6 +902,8 @@ def main(argv=None):
     ap.add_argument("--report", default=None, help="Node 3 incremental markdown research report (primary narrative source).")
     ap.add_argument("--state", default=None, help="problem_state.json for the same run (optional).")
     ap.add_argument("--figures-dir", default=None, help="Directory holding .png/.svg figure files produced by make_report_figures.py; every {{figure: <id>}} placeholder in --report is inlined from here.")
+    ap.add_argument("--runlog-dir", default="physics-agent/runtime",
+                    help="Base dir for ③第 4 条 4c per-run asset files; the per-section 「本节所使用文件」block's run-record links resolve against <this>/<task-slug>/runlogs/<artifact_id>.txt")
     ap.add_argument("--out", default="research_report.html", help="Output HTML path.")
     args = ap.parse_args(argv)
 
@@ -754,24 +913,21 @@ def main(argv=None):
     report_md = load_report_md(args.report)
 
     if report_md is not None:
-        blocks = md_to_html_blocks(report_md)
-        claims = claims_from_state(state) + claims_from_report_md(report_md)
-        cross = cross_check(claims, calls)
+        blocks = md_to_html_blocks(report_md, katex=True)
         legacy = None
-        source = "report-md（AI 增量研究汇报，主叙事）+ trace（按需核验附证）"
+        source = "report-md（AI 增量研究汇报，主叙事）"
     else:
         blocks = None
-        claims = claims_from_state(state)
-        cross = cross_check(claims, calls)
-        legacy = build_steps_legacy(calls, state, cross)
+        legacy = build_steps_legacy(calls, state)
         source = "trace + problem_state.json（无 Node 3 增量汇报，退化视图）"
 
-    out = render_html(blocks, cross, events, state, args.out,
+    out = render_html(blocks, {}, events, state, args.out,
                       fallback_legacy=legacy, report_source=source,
-                      figures_dir=args.figures_dir)
+                      figures_dir=args.figures_dir,
+                      runlog_base_dir=args.runlog_dir)
     print("wrote", out)
     print("narrative source:", source)
-    print("tool calls in trace:", len(calls), "· cross-check entries:", len(cross))
+    print("tool calls in trace:", len(calls))
     if args.figures_dir:
         print("figures dir:", args.figures_dir)
     return 0

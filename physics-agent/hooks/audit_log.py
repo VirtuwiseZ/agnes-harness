@@ -11,6 +11,33 @@ dimensional/boundary gate invocation) MUST leave a structured audit record:
 
     { "source": ..., "timestamp": ..., "args": ..., "artifact_id": ... }
 
+In addition, per consensus §A4 (③第 4 条, 10/12), every record written when a
+*script* is actually executed (a hook invocation, a solver run, a CLI tool call)
+must also carry these 6 keys, filled in at the moment of the call, not
+reconstructed later at Node 4 report time:
+
+    { "script_path": ..., "stdin_or_argv": ..., "stdout_tail": ...,
+      "stderr": ..., "exit_code": ..., "iteration_index": ... }
+
+- `script_path` — the relative path of the script file actually invoked (or
+  "inline" when the call is a one-shot command, not a named file).
+- `stdin_or_argv` — the verbatim command line / input, not a natural-language
+  summary of it.
+- `stdout_tail` / `stderr` — the captured output text (Q3 定论: the full text
+  also goes to the asset file `physics-agent/runtime/<task-slug>/runlogs/<artifact_id>.txt`
+  per ③第 4 条 4c; these two fields hold what an inline view can show without
+  duplicating that asset file's entire contents).
+- `exit_code` — the invoked process's actual exit status. Note: this is the
+  *outer* command's rc; if that outer command itself spawned a subprocess that
+  the platform force-stopped mid-run (#453's `stoppedProcesses` case, see the
+  ③第 4 条 4a pre-check note in 网页重新设计1011-共识.md), this field alone
+  does not capture that sub-process's own outcome — the concrete handling rule
+  for that boundary case is finalized when ③第 4 条 4a's implementation
+  decision is made, not assumed here.
+- `iteration_index` — which debugging attempt this call was (1 = first try,
+  2 = after first fix, ...), supporting the "iteration record" layer's
+  "第 1 次调试 / 第 2 次调试" hierarchy.
+
 This script is the *only* sanctioned way to write such records into
 `problem_state.json` — no other code path may mutate the file's
 `audit_logs` field. It exists so that:
@@ -115,6 +142,20 @@ def append_record(state_path: str, source: str, args: dict | None = None,
                   extras: dict | None = None) -> dict:
     """Append one audit record to `state_path`'s `audit_logs` array (creating
     the key if absent) and return the record plus its artifact_id.
+
+    `extras` is where the 6 A4 ③ keys (③第 4 条, 10/12) go when a *script*
+    is actually executed — `script_path` / `stdin_or_argv` / `stdout_tail` /
+    `stderr` / `exit_code` / `iteration_index`.  They are NOT baked into this
+    function's signature:  callers that are logging a non-script event (a data
+    source decision, a gate verdict) simply omit them;  callers logging a
+    script execution pass them via `extras`.  This keeps the existing
+    4-key call shape backwards-compatible (nothing that calls `append_record`
+    today has to change) while making the 6 new keys a documented, opt-in
+    addition rather than a breaking signature change.  The record's
+    `artifact_id` hash covers `extras`' contents, so the 6 new keys, once
+    present, are part of the record's identity — a record written with them
+    and the same record written without them hash to different ids, which is
+    the correct behavior (they are genuinely different audit events).
     """
     args = args or {}
     extras = extras or {}
@@ -167,6 +208,10 @@ def main():
     a.add_argument("--state", required=True)
     a.add_argument("--source", required=True)
     a.add_argument("--args-json", default="{}")
+    a.add_argument("--extras-json", default="{}",
+                   help="JSON object of the 6 A4 script-execution keys "
+                        "(script_path/stdin_or_argv/stdout_tail/stderr/"
+                        "exit_code/iteration_index); omit for non-script events")
 
     v = sub.add_parser("verify", help="re-hash and verify the audit chain")
     v.add_argument("--state", required=True)
@@ -176,11 +221,12 @@ def main():
     if args.cmd == "append":
         try:
             args_dict = json.loads(args.args_json)
+            extras_dict = json.loads(args.extras_json)
         except json.JSONDecodeError as e:
-            print(json.dumps({"verdict": "ERROR", "reason": f"bad --args-json: {e}"}))
+            print(json.dumps({"verdict": "ERROR", "reason": f"bad JSON arg: {e}"}))
             return 2
-        out = append_record(args.state, args.source, args_dict)
-        print(json.dumps(out, indent=2))
+        out = append_record(args.state, args.source, args_dict, extras_dict)
+        print(json.dumps(out, indent=2, ensure_ascii=False))
         return 0
 
     if args.cmd == "verify":

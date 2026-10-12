@@ -1,4 +1,4 @@
-# 准备工作
+﻿# 准备工作
 ```
 # 在当前工作区（e:\agnes-harness）执行，仍停留在 physics-agent
 git branch ability-test3 physics-agent
@@ -13,13 +13,13 @@ git rm -r dev-notes/
 
 # 2) 删除 runtime 下具体题目的已完成产物（保留空白模板）
 #    仅保留 problem_state_template.json 和 task_params_template.json
-git rm program-design/runtime/atmosphere_data_0_150km.json 2>$null
-git rm program-design/runtime/boundary_spec_space_diving.json 2>$null
-git rm program-design/runtime/descent_model.py 2>$null
-git rm program-design/runtime/problem_state_space_diving.json 2>$null
-git rm program-design/runtime/report_space_diving.md 2>$null
-git rm program-design/runtime/node4_pending_note.md 2>$null
-git rm -r program-design/runtime/__pycache__/ 2>$null
+git rm physics-agent/runtime/atmosphere_data_0_150km.json 2>$null
+git rm physics-agent/runtime/boundary_spec_space_diving.json 2>$null
+git rm physics-agent/runtime/descent_model.py 2>$null
+git rm physics-agent/runtime/problem_state_space_diving.json 2>$null
+git rm physics-agent/runtime/report_space_diving.md 2>$null
+git rm physics-agent/runtime/node4_pending_note.md 2>$null
+git rm -r physics-agent/runtime/__pycache__/ 2>$null
 
 # 3) 提交清理结果
 git commit -m "chore(ability-test3): strip dev-notes and prior test artifacts for clean ability test"
