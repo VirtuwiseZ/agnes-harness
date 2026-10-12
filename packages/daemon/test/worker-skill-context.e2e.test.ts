@@ -17,12 +17,15 @@ const roots: string[] = []
 // discovery and read tools remain available for the loaded and generic turns alike.
 // Pagination changes both read-tool schemas; pin the merged, model-visible tool set.
 // The write description also includes the incremental-generation guidance shipped with the tools.
-const EXPECTED_SKILL_TOOL_SCHEMA_HASH = '1f38d67cc65637ee005dcc05a2c2c7fa25a1eefa03431da132655c898da82a80'
+// The read description names session-file attachments and what this runtime can read natively.
+// Background shell jobs add the job tool and reword the shell and write descriptions.
+const EXPECTED_SKILL_TOOL_SCHEMA_HASH = 'd6d6f7653c7f1f55f9535c4f2da7b49ac854c15305dfa8cd78f4b51abcbbda74'
 const expectedToolNames = [
   'compact',
   'edit',
   'find',
   'grep',
+  'job',
   'ls',
   'read',
   'shell',

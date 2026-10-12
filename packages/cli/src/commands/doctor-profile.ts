@@ -3,6 +3,7 @@ import {
   createConfigurationService,
   createPlatform,
   type LockState,
+  type PlatformBackend,
   type ResolvedProfile,
   resolveConfiguredPowerShell,
   resolveProfile,
@@ -11,9 +12,11 @@ import { profileNameFrom, readProfileInputs } from '../boot/inputs.js'
 import type { BootDeps, ParsedArgs } from '../types.js'
 import type { Section } from './doctor-local.js'
 
-export async function doctorPlatform(d: BootDeps): Promise<Section> {
+export async function doctorPlatform(
+  d: BootDeps,
+  platform: PlatformBackend = createPlatform(),
+): Promise<Section> {
   try {
-    const platform = createPlatform()
     await platform.probe({ root: d.cwd })
     const snapshot = platform.snapshot()
     const shellDetail: string[] = []
@@ -24,6 +27,7 @@ export async function doctorPlatform(d: BootDeps): Promise<Section> {
           `PowerShell ${shell.version} (${shell.edition})`,
           `shell path ${shell.path}`,
           `native arguments ${shell.nativeArguments}`,
+          ...(shell.codePage === undefined ? [] : [`console code page ${shell.codePage}`]),
         )
       } catch {
         return {
@@ -42,7 +46,12 @@ export async function doctorPlatform(d: BootDeps): Promise<Section> {
       detail: [
         `os ${snapshot.os} ${snapshot.arch}`,
         ...shellDetail,
-        ...Object.entries(snapshot.capabilities).map(([key, value]) => `${key}=${value}`),
+        // A level below full carries the platform's own reason on the next line, so "not probed
+        // yet" and "probed and failed" can be told apart. The level lines keep their old shape.
+        ...Object.entries(snapshot.capabilities).flatMap(([key, value]) => {
+          const reason = value === 'full' ? undefined : platform.capability(key).reason
+          return reason ? [`${key}=${value}`, `${key}.reason=${reason}`] : [`${key}=${value}`]
+        }),
       ],
     }
   } catch {
@@ -97,12 +106,22 @@ export async function doctorProfile(d: BootDeps & { lock?: LockState }, p: Parse
 
 /** Projects the one profile resolved by the aggregate command without resolving it a second time. */
 export function doctorResolvedProfile(profile: ResolvedProfile): Section {
+  // A session opens under the default preset unless one is named, and the host refuses any preset
+  // that is not listed, so a default outside the list leaves no preset a session can start under.
+  const { default: defaultPreset, allowed } = profile.presets
+  const unlisted = !allowed.includes(defaultPreset)
   return {
     name: 'profile',
-    status: 'ok',
+    status: unlisted ? 'fail' : 'ok',
     detail: [
       `${profile.name} hash ${profile.hash}`,
       `packages ${profile.packages.map((pkg) => pkg.id).join(', ')}`,
+      `presets default ${defaultPreset}, allowed ${allowed.join(', ') || '(none)'}`,
+      ...(unlisted
+        ? [
+            `presets.default "${defaultPreset}" is not in presets.allowed: no session can start under it, and a preset that is not listed is refused when named. List it in presets.allowed.`,
+          ]
+        : []),
       `dataDir ${profile.dataDir}`,
       `cacheDir ${profile.cacheDir}`,
     ],

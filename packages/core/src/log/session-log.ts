@@ -1,4 +1,4 @@
-import { type ThinkingLevel, validateOpState } from '@agnes/protocol'
+import { describeValidationErrors, type ThinkingLevel, validateOpState } from '@agnes/protocol'
 import {
   type Clock,
   CoreError,
@@ -359,7 +359,7 @@ export class SessionLogImpl {
     if (op) {
       const checked = validateOpState(op.data)
       if (!checked.ok)
-        throw new CoreError('E_ENVELOPE', checked.errors[0]?.message ?? 'invalid op state', {
+        throw new CoreError('E_ENVELOPE', `op.state ${describeValidationErrors(checked.errors)}`, {
           errors: checked.errors,
         })
     }
@@ -512,6 +512,7 @@ export class SessionLogImpl {
       agnesVersion: string
       preset: string | null
       resolvedProfileHash: string | null
+      resolvedPresetHash?: string
       writerRunId: string
       lane: string
       modelSelections?: Array<{
@@ -613,6 +614,7 @@ export class SessionLogImpl {
             key: childKey,
             parent: { key: this.o.key, boundarySeq },
             resolvedProfileHash: opener.resolvedProfileHash,
+            ...(opener.resolvedPresetHash ? { resolvedPresetHash: opener.resolvedPresetHash } : {}),
             preset: opener.preset,
             agnesVersion: opener.agnesVersion,
             ...(opener.delegation ? { delegation: opener.delegation } : {}),

@@ -10,7 +10,12 @@ import { EXT_EVENT_PATTERN } from './constants.js'
 import { type RpcError, rpcError } from './errors.js'
 import { validateRequestMedia } from './request-media.js'
 
+// The error classes travel with the validators they are thrown by: callers that reach the
+// validators through this package must be able to tell the refusal apart by type, and an
+// `instanceof` against a class imported by any other path than the thrower's would silently
+// never match.
 export {
+  AttachmentValidationError,
   USER_MESSAGE_ATTACHMENT_LIMITS,
   validateUserAttachments,
 } from '../../protocol-validation/src/attachments.js'
@@ -18,10 +23,15 @@ export { modelImageInputError, userImagePolicy } from '../../protocol-validation
 export {
   decodeAttachmentData,
   decodeSafeImages,
+  SafeImageError,
   USER_MESSAGE_IMAGE_LIMITS,
 } from '../../protocol-validation/src/safe-image.js'
 export type { ValidationError, ValidationResult } from '../../protocol-validation/src/validate.js'
-export { isDateTime, validateAgainst } from '../../protocol-validation/src/validate.js'
+export {
+  describeValidationErrors,
+  isDateTime,
+  validateAgainst,
+} from '../../protocol-validation/src/validate.js'
 
 // The lookup table validateEvent's second stage reads: event type -> the generated TypeBox schema for
 // that type's `data`. It is derived from the generated `X_AGNES_DATA` map rather than typed out, so

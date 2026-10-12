@@ -120,8 +120,8 @@ describe('tool types', () => {
       }),
     })
   })
-  it('ToolMeta requires all eight keys (no optional markers)', () => {
-    expectTypeOf<keyof ToolMeta>().toEqualTypeOf<
+  it('ToolMeta requires all eight keys; returnsImages is the one optional key', () => {
+    expectTypeOf<Exclude<keyof ToolMeta, 'returnsImages'>>().toEqualTypeOf<
       | 'isReadOnly'
       | 'isDestructive'
       | 'isConcurrencySafe'
@@ -131,6 +131,7 @@ describe('tool types', () => {
       | 'deferLoading'
       | 'requiresApproval'
     >()
+    expectTypeOf<ToolMeta['returnsImages']>().toEqualTypeOf<boolean | undefined>()
     // @ts-expect-error costHint 键不能省略——「声明无」也要显式写 undefined
     const m: ToolMeta = {
       isReadOnly: true,
@@ -186,6 +187,7 @@ describe('tool types', () => {
       | 'actor'
       | 'cwd'
       | 'exec'
+      | 'jobs'
       | 'fs'
       | 'net'
       | 'sandbox'
@@ -214,6 +216,12 @@ describe('tool types', () => {
 describe('exec result', () => {
   it('reports a deadline as an optional fact, so an exec that does not know it still conforms', () => {
     expectTypeOf<ExecResult['timedOut']>().toEqualTypeOf<boolean | undefined>()
+    expectTypeOf<ExecResult['stoppedProcesses']>().toEqualTypeOf<number | undefined>()
+    type Jobs = NonNullable<ToolContext['jobs']>
+    expectTypeOf<Awaited<ReturnType<Jobs['output']>>['next']>().toEqualTypeOf<number>()
+    expectTypeOf<Awaited<ReturnType<Jobs['start']>>['status']>().toEqualTypeOf<
+      'running' | 'exited' | 'stopped'
+    >()
     expectTypeOf<{
       code: number
       stdout: string

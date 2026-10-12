@@ -71,6 +71,33 @@ describe('createSession', () => {
     expect(start?.actor).toMatchObject({ role: 'owner', org: 'local' })
     await host.close()
   })
+  it('records the hash of the resolved preset document, apart from the profile hash', async () => {
+    const dataDir = tmp()
+    const { host } = await createTestHost({
+      dataDir,
+      presets: { l1: { name: 'l1', extends: 'standard', sandbox: { required: true } } },
+      allowed: ['standard', 'l1'],
+    })
+    const startOf = async (preset?: string) => {
+      const s = await host.createSession({
+        cwd: dataDir,
+        ...(preset ? { preset } : {}),
+        key: `k-${preset ?? 'default'}`,
+      })
+      return (await s.scan({ type: 'session/start', limit: 1 }))[0]?.data as {
+        resolvedPresetHash?: string
+        resolvedProfileHash: string
+      }
+    }
+    const standard = await startOf()
+    const l1 = await startOf('l1')
+    expect(standard.resolvedPresetHash).toBe(host.validatePresetSwitch('standard').hash)
+    expect(l1.resolvedPresetHash).toBe(host.validatePresetSwitch('l1').hash)
+    expect(standard.resolvedPresetHash).toMatch(/^sha256-[0-9a-f]{64}$/)
+    expect(standard.resolvedPresetHash).not.toBe(l1.resolvedPresetHash)
+    expect(standard.resolvedPresetHash).not.toBe(standard.resolvedProfileHash)
+    await host.close()
+  })
   // The view the session runs on must not carry the sentinel: core's resolveModel reads
   // preset.model.route[slot], and a view still saying `default` writes a request/header naming a
   // route no adapter serves.
@@ -101,6 +128,31 @@ describe('createSession', () => {
     const e = await refusal(host.createSession({ cwd: dataDir, preset: 'nope' }))
     expect(e.code).toBe('E_PRESET_UNSUPPORTED')
     expect(e.detail.capability).toBe('preset')
+    expect(e.detail.rule).toBe('not-allowed')
+    await host.close()
+  })
+  it('tells a preset that is provided but not allowed from one that no package provides', async () => {
+    const dataDir = tmp()
+    const { host } = await createTestHost({
+      dataDir,
+      presets: { l1: { name: 'l1', extends: 'standard' } },
+      allowed: ['standard'],
+    })
+    // Provided by a package but not listed: the allow-list is what refuses it.
+    const unlisted = await refusal(host.createSession({ cwd: dataDir, preset: 'l1', key: 'unlisted' }))
+    expect(unlisted.detail.rule).toBe('not-allowed')
+    // The default preset is subject to the same list, not exempt from it.
+    expect((host.validatePresetSwitch('standard') as { doc: { name: string } }).doc.name).toBe('standard')
+    const switched = (() => {
+      try {
+        host.validatePresetSwitch('l1')
+      } catch (error) {
+        return error as Refusal
+      }
+      throw new Error('the switch was accepted')
+    })()
+    expect(switched.code).toBe('E_PRESET_UNSUPPORTED')
+    expect(switched.detail.rule).toBe('not-allowed')
     await host.close()
   })
   it('rejects hard requirements this deployment cannot meet, naming the capability', async () => {

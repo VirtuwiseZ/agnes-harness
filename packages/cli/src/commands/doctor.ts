@@ -11,7 +11,7 @@ import { profileNameFrom } from '../boot/inputs.js'
 import { assembleLocalHost, type LocalBootDeps } from '../boot/local.js'
 import { doctorCodeRuntime } from './doctor-code-runtime.js'
 import { doctorExtensions } from './doctor-extensions.js'
-import { doctorBinary, doctorStorage, type Section } from './doctor-local.js'
+import { doctorBinary, doctorCredentials, doctorStorage, type Section } from './doctor-local.js'
 import { doctorPlatform, doctorResolvedProfile, resolveDoctorProfile } from './doctor-profile.js'
 import { doctorProvider } from './doctor-provider.js'
 import { doctorSubagents } from './doctor-subagents.js'
@@ -23,6 +23,7 @@ export const DOCTOR_SECTIONS = [
   'platform',
   'provider',
   'storage',
+  'credentials',
   'profile',
   'extensions',
   'daemon',
@@ -39,6 +40,25 @@ const failed = (name: DoctorSectionName, detail: string): Section => ({
   status: 'fail',
   detail: [detail],
 })
+
+const PROVIDER_UNCONFIGURED =
+  'no model provider is configured for this profile, so the host was not assembled and this check was not run; run `agh config` to add one'
+
+/**
+ * Why a host-backed section could not run. A profile with no provider is a setup step, reported
+ * the way the provider section reports it. Any other failure stays a failure and names its stable
+ * error code; the error message is never copied, since it can carry paths.
+ */
+function hostSectionFailure(name: DoctorSectionName, label: string, error: unknown): Section {
+  const { code, detail } = (error !== null && typeof error === 'object' ? error : {}) as {
+    code?: unknown
+    detail?: { reason?: unknown } | null
+  }
+  if (code === 'E_PRESET_UNRESOLVED' && detail?.reason === 'no-routes')
+    return { name, status: 'warn', detail: [PROVIDER_UNCONFIGURED] }
+  const suffix = typeof code === 'string' && /^E_[A-Z0-9_]{1,48}$/.test(code) ? ` (${code})` : ''
+  return failed(name, `${label} host assembly failed${suffix}`)
+}
 
 /** Read-only daemon health through the package-owned owner/process/socket probes (ERRATA B23). */
 export async function doctorDaemon(deps: Pick<DoctorCommandDeps, 'home'>): Promise<Section> {
@@ -119,6 +139,9 @@ export async function doctorCommand(
         case 'storage':
           sections.push(await doctorStorage(commandDeps))
           break
+        case 'credentials':
+          sections.push(await doctorCredentials(commandDeps))
+          break
         case 'daemon':
           sections.push(await doctorDaemon(commandDeps))
           break
@@ -146,7 +169,9 @@ export async function doctorCommand(
               })
             const snapshot = await configuration.get()
             const accounts = snapshot.accounts ?? []
-            if (accounts.length === 0) {
+            // Routes can also be declared by the profile itself; only a profile with neither has no
+            // provider to report on.
+            if (accounts.length === 0 && !((await resolvedProfile()).provider.routes?.length ?? 0)) {
               sections.push(
                 await doctorProvider(undefined, {
                   signal: commandDeps.signal ?? new AbortController().signal,
@@ -164,15 +189,15 @@ export async function doctorCommand(
                 accounts,
               }),
             )
-          } catch {
-            sections.push(failed('provider', 'provider host assembly failed'))
+          } catch (error) {
+            sections.push(hostSectionFailure('provider', 'provider', error))
           }
           break
         case 'extensions':
           try {
             sections.push(await doctorExtensions(await assembledHost()))
-          } catch {
-            sections.push(failed('extensions', 'extension host assembly failed'))
+          } catch (error) {
+            sections.push(hostSectionFailure('extensions', 'extension', error))
           }
           break
         case 'code-runtime':
@@ -182,8 +207,8 @@ export async function doctorCommand(
                 ...(commandDeps.signal ? { signal: commandDeps.signal } : {}),
               }),
             )
-          } catch {
-            sections.push(failed('code-runtime', 'code runtime host assembly failed'))
+          } catch (error) {
+            sections.push(hostSectionFailure('code-runtime', 'code runtime', error))
           }
           break
       }

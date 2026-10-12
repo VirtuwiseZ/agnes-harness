@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { closeSync, constants, fstatSync, fsyncSync, writeFileSync } from 'node:fs'
-import { chmod, lstat, mkdir, open, rename, unlink } from 'node:fs/promises'
+import { chmod, lstat, mkdir, open, readdir, rename, unlink } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import {
   createPrivateFileSync,
@@ -12,7 +12,7 @@ import {
   windowsReadPrivateFileSync,
   windowsReadPrivateTextSync,
 } from '@agnes/system-node'
-import type { PlatformBackend } from './platform.js'
+import { createPlatform, type PlatformBackend } from './platform.js'
 
 export type CredentialKind = 'api-key' | 'oauth'
 export type CredentialStoreReason =
@@ -72,9 +72,15 @@ export class CredentialStoreError extends Error {
   readonly ref: string
   readonly reason: CredentialStoreReason
 
-  constructor(ref: string, reason: CredentialStoreReason) {
-    // The path, OS error and file content are deliberately absent. `ref` and `reason` are exposed
-    // as structured fields; the message contains only the stable code and stable reason.
+  constructor(
+    ref: string,
+    reason: CredentialStoreReason,
+    readonly path?: string,
+    readonly osCode?: string,
+    /** Octal modes (for example '0755' and '0700'); set only when a mode check failed. */
+    readonly modes?: { readonly actual: string; readonly expected: string },
+  ) {
+    // Diagnostics contain only store paths, allowlisted OS codes and permission bits, never contents or messages.
     super(`CREDENTIAL_STORE_UNSAFE: ${reason}`)
     this.name = 'CredentialStoreError'
     this.ref = ref
@@ -89,8 +95,20 @@ const MAX_CREDENTIAL_BYTES = 1024 * 1024
 const NOFOLLOW = constants.O_NOFOLLOW ?? 0
 const DIRECTORY = constants.O_DIRECTORY ?? 0
 
-const storeError = (ref: string, reason: CredentialStoreReason): CredentialStoreError =>
-  new CredentialStoreError(ref, reason)
+const storeError = (
+  ref: string,
+  reason: CredentialStoreReason,
+  path?: string,
+  cause?: unknown,
+): CredentialStoreError =>
+  new CredentialStoreError(
+    ref,
+    reason,
+    path,
+    ['EPERM', 'EACCES', 'EROFS', 'ENOSPC', 'ENOENT', 'EIO', 'ENOTDIR', 'ELOOP'].find(
+      (code) => code === errorCode(cause),
+    ),
+  )
 
 const errorCode = (error: unknown): string | undefined =>
   error !== null && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
@@ -133,12 +151,17 @@ function requireEnforcement(
 
 type FileStat = Awaited<ReturnType<typeof lstat>>
 
+const octal = (mode: number): string => (mode & 0o7777).toString(8).padStart(4, '0')
+
+const modeError = (ref: string, path: string, actual: number, expected: number): CredentialStoreError =>
+  new CredentialStoreError(ref, 'mode', path, undefined, { actual: octal(actual), expected: octal(expected) })
+
 function validateWindowsPermissions(path: string, ref: string): void {
   try {
-    if (!hasPrivateDaclSync(path)) throw storeError(ref, 'mode')
+    if (!hasPrivateDaclSync(path)) throw storeError(ref, 'mode', path)
   } catch (error) {
     if (error instanceof CredentialStoreError) throw error
-    throw storeError(ref, 'io')
+    throw storeError(ref, 'io', path, error)
   }
 }
 
@@ -148,29 +171,30 @@ function validateDirectory(
   enforcement: Extract<CredentialFileEnforcement, { level: 'full' }>,
   path: string,
 ): void {
-  if (stat.isSymbolicLink()) throw storeError(ref, 'symlink')
-  if (!stat.isDirectory()) throw storeError(ref, 'not-directory')
+  if (stat.isSymbolicLink()) throw storeError(ref, 'symlink', path)
+  if (!stat.isDirectory()) throw storeError(ref, 'not-directory', path)
   if (enforcement.mechanism === 'windows-acl') {
     validateWindowsPermissions(path, ref)
     return
   }
-  if ((Number(stat.mode) & 0o7777) !== 0o700) throw storeError(ref, 'mode')
-  if (Number(stat.uid) !== enforcement.ownerUid) throw storeError(ref, 'owner')
+  if ((Number(stat.mode) & 0o7777) !== 0o700) throw modeError(ref, path, Number(stat.mode), 0o700)
+  if (Number(stat.uid) !== enforcement.ownerUid) throw storeError(ref, 'owner', path)
 }
 
 function validateFile(
   stat: FileStat,
   ref: string,
   enforcement: Extract<CredentialFileEnforcement, { level: 'full' }>,
+  path: string,
 ): void {
-  if (stat.isSymbolicLink()) throw storeError(ref, 'symlink')
-  if (!stat.isFile()) throw storeError(ref, 'not-file')
+  if (stat.isSymbolicLink()) throw storeError(ref, 'symlink', path)
+  if (!stat.isFile()) throw storeError(ref, 'not-file', path)
   if (enforcement.mechanism === 'posix-mode-owner') {
-    if ((Number(stat.mode) & 0o7777) !== 0o600) throw storeError(ref, 'mode')
-    if (Number(stat.uid) !== enforcement.ownerUid) throw storeError(ref, 'owner')
+    if ((Number(stat.mode) & 0o7777) !== 0o600) throw modeError(ref, path, Number(stat.mode), 0o600)
+    if (Number(stat.uid) !== enforcement.ownerUid) throw storeError(ref, 'owner', path)
   }
-  if (Number(stat.nlink) !== 1) throw storeError(ref, 'link-count')
-  if (Number(stat.size) > MAX_CREDENTIAL_BYTES) throw storeError(ref, 'too-large')
+  if (Number(stat.nlink) !== 1) throw storeError(ref, 'link-count', path)
+  if (Number(stat.size) > MAX_CREDENTIAL_BYTES) throw storeError(ref, 'too-large', path)
 }
 
 async function safeLstat(path: string, ref: string): Promise<FileStat | null> {
@@ -178,7 +202,7 @@ async function safeLstat(path: string, ref: string): Promise<FileStat | null> {
     return await lstat(path)
   } catch (error) {
     if (errorCode(error) === 'ENOENT') return null
-    throw storeError(ref, 'io')
+    throw storeError(ref, 'io', path, error)
   }
 }
 
@@ -208,24 +232,40 @@ async function createDirectory(
       return
     } catch (error) {
       if (error instanceof CredentialStoreError) throw error
-      throw storeError(ref, 'io')
+      throw storeError(ref, 'io', path, error)
     }
   }
   try {
     await mkdir(path, { mode: 0o700 })
     created = true
   } catch (error) {
-    if (errorCode(error) !== 'EEXIST') throw storeError(ref, 'io')
+    if (errorCode(error) !== 'EEXIST') throw storeError(ref, 'io', path, error)
   }
   if (created)
     try {
       await chmod(path, 0o700)
-    } catch {
-      throw storeError(ref, 'io')
+    } catch (error) {
+      throw storeError(ref, 'io', path, error)
     }
   const stat = await safeLstat(path, ref)
   if (stat === null) throw storeError(ref, 'changed')
   validateDirectory(stat, ref, enforcement, path)
+}
+
+/** A home the current user owns, with no write access for others and loose read or search bits. */
+function isNarrowableHome(
+  stat: FileStat,
+  enforcement: Extract<CredentialFileEnforcement, { level: 'full' }>,
+): boolean {
+  return (
+    enforcement.mechanism === 'posix-mode-owner' &&
+    stat.isDirectory() &&
+    !stat.isSymbolicLink() &&
+    Number(stat.uid) === enforcement.ownerUid &&
+    (Number(stat.mode) & 0o700) === 0o700 &&
+    (Number(stat.mode) & 0o7022) === 0 &&
+    (Number(stat.mode) & 0o077) !== 0
+  )
 }
 
 async function ensureCredentialDirectories(
@@ -236,6 +276,28 @@ async function ensureCredentialDirectories(
   enforcement: Extract<CredentialFileEnforcement, { level: 'full' }>,
 ): Promise<void> {
   const anchoredRoot = resolve(root)
+  const homeStat = await safeLstat(anchoredRoot, ref)
+  if (homeStat && isNarrowableHome(homeStat, enforcement)) {
+    // Narrow a fresh mkdir-created home; never repair credential directories or grant permissions.
+    let handle: Awaited<ReturnType<typeof open>> | undefined
+    try {
+      handle = await open(anchoredRoot, constants.O_RDONLY | DIRECTORY | NOFOLLOW)
+      const current = await handle.stat()
+      if (
+        current.dev !== homeStat.dev ||
+        current.ino !== homeStat.ino ||
+        current.mode !== homeStat.mode ||
+        current.uid !== homeStat.uid
+      )
+        throw storeError(ref, 'changed', anchoredRoot)
+      await handle.chmod(0o700)
+    } catch (error) {
+      if (error instanceof CredentialStoreError) throw error
+      throw storeError(ref, 'io', anchoredRoot, error)
+    } finally {
+      await handle?.close().catch(() => undefined)
+    }
+  }
   await createDirectory(anchoredRoot, ref, enforcement)
   for (const base of ['auth', 'secrets', 'locks'])
     await createDirectory(join(anchoredRoot, base), ref, enforcement)
@@ -289,7 +351,7 @@ async function checkedFileStat(
       await new Promise<void>((done) => setImmediate(done))
       continue
     }
-    validateFile(stat, ref, enforcement)
+    validateFile(stat, ref, enforcement, path)
     if (enforcement.mechanism === 'windows-acl') validateWindowsPermissions(path, ref)
     return stat
   }
@@ -313,8 +375,8 @@ export async function readCredentialFile(options: {
   if (options.enforcement.mechanism === 'windows-acl') {
     try {
       return windowsReadPrivateTextSync(path, MAX_CREDENTIAL_BYTES)
-    } catch {
-      throw storeError(options.ref, 'io')
+    } catch (error) {
+      throw storeError(options.ref, 'io', path, error)
     }
   }
 
@@ -323,17 +385,17 @@ export async function readCredentialFile(options: {
     handle = await open(path, constants.O_RDONLY | NOFOLLOW)
   } catch (error) {
     if (errorCode(error) === 'ELOOP') throw storeError(options.ref, 'symlink')
-    throw storeError(options.ref, 'io')
+    throw storeError(options.ref, 'io', path, error)
   }
   try {
     const after = await handle.stat()
     if (Number(after.nlink) === 0) throw storeError(options.ref, 'changed')
-    validateFile(after, options.ref, options.enforcement)
+    validateFile(after, options.ref, options.enforcement, path)
     if (before.dev !== after.dev || before.ino !== after.ino) throw storeError(options.ref, 'changed')
     return await handle.readFile('utf8')
   } catch (error) {
     if (error instanceof CredentialStoreError) throw error
-    throw storeError(options.ref, 'io')
+    throw storeError(options.ref, 'io', path, error)
   } finally {
     await handle.close().catch(() => undefined)
   }
@@ -348,20 +410,20 @@ async function syncDirectory(
     try {
       syncDirectorySync(path)
       return
-    } catch {
-      throw storeError(ref, 'io')
+    } catch (error) {
+      throw storeError(ref, 'io', path, error)
     }
   }
   let handle: Awaited<ReturnType<typeof open>>
   try {
     handle = await open(path, constants.O_RDONLY | DIRECTORY | NOFOLLOW)
-  } catch {
-    throw storeError(ref, 'io')
+  } catch (error) {
+    throw storeError(ref, 'io', path, error)
   }
   try {
     await handle.sync()
-  } catch {
-    throw storeError(ref, 'io')
+  } catch (error) {
+    throw storeError(ref, 'io', path, error)
   } finally {
     await handle.close().catch(() => undefined)
   }
@@ -387,7 +449,7 @@ export async function atomicWriteCredentialFile(options: {
     try {
       fd = createPrivateFileSync(temp)
       writeFileSync(fd, options.contents, 'utf8')
-      validateFile(fstatSync(fd), options.ref, options.enforcement)
+      validateFile(fstatSync(fd), options.ref, options.enforcement, path)
       fsyncSync(fd)
       closeSync(fd)
       fd = undefined
@@ -406,7 +468,7 @@ export async function atomicWriteCredentialFile(options: {
         }
       }
       if (error instanceof CredentialStoreError) throw error
-      throw storeError(options.ref, 'io')
+      throw storeError(options.ref, 'io', path, error)
     } finally {
       await unlink(temp).catch(() => undefined)
     }
@@ -415,25 +477,25 @@ export async function atomicWriteCredentialFile(options: {
   try {
     try {
       handle = await open(temp, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | NOFOLLOW, 0o600)
-    } catch {
-      throw storeError(options.ref, 'io')
+    } catch (error) {
+      throw storeError(options.ref, 'io', path, error)
     }
     await handle.chmod(0o600)
     await handle.writeFile(options.contents, 'utf8')
     await handle.sync()
     const stat = await handle.stat()
-    validateFile(stat, options.ref, options.enforcement)
+    validateFile(stat, options.ref, options.enforcement, path)
     await handle.close()
     handle = undefined
     try {
       await rename(temp, path)
-    } catch {
-      throw storeError(options.ref, 'io')
+    } catch (error) {
+      throw storeError(options.ref, 'io', path, error)
     }
     await syncDirectory(parent, options.ref, options.enforcement)
   } catch (error) {
     if (error instanceof CredentialStoreError) throw error
-    throw storeError(options.ref, 'io')
+    throw storeError(options.ref, 'io', path, error)
   } finally {
     if (handle !== undefined) await handle.close().catch(() => undefined)
     await unlink(temp).catch(() => undefined)
@@ -454,9 +516,125 @@ export async function removeCredentialFile(options: {
   if ((await checkedFileStat(path, options.ref, options.enforcement)) === null) return false
   try {
     await unlink(path)
-  } catch {
-    throw storeError(options.ref, 'io')
+  } catch (error) {
+    throw storeError(options.ref, 'io', path, error)
   }
   await syncDirectory(dirname(path), options.ref, options.enforcement)
   return true
+}
+
+export type CredentialInspectionTarget = 'home' | 'secrets' | 'auth' | 'locks' | 'provider' | 'file'
+
+export type CredentialInspectionFinding = Readonly<{
+  target: CredentialInspectionTarget
+  path: string
+  reason: CredentialStoreReason
+  actualMode?: string
+  expectedMode?: string
+  /** The next credential save narrows this home to 0700 by itself. */
+  narrowable?: boolean
+}>
+
+export type CredentialInspection = Readonly<{
+  enforcement: 'full' | 'unavailable'
+  unavailableReason?: string
+  /** Permissions are ACLs here, so a `chmod` hint does not apply. */
+  windows: boolean
+  /** The Agnes home does not exist yet, so there is nothing to check. */
+  homeMissing: boolean
+  checked: number
+  findings: readonly CredentialInspectionFinding[]
+}>
+
+const INSPECTION_ENTRY_LIMIT = 1000
+
+/**
+ * Read-only check of the same rules the credential store enforces when it opens a credential: it
+ * creates nothing, changes no mode and reads no credential contents. Entries it cannot list are
+ * reported as `io` findings rather than skipped.
+ */
+export async function inspectCredentialStore(
+  root: string,
+  platform: Pick<PlatformBackend, 'os'> = createPlatform(),
+): Promise<CredentialInspection> {
+  const enforcement = credentialFileEnforcement(platform)
+  const windows = platform.os === 'win32'
+  if (enforcement.level !== 'full')
+    return {
+      enforcement: 'unavailable',
+      unavailableReason: enforcement.reason,
+      windows,
+      homeMissing: false,
+      checked: 0,
+      findings: [],
+    }
+  const ref = '<inspect>'
+  const home = resolve(root)
+  const findings: CredentialInspectionFinding[] = []
+  let checked = 0
+  const record = (target: CredentialInspectionTarget, path: string, error: unknown, narrowable = false) => {
+    if (!(error instanceof CredentialStoreError)) throw error
+    findings.push({
+      target,
+      path,
+      reason: error.reason,
+      ...(error.modes ? { actualMode: error.modes.actual, expectedMode: error.modes.expected } : {}),
+      ...(narrowable ? { narrowable: true } : {}),
+    })
+  }
+  const entries = async (path: string, target: CredentialInspectionTarget): Promise<string[]> => {
+    try {
+      return (await readdir(path)).filter((name) => !name.startsWith('.')).slice(0, INSPECTION_ENTRY_LIMIT)
+    } catch (error) {
+      record(target, path, storeError(ref, 'io', path, error))
+      return []
+    }
+  }
+  const directory = async (path: string, target: CredentialInspectionTarget): Promise<boolean> => {
+    let stat: FileStat | null
+    try {
+      stat = await safeLstat(path, ref)
+    } catch (error) {
+      record(target, path, error)
+      return false
+    }
+    if (stat === null) return false
+    checked += 1
+    try {
+      validateDirectory(stat, ref, enforcement, path)
+      return true
+    } catch (error) {
+      record(target, path, error, target === 'home' && isNarrowableHome(stat, enforcement))
+      // A real directory with the wrong mode or owner can still be listed, so its entries are
+      // checked too and everything that needs fixing shows up in one report.
+      return error instanceof CredentialStoreError && ['mode', 'owner'].includes(error.reason)
+    }
+  }
+  const file = async (path: string): Promise<void> => {
+    try {
+      const stat = await safeLstat(path, ref)
+      if (stat === null) return
+      checked += 1
+      validateFile(stat, ref, enforcement, path)
+      if (enforcement.mechanism === 'windows-acl') validateWindowsPermissions(path, ref)
+    } catch (error) {
+      record('file', path, error)
+    }
+  }
+
+  const homeStat = await safeLstat(home, ref).catch(() => undefined)
+  if (homeStat === null) return { enforcement: 'full', windows, homeMissing: true, checked: 0, findings: [] }
+  if (!(await directory(home, 'home')))
+    return { enforcement: 'full', windows, homeMissing: false, checked, findings }
+  for (const base of ['secrets', 'auth', 'locks'] as const) {
+    const basePath = join(home, base)
+    if (!(await directory(basePath, base))) continue
+    if (base === 'locks') continue
+    for (const provider of await entries(basePath, base)) {
+      const providerPath = join(basePath, provider)
+      if (!(await directory(providerPath, 'provider'))) continue
+      for (const name of await entries(providerPath, 'provider')) await file(join(providerPath, name))
+    }
+  }
+  return { enforcement: 'full', windows, homeMissing: false, checked, findings }
 }

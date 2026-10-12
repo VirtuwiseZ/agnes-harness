@@ -1,3 +1,21 @@
+// 2026-10-09 merge with main: three scopes were raised on both sides, so neither side's number holds.
+// Re-measured with countLines() on the resolved tree: Web 16967 (16947 + main's 20),
+// Web-units 6242, Web-UI 6678, Core 26556, Protocol 2276; no exclusions or spare allocation.
+// 2026-10-06 error notices move to an Ant Design notification overlay: a web-ui wrapper owns the antd
+// notification api, #notice keeps only the session-recovery block and the two page-level prompts, and
+// attachment refusals carry codes so the submit path translates them too.
+// Reviewed exact countLines totals: Web 16932/app 2207, Web-units 6235, Web-UI 6671; no exclusions or spare allocation.
+// 2026-10-06 the composer's paperclip hint moves from the native title to an Ant Design Tooltip,
+// which adds the wrapper in packages/web-ui and the wrap site in the composer.
+// Reviewed exact countLines totals: Web-units 6239, Web-UI 6678; no exclusions or spare allocation.
+// 2026-10-06 review fixes on the same notification work: a bfcache-safe pagehide on all three
+// listeners, the first-run kind reset before the missing-session prompt, the recovery-block and
+// first-run sentinel guards in notify's fallback, the detached-notifier reset on close, the two
+// refusal classes forwarded onto the protocol surface, and the page-level notice cleared on submit.
+// Reviewed exact countLines totals: Web 16947/app 2222, Web-units 6242, Protocol 2276; no exclusions or spare allocation.
+// 2026-10-09 tool image opt-in: ToolMeta.returnsImages, recorded in the call policy; request media
+// admits a trusted result's images when its call declared it. Exact measured Core 26560, daemon 26876,
+// extension API 1000; no exclusions or spare allocation.
 // 2026-10-06 attachment history reopening: bound authority replay so worker frames can be split.
 // Reviewed exact countLines daemon 26847 (+5); no exclusions or spare allocation.
 // 2026-10-06 bundled document reader: default-helper migration and release payload preparation.
@@ -278,7 +296,13 @@ const INITIAL_CEILING: Record<string, number> = {
   'packages/web-slots/src': 605,
   // Failed shell calls read as their exit code (+19 lines); measured 4891, exact cap.
   // Approval reasons: the approval card label reads the decision reason (+22). Measured 6651, exact cap.
-  'packages/web-ui/src': 6640,
+  // 2026-10-06 error notices move to an Ant Design notification overlay: the web-ui wrapper that
+  // owns the antd api (placement, duration, closable, role) is new source here. Measured: 6671, exact,
+  // no spare.
+  // 2026-10-06 the composer's paperclip hint moves off the native title onto a Tooltip, which needs
+  // its own wrapper here (antd's Tooltip consumes `rootClassName`, not `className`). Measured: 6678.
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 6687, exact.
+  'packages/web-ui/src': 6687,
   // W8a-3: retire the native tool renderer in favor of one compatibility root; measured 4630.
   // 2026-10-04 image upload merged onto the queue view: the composer reads, downscales and previews
   // attachments, and the queue row markup above stays. Measured: 5923, exact, no spare.
@@ -288,10 +312,19 @@ const INITIAL_CEILING: Record<string, number> = {
   // Fragment so the queue section can sit before the form, which costs the Fragment import, the
   // extracted `queueSection` binding and one extra nesting level. Measured: 5922, exact, no spare.
   // 2026-10-06: normalize JPEGs that fail strict validation and update the 10 MiB copy; 6090, exact.
-  'packages/web-units/src': 6192,
+  // 2026-10-06: accept JPEGs whose EOI has trailing bytes, and name an over-pixel image as too large
+  // instead of as an invalid file. Measured: 6202, exact, no spare.
+  // 2026-10-06: name the attachment limits the validator refuses (file data, name, aggregate bytes)
+  // and move the shared error-code to locale map out of the composer. Measured: 6235, exact, no spare.
+  // 2026-10-06 the paperclip wraps its button in that Tooltip and drops `title`. Measured: 6239.
+  // 2026-10-06 review fix: a refused file block reports through the shared attachment-error map
+  // instead of claiming the attachment could not be read. Measured: 6242, exact, no spare.
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 6273, exact.
+  'packages/web-units/src': 6273,
   // Write staleness guard: a per-session table of what each file looked like when read, checked by
   // `write` (+55 counted lines, measured 855, exact cap).
-  'packages/base/extensions/tools-core': 922,
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 1080, exact.
+  'packages/base/extensions/tools-core': 1080,
   // MCP-ROWS stage 2b, steps 1-2 (D118): connection supervisor, catalog hub, and the per-server
   // extension row wiring them together. New extension at the shared default cap; measured 276.
   'packages/base/extensions/mcp-server': 800,
@@ -321,14 +354,18 @@ const INITIAL_CEILING: Record<string, number> = {
   'packages/base/extensions/sandbox': 800,
   'packages/base/extensions/budget': 90,
   'packages/base/extensions/loop-hygiene': 100,
-  'packages/host/src/adapters/powershell': 133,
-  'packages/host/src/adapters/powershell-command': 31,
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 140, exact.
+  'packages/host/src/adapters/powershell': 140,
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 59, exact.
+  'packages/host/src/adapters/powershell-command': 59,
   'packages/host/src/adapters/powershell-file': 47,
   'packages/host/src/adapters/powershell-temporary': 43,
   'packages/host/src/adapters/process-identity-win32': 18,
-  'packages/host/src/adapters/exec-win32': 84,
-  'packages/host/src/adapters/exec-output': 32,
-  'packages/host/src/adapters/secrets-win32': 25,
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 124, exact.
+  'packages/host/src/adapters/exec-win32': 124,
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 112, exact.
+  'packages/host/src/adapters/exec-output': 112,
+  'packages/host/src/adapters/secrets-win32': 56,
   // WIN-TITLE-REPAIR: +3 for peer-only rejection backoff; no counting exclusions changed.
   // 2026-09-20 GC attestation keeps Node hashing/path/proxy primitives outside Core, while Windows
   // mapped-image identity remains native-bound. Measured 1080; exact cap.
@@ -336,7 +373,8 @@ const INITIAL_CEILING: Record<string, number> = {
   // 2026-09-21: add Linux same-handle artifact deletion dispatch and availability. Exact 1122.
   // 2026-09-22: no-replace directory publication, +17 measured lines; no fallback.
   // SKILL-DELETE-PRIORITY: +47 counted lines for 64-bit deletion and platform path preflight; no spare.
-  'packages/system-node/src': 1186,
+  // Windows line endings, processes stopped with a command, session background jobs; measured 1210, exact.
+  'packages/system-node/src': 1210,
   // 2026-09-13 in-process ecosystem: verified snapshots, rollback journal/GC and the local examples
   // catalogue are the PackageManager-owned state machine. Exact post-integration total; no spare.
   // 2026-09-14: Task 1 orphaned-pin-cleanup adds listRuntimePinsStore() function and
@@ -387,13 +425,15 @@ const INITIAL_CEILING: Record<string, number> = {
   // PLUGIN-HELPER: measured 5763 -> 5770; approved feature scope, no spare allocation.
   // Windows stale-lock reclamation added 17 counted lines; exact baseline total, no spare.
   // Windows Unicode package copying replaces three crashing cpSync paths; exact measured total.
-  'packages/package-manager/src': 5803,
+  // Package reads reuse verification, plugin loading hashes asynchronously, no Surface table polling; measured 5941, exact.
+  'packages/package-manager/src': 5941,
   'packages/package-manager/src/catalog': 211,
   // Web open-source UI: safe Markdown DOM, compact presentation helpers, task-first creation,
   // and explicit controls. v2 adds accessible compact composer state; exact measured allocation; evidence is tracked with the UI execution.
   // 2026-09-20: map the already-sanitized turn AUTH category to a reconnect instruction. Exact.
   // Output-limit and rate-limit failures render actionable guidance. Measured +4, exact allocation.
-  'packages/web/src/presentation': 138,
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 141, exact.
+  'packages/web/src/presentation': 141,
   'packages/web/src/markdown': 48,
   // Phase03 Web workbench: separate settings controller, stable keyed timeline, run receipts,
   // and client integration. Each component is bounded independently; no execution state
@@ -456,7 +496,12 @@ const INITIAL_CEILING: Record<string, number> = {
   // which lands on top of the diagnostics wiring above. Re-measured with countLines(): 1827, exact.
   // 2026-10-04 image attachments: app.ts submits ContentBlock content while keeping the title locale.
   // Measured: 2148, exact, no spare.
-  'packages/web/src/app': 2183,
+  // 2026-10-06 error notices move off #notice: the notification host mount, the showError split and
+  // the first-run guide's own dismiss path land here, while the interactive sites write through
+  // `notify`. Two rounds of review fixes on that work added the bfcache guards on all three pagehide
+  // listeners, the detached-notifier reset, the shared noticeHoldsPersistentContent predicate every
+  // notice writer now goes through, and the dismiss on submit. Measured: 2222, exact, no spare.
+  'packages/web/src/app': 2222,
   // 2026-09-22 UI plugin management: inject the embedded pane's client runtime reconciler.
   // 2026-09-25 UI refactor: permission options now render through the React region contract.
   // Re-measured with countLines(): 215, exact, no spare.
@@ -476,7 +521,7 @@ const INITIAL_CEILING: Record<string, number> = {
   'packages/web/src/model-picker': 981,
   // 2026-09-25 UI refactor: settings-owned element construction uses the shared UI host boundary.
   // Re-measured with countLines(): 754, exact, no spare.
-  'packages/web/src/settings': 900,
+  'packages/web/src/settings': 934,
   // 2026-09-17 rebase 后的重新实测：timeline.ts 的详情弹窗管线已在 WEB-UI-ALIGN-DSH 中删除
   // （原 427 是旧实现的实测值），删码后未跟着收紧会留下 55 行富余，故收到实测精确值 372。
   // 2026-09-24 WEB-INCREMENTAL-PROJECTION-TRACE-INDEX C6 (Web incremental wiring) and its review fixes,
@@ -492,7 +537,8 @@ const INITIAL_CEILING: Record<string, number> = {
   // Approval reasons: the approval card label reads the decision reason (+10). Measured 796, exact cap.
   // 2026-10-05 the merge keeps both sides' additions, so neither number holds. Re-measured on the
   // merged tree: 807, exact, no spare.
-  'packages/web/src/timeline': 807,
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 810, exact.
+  'packages/web/src/timeline': 810,
   // 2026-09-17：navigation.ts 的 folderIcon 换成客户端 AgnesProjectFolderIcon 两态字形
   // （两条 path + folderSvg 构造器），展开/收起由 CSS 的 [aria-expanded] 切换。实测 108。
   // SESSION-ACTIONS integrated with b/main: exact increment +43.
@@ -547,7 +593,7 @@ const INITIAL_CEILING: Record<string, number> = {
   'packages/cli/src/tui/package-admin': 106,
   'packages/cli/src/tui/package-controller': 58,
   // DAEMON-SHORT-SOCKET-PATH: reuse daemon path preflight before spawning; +9 counted lines.
-  'packages/cli/src/boot/backend': 538,
+  'packages/cli/src/boot/backend': 545,
   'packages/cli/src/boot/default': 56,
   // 2026-09-22 CLI error surfaces (F03): `sessions show` prints one detail row per field with
   // model-written text escaped, and an id that matches nothing exits 1 on stderr. Exact measured 60.
@@ -624,7 +670,8 @@ const INITIAL_CEILING: Record<string, number> = {
   // so the packaged worker resolves its home the same way the daemon does. Re-measured on the tree
   // rebased onto 9a3d70ed (which itself reached 936): 937, exact cap.
   // 2026-09-22 Web Plugins parity: package asset and service BFF launcher integration. Exact.
-  'packages/cli/launch': 1110, // SKILL-INSTALL-CORE: preserve request-only port in packaged Host options.
+  // Package reads reuse verification, plugin loading hashes asynchronously, no Surface table polling; measured 1196, exact.
+  'packages/cli/launch': 1196, // SKILL-INSTALL-CORE: preserve request-only port in packaged Host options.
   // 2026-09-14: whole-branch review fix wave (Finding 1), same as above. Measured 90, exact --
   // unaffected by the workspace-picker change (different file, same aggregate prefix).
   // 2026-09-14: Task 4 profile-command-plan wires packages.trustWorkspace into invoke()'s switch --
@@ -675,7 +722,7 @@ const INITIAL_CEILING: Record<string, number> = {
   // override a model's reasoning capability when the installed pi-ai catalogue is incomplete or
   // wrong), landing independently of WIN-12c's own +2. Re-measured on the merged tree directly
   // (never summed): 911; exact cap, no spare.
-  'packages/host/src/configuration': 1230,
+  'packages/host/src/configuration': 1302,
   'packages/host/src/configuration-lock': 39,
   'packages/daemon/src/supervisor/configuration': 45,
   // S5 service workers reload the profile hash and its immutable snapshot path as one value.
@@ -1033,7 +1080,9 @@ const INITIAL_CEILING: Record<string, number> = {
   // 2026-10-05 the two sides coexist on the merged tree, so neither side's number holds. Re-measured
   // with countLines() after the merge: 26102, exact, no spare.
   // 2026-10-06: reject oversized inbox records before durable append; 26424, exact.
-  'packages/core/src': 26546,
+  // Clock envelope, validation error paths and secret diagnostics merged with main; measured 26566, exact.
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 26812, exact.
+  'packages/core/src': 26812,
   // 2026-09-15: DeepSeek V4 Pro/Flash ship a known-thinking-corrections table (new file) so the
   // product corrects pi-ai's verified-wrong reasoning_effort data out of the box, instead of
   // requiring every deployment to hand-edit thinkingEfforts once they notice. Measured 3347.
@@ -1048,7 +1097,8 @@ const INITIAL_CEILING: Record<string, number> = {
   // Response metadata on cost/ledger: per-attempt fetch capture of status, allowlisted header values
   // and header names, plus provider-side shape checks. Measured 3886 (+51).
   // Agnes default output allowance is explicitly serialized to HTTP. Measured +6, exact allocation.
-  'packages/ai/src': 3974,
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 4169, exact.
+  'packages/ai/src': 4169,
   // 2026-09-09: raised from 500, which was exactly the measured count and so forbade every
   // further line. Two repairs were blocked by it and are landing with this raise: the provider
   // factory taking log + pricing (without which every delivered assembly denominates ledger
@@ -1265,7 +1315,9 @@ const INITIAL_CEILING: Record<string, number> = {
   // The Kernel receives the spawned-child turn admission. Measured 4193, exact, no spare (+1).
   // A returning package must not be served a cached generation bound to revoked leases (+7), and the
   // full-access read-only roots reach the fence from the assembly (+7). Measured 4207, exact.
-  'packages/host/src/assemble': 4207,
+  // Package reads reuse verification, plugin loading hashes asynchronously, no Surface table polling; measured 4211, exact.
+  // Windows line endings, processes stopped with a command, session background jobs; measured 4212, exact.
+  'packages/host/src/assemble': 4212,
   // P1: generated-schema validators and duplicate projection-name refusal; measured exact cap.
   // F1 adds Surface JSON/identity validation and lock snapshot validation.
   // PM4 adds strict management DTO validation and method permission/identity contracts; exact total.
@@ -1342,7 +1394,7 @@ const INITIAL_CEILING: Record<string, number> = {
   // TRACE-INSPECTION-20260925: readToolDetail method types; measured 2201, exact.
   // Response metadata on cost/ledger: ResponseMeta root type export. Re-measured on the rebased
   // tree: 2201, exact.
-  'packages/protocol/src': 2272,
+  'packages/protocol/src': 2281,
   'packages/cli/src/tui': 4000,
   // 2026-09-16: first registration of packages/cli-tui — it matched none of the (then) 113 ratchet
   // keys, so the cli-progress-surface plan's Tasks 1-4 (Loader hide/restart/stop, formatTurnSummary,
@@ -1460,7 +1512,8 @@ const INITIAL_CEILING: Record<string, number> = {
   // exported as constants. Measured 981 (+3), exact, no spare.
   // Optional ExecResult.timedOut and the soft-deadline note on timeoutMs. Measured 987 (+6), exact cap.
   // Optional ToolContext.defaultTimeoutMs. Measured 988 (+1), exact cap.
-  'packages/extension-api/src': 997, // SKILL-INSTALL-CORE: optional request port and bounded DTO, no admin grant.
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 1018, exact.
+  'packages/extension-api/src': 1018, // SKILL-INSTALL-CORE: optional request port and bounded DTO, no admin grant.
   // Optional author fixture entry; no production runtime code belongs here.
   // B1-A: measured 229 lines on the shared tree; public transport contract, config and wiring/testkit.
   // B1 review repair: exact measured 246; startup cancellation / cwd contract coverage.
@@ -1533,7 +1586,7 @@ const INITIAL_CEILING: Record<string, number> = {
   // TRACE-INSPECTION-20260925: bounded, abortable paged detail read; measured 5127, exact.
   // 2026-10-04 image attachments: image blocks flow through the UI projection sync.
   // Measured: 5176, exact, no spare.
-  'packages/sdk/src': 5188,
+  'packages/sdk/src': 5189,
   'packages/sdk/src/extensions.node': 21,
   'packages/sdk/src/package-admin.node': 147,
   'packages/sdk/src/surface.browser': 3,
@@ -1896,7 +1949,11 @@ const INITIAL_CEILING: Record<string, number> = {
   // An approval request carries the tool's ACP kind and name. Measured 26542 (+6), exact cap.
   // Approval reasons: the prompter router answers with a reason (+18). Measured 26758 (combined tree), exact cap.
   // 2026-10-06: bound image transport byte totals and split oversized worker scan ranges; 26818, exact.
-  'packages/daemon/src': 26847,
+  // Preset refusal causes and doctor provider/profile checks merged with main; measured 26898, exact.
+  // Combined diagnostics fixes (credential store detail, preset refusal, startup reason, secrets) on main; measured 26917, exact.
+  // Package reads reuse verification, plugin loading hashes asynchronously, no Surface table polling; measured 26919, exact.
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 27138, exact.
+  'packages/daemon/src': 27138,
   'packages/daemon/src/packages/admin-session': 46,
   // 2026-09-14: whole-branch review fix wave (Finding 1) adds the two missing
   // 'pins/inspect'/'pins/release' entries to the ACTIONS BFF route allowlist, which had been left
@@ -2148,7 +2205,13 @@ const INITIAL_CEILING: Record<string, number> = {
   // Approval reasons: the approval card label reads the decision reason (+22). Measured 16081 (combined tree), exact cap.
   // 2026-10-05 the merge keeps both sides' additions, so neither number holds. Re-measured on the
   // merged tree: 16861, exact, no spare.
-  'packages/web/src': 16908,
+  // 2026-10-06 the same notification migration, counted over the whole web source scope.
+  // Re-measured with countLines() after the review fixes on that work: 16947, exact, no spare.
+  // 2026-10-09 merge with main: main's own increments in this scope land on top of that 16947, so
+  // neither side's number holds. Re-measured with countLines() on the merged tree: 16967, exact.
+  // Combined diagnostics fixes (credential store detail, preset refusal, startup reason, secrets) on main; measured 16990, exact.
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 17030, exact.
+  'packages/web/src': 17030,
   // 2026-09-17 web-client-modules frontend track (rebased onto L0/permission-picker main): re-measured exact value below.
   // 2026-09-14: Task 7 orphaned-pin-cleanup adds the orphan-pins section to PluginAdminPage — the
   // #orphanPins/#orphanPinsList/#orphanPinsStatus/#orphanPinsReleaseAll element bindings, the
@@ -2630,7 +2693,10 @@ const INITIAL_CEILING: Record<string, number> = {
   // read-only under full file access: the fence guard, the roots helper and their wiring (+40).
   // Measured 38359, exact.
   // Approval reasons: the Prompter type may answer with a reason (+2). Measured 38398 (combined tree), exact cap.
-  'packages/host/src': 38398,
+  // Combined diagnostics fixes (credential store detail, preset refusal, startup reason, secrets) on main; measured 38668, exact.
+  // Package reads reuse verification, plugin loading hashes asynchronously, no Surface table polling; measured 38672, exact.
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 39040, exact.
+  'packages/host/src': 39040,
   'packages/host/src/ext-host/service-invocation': 247,
   // T5.2's permission projector is kept independently bounded so later extension-host work cannot
   // hide in the package-wide increment. Measured source: 86 lines.
@@ -2798,7 +2864,9 @@ const INITIAL_CEILING: Record<string, number> = {
   // The fence refuses writes to the installation's own state under full file access. Measured 5053,
   // exact, no spare (+19).
   // Approval reasons: the Prompter type may answer with a reason (+2). Measured 5055, exact cap.
-  'packages/host/src/adapters': 5055,
+  // Combined diagnostics fixes (credential store detail, preset refusal, startup reason, secrets) on main; measured 5248, exact.
+  // Windows tool fixes, background jobs, and the fixes from two Windows diagnostics bundles; measured 5572, exact.
+  'packages/host/src/adapters': 5572,
 
   // C1b Task 5 persists child creation attempts and deferred recovery; exact total, no spare.
   // Task 17 review: sqlite_master scan + table-name refuse. Re-measured: 674, exact.
@@ -2860,7 +2928,10 @@ const EXTENSION_CEILING_EXCEPTIONS = new Map([
   // Skill description bounds and paged reads. Measured 1121, exact.
   ['skills', 1121],
   // Write staleness guard, session images and bounded attachment text reads. Measured 922, exact.
-  ['tools-core', 922],
+  // CRLF-preserving write/edit, the stopped-process notice, background shell, the job tool, and the
+  // PowerShell, timeout and wrapper feedback in shell results; measured 1080, exact (a sibling
+  // extension for `job` alone would still leave this above 922).
+  ['tools-core', 1080],
 ])
 
 describe('bundled extension line budgets (default ≤ 800, named reviewed exceptions)', () => {

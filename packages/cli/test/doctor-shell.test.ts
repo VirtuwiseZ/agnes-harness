@@ -21,6 +21,11 @@ function platform(os: 'win32' | 'linux') {
     matches: () => true,
     probe: async () => {},
     snapshot: () => ({ os, arch: 'x64', capabilities: { 'sandbox.l1': 'unavailable' } }),
+    capability: () => ({
+      level: 'unavailable',
+      scope: [],
+      reason: 'awaiting sandbox backend full-boundary probe',
+    }),
   } as unknown as ReturnType<typeof createPlatform>)
 }
 
@@ -31,6 +36,7 @@ it('reports the selected runtime shell without changing sandbox availability', a
     version: '5.1.26100.9444',
     edition: 'Desktop',
     nativeArguments: 'Legacy',
+    codePage: 936,
   })
   const result = await doctorPlatform(deps)
   expect(resolveConfiguredPowerShell).toHaveBeenCalledWith(expect.objectContaining(deps.env))
@@ -40,6 +46,7 @@ it('reports the selected runtime shell without changing sandbox availability', a
       'PowerShell 5.1.26100.9444 (Desktop)',
       'shell path C:\\Windows\\powershell.exe',
       'native arguments Legacy',
+      'console code page 936',
       'sandbox.l1=unavailable',
     ]),
   )
@@ -57,7 +64,11 @@ it('keeps non-Windows diagnostics independent of PowerShell', async () => {
   expect(await doctorPlatform(deps)).toEqual({
     name: 'platform',
     status: 'warn',
-    detail: ['os linux x64', 'sandbox.l1=unavailable'],
+    detail: [
+      'os linux x64',
+      'sandbox.l1=unavailable',
+      'sandbox.l1.reason=awaiting sandbox backend full-boundary probe',
+    ],
   })
   expect(resolveConfiguredPowerShell).not.toHaveBeenCalled()
 })

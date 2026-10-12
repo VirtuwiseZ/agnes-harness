@@ -82,9 +82,16 @@ const APPROVAL_DECISION_KEYS = new Map<string, string>([
   ['cancelled', 'timeline.decision.cancelled'],
 ])
 
-/** Why the decision ended as it did. A ledger from before reasons existed has none and falls back to the verdict. */
+/**
+ * Why the decision ended as it did. A ledger from before reasons existed has none and falls back to
+ * the verdict, and so does `user_allowed`: the verdict already says what the user allowed and for how
+ * long, which a label naming only who decided would hide.
+ */
 const APPROVAL_REASON_KEYS = new Map<string, string>([
   ['user_rejected', 'timeline.reason.userRejected'],
+  ['policy_allowed', 'timeline.reason.policyAllowed'],
+  ['approver_failed', 'timeline.reason.approverFailed'],
+  ['client_cancelled', 'timeline.reason.clientCancelled'],
   ['timeout', 'timeline.reason.timeout'],
   ['no_approver', 'timeline.reason.noApprover'],
   ['stopped', 'timeline.reason.stopped'],
@@ -430,8 +437,7 @@ function createEntry(node: UINode, t: Translate, entryFingerprint: string): Entr
 }
 
 // 与 NativeDshChildren 的子槽位清单保持一致（那边带 entryKey，这里只关心名字），
-// 供「有没有人认领」判定使用；声明占位条目（key: '__agnes-native-child-declarations__'）
-// 不是真实注册项，不会被 entriesOfSlot 之外的判断误伤。
+// 供「有没有人认领」判定使用。
 const dshChildSlotNames = (slotName: string, kind: UINode['kind']): readonly string[] =>
   slotName === 'tool.call.toolview'
     ? ['tool.call.images', 'tool.view.cordis']

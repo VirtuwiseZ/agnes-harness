@@ -166,6 +166,7 @@ function snapshotToolMeta(meta: ToolMeta): ToolMeta {
     costHint,
     deferLoading: meta.deferLoading,
     requiresApproval: meta.requiresApproval,
+    ...(meta.returnsImages === true ? { returnsImages: true } : {}),
   })
 }
 
@@ -254,6 +255,7 @@ function fingerprintToolDefinition(def: ToolDef, meta: ToolSource): string {
         policyVersion: def.policyVersion,
         isConcurrencySafe: def.meta.isConcurrencySafe,
         isOpenWorld: def.meta.isOpenWorld,
+        ...(def.meta.returnsImages === true ? { returnsImages: true } : {}),
       }),
     )
   }
@@ -271,8 +273,12 @@ function fingerprintToolDefinition(def: ToolDef, meta: ToolSource): string {
         isDestructive: def.meta.isDestructive,
         isConcurrencySafe: def.meta.isConcurrencySafe,
         isOpenWorld: def.meta.isOpenWorld,
+        ...(def.meta.returnsImages === true ? { returnsImages: true } : {}),
         replay: def.meta.replay,
-        requiresApproval: def.meta.requiresApproval ?? (def.meta.isDestructive ? 'destructive' : 'never'),
+        // The same band resolveToolCallPolicy gives a tool that declared none.
+        requiresApproval:
+          def.meta.requiresApproval ??
+          (def.meta.isDestructive || !def.meta.isReadOnly ? 'destructive' : 'never'),
         approvalScopes: [],
       },
     }),

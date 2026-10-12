@@ -2900,9 +2900,13 @@ const AGNES_SAMPLES: Record<string, Sample> = {
     valid: { sessionId: 's', archived: true },
     invalid: [{ sessionId: 's' }, { sessionId: 's', archived: 'yes' }],
   },
-  DiagnosticsCollectParams: { note: 'collect takes no input', valid: {}, invalid: [{ extra: 1 }] },
+  DiagnosticsCollectParams: {
+    note: 'the runtime log is opt-in, so a caller that does not ask still gets the old two-log result',
+    valid: { runtimeLog: true },
+    invalid: [{ extra: 1 }, { runtimeLog: 'yes' }],
+  },
   DiagnosticsCollectResult: {
-    note: 'runtime info plus bounded audit tails',
+    note: 'runtime info plus bounded log tails: the two audits, and the runtime log when asked for',
     valid: {
       collectedAt: '2026-09-24T00:00:00.000Z',
       agh: { version: 'dev' },
@@ -2914,9 +2918,28 @@ const AGNES_SAMPLES: Record<string, Sample> = {
         pid: 1,
         uptimeMs: 0,
       },
-      logs: [{ name: 'daemon.jsonl', size: 0, text: '', truncated: false, missing: true }],
+      logs: [
+        { name: 'daemon.jsonl', size: 0, text: '', truncated: false, missing: true },
+        { name: 'host.jsonl', size: 0, text: '', truncated: false, missing: true },
+        { name: 'runtime.jsonl', size: 2, text: '{}', truncated: false, missing: false },
+      ],
     },
-    invalid: [{ collectedAt: 'x', agh: {}, runtime: {}, logs: [] }],
+    invalid: [
+      { collectedAt: 'x', agh: {}, runtime: {}, logs: [] },
+      {
+        collectedAt: '2026-09-24T00:00:00.000Z',
+        agh: { version: 'dev' },
+        runtime: {
+          platform: 'darwin',
+          arch: 'arm64',
+          osRelease: '25.0.0',
+          node: '24.10.0',
+          pid: 1,
+          uptimeMs: 0,
+        },
+        logs: [{ name: 'other.jsonl', size: 0, text: '', truncated: false, missing: true }],
+      },
+    ],
   },
   DiagnosticsEventsParams: {
     note: 'one bounded ledger page',
@@ -3587,6 +3610,7 @@ const TOOLDEF_SAMPLES: Record<string, Sample> = {
       { ...toolMetaOk, requiresApproval: 'sometimes' }, // enum
       { ...toolMetaOk, costHint: { credits: -1 } }, // boundary: one below minimum:0
       { ...toolMetaOk, extra: 1 }, // additionalProperties:false
+      { ...toolMetaOk, returnsImages: 'yes' }, // optional, but a boolean when present
     ],
     note: 'all eight keys are required, so an author cannot leave one to a default nobody wrote down',
   },

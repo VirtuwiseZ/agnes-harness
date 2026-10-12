@@ -44,9 +44,9 @@ import type {
 } from './workspace/runtime.js'
 
 /**
- * The closed set of `x/core/*` diagnostic names. Five of them are written outside this file:
+ * The closed set of `x/core/*` diagnostic names. Six of them are written outside this file:
  * `registers-rebuilt` by the materialization check on open, `contribute-conflict`,
- * `context-breakdown` and `request-media-window` by the inference segment, plus
+ * `context-breakdown`, `request-media-window` and `inference-retry` by the inference segment, plus
  * `manual-compaction` by the explicit session operation. A name missing from here stops `diag`
  * compiling at its call site, which is the point of closing the set rather than accepting any string.
  */
@@ -73,6 +73,7 @@ export const CORE_DIAG_NAMES = [
   'contribute-conflict',
   'context-breakdown',
   'request-media-window',
+  'inference-retry',
 ] as const
 export type CoreDiagName = (typeof CORE_DIAG_NAMES)[number]
 
@@ -135,6 +136,8 @@ export type SessionOptions = {
   actor: Actor
   preset?: PresetView
   resolvedProfileHash: string | null
+  /** Hash of the resolved preset document; written to a new session/start only. */
+  resolvedPresetHash?: string | null
   seams?: Partial<SeamImplementations>
   cwd: string
   writerRunId: string
@@ -387,6 +390,7 @@ export class Kernel {
         agnesVersion: this.o.agnesVersion ?? '0.0.0',
         preset: preset.name,
         resolvedProfileHash: so.resolvedProfileHash,
+        ...(so.resolvedPresetHash ? { resolvedPresetHash: so.resolvedPresetHash } : {}),
         writerRunId: so.writerRunId,
         lane,
         modelSelections: Object.entries(preset.model.id).flatMap(([slot, model]) => {
@@ -483,6 +487,7 @@ export class Kernel {
       clock: this.clock,
       actor: so.actor,
       resolvedProfileHash: so.resolvedProfileHash,
+      ...(so.resolvedPresetHash ? { resolvedPresetHash: so.resolvedPresetHash } : {}),
       ...(so.imported ? { imported: so.imported } : {}),
       cwd: so.cwd,
       netFetch: this.o.netFetch,

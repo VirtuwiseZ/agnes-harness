@@ -456,10 +456,13 @@ export * from './slots.js'
 export * from './surfaces.js'
 export type { ValidationError, ValidationResult } from './validate.js'
 export {
+  AttachmentValidationError,
   decodeAttachmentData,
   decodeSafeImages,
+  describeValidationErrors,
   isDateTime,
   modelImageInputError,
+  SafeImageError,
   toRpcError,
   USER_MESSAGE_ATTACHMENT_LIMITS,
   USER_MESSAGE_IMAGE_LIMITS,
