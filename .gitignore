@@ -25,7 +25,6 @@ packages/host/native/macos-live-app-identity
 .idea/
 /.windows-core-host-check.log
 .agnes
-.agh
 learn/
 .DS_Store
 
