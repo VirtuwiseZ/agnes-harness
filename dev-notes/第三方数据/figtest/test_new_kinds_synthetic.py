@@ -1,4 +1,4 @@
-"""Synthetic regression test for the new log-axis + boxplot capabilities in
+﻿"""Synthetic regression test for the new log-axis + boxplot capabilities in
 make_report_figures.py. Covers:
 
   (a) log-x curve, all-positive data  -> renders clean, no footnote
@@ -22,7 +22,7 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent.parent.parent  # E:\agnes-harness
-HOOK = ROOT / "program-design" / "hooks" / "make_report_figures.py"
+HOOK = ROOT / "physics-agent" / "hooks" / "make_report_figures.py"
 OUT = pathlib.Path(__file__).parent / "figs_new_kinds_synthetic"
 OUT.mkdir(parents=True, exist_ok=True)
 

@@ -1,4 +1,4 @@
-p = 'program-design/hooks/make_report_figures.py'
+﻿p = 'physics-agent/hooks/make_report_figures.py'
 with open(p, 'r', encoding='utf-8', newline='') as f:
     text = f.read()
 

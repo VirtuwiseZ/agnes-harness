@@ -1,4 +1,4 @@
-# 项目开发设计共识备忘录
+﻿# 项目开发设计共识备忘录
 
 ## 第 3 轮测试（03）之后的共识更新：报告呈现层重设，溯源设计让位于"可验证感"
 
@@ -64,26 +64,26 @@
    `test3-1` ⑤（补充想法 1）：如果 AGH 前端确实做不了会话内可点击链接，
    至少让 agent 用代码块输出一个 `file:///E:/...` 浏览器可直接粘贴打开的
    链接；产物目录最好也放浅一点（比如工作区根下 `reports/<slug>.html`），
-   而不是 `program-design/runtime/` 这种 4 级深处。
+   而不是 `physics-agent/runtime/` 这种 4 级深处。
 
-7. **`program-design/runtime/` 下多个会话的产物目前混在同一目录里，
+7. **`physics-agent/runtime/` 下多个会话的产物目前混在同一目录里，
    要改成按会话/任务分子目录存放。**
    `test3-1` ②：两个不同会话（2025A、2025B）的 `problem_state_*.json`、
    `report_*.md`、各自写的模型 `.py`、trace 抓取输出全部平铺在同一目录，
    已经实际造成了"2025A 的报告里提了 2025B"这类跨任务串档现象
    （`test3-1` ①）。**决定**：Node 1 创建任务专属文件时，路径规范改为
-   `program-design/runtime/<task-slug>/`，一个任务一个子目录，天然隔离
+   `physics-agent/runtime/<task-slug>/`，一个任务一个子目录，天然隔离
    不同会话/任务的资产。
 
-8. **`SKILL.md` / `program-design/` 是否会被运行中的 agent 自己改，目前
+8. **`SKILL.md` / `physics-agent/` 是否会被运行中的 agent 自己改，目前
    没有证据显示发生过，但要做成可核验的常识，不能只是"看着没问题"。**
    `test3-1` ⑥的疑问（"agent 会不会在运行中自己修改 SKILL.md 或
-   program-design 文件"）经核对 `ability-test3` 分支这条 commit 的实际改动
+   physics-agent 文件"）经核对 `ability-test3` 分支这条 commit 的实际改动
    清单，只新增了任务专属文件（各题的参数 JSON、各题自己写的模型
    `.py`、各题的 `problem_state`/`report`/`trace_capture` 输出），没有
    对既有 `SKILL.md` 或既有钩子脚本产生 diff，**没有证据表明发生过违规
    自改**；但为了让以后每次走查都能快速自查这一点，加一条固定收尾动作：
-   每次走查结束后，跑一次"git diff 是否碰到 `program-design/hooks/*.py` /
+   每次走查结束后，跑一次"git diff 是否碰到 `physics-agent/hooks/*.py` /
    `SKILL.md` / 既有模板文件"的检查，作为常规质检步骤，而不是等出事了
    再回头查。
 

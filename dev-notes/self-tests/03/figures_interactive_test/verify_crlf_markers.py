@@ -1,5 +1,5 @@
-import sys
-p = 'program-design/hooks/make_report_figures.py'
+﻿import sys
+p = 'physics-agent/hooks/make_report_figures.py'
 with open(p, 'rb') as f:
     data = f.read()
 marker = "    js_div_id = div_id\r\n\r\n    script_template = \"\"\""

@@ -1,4 +1,4 @@
-# 环境准备与下载指导（Python / Node / pnpm）
+﻿# 环境准备与下载指导（Python / Node / pnpm）
 
 > 本文件是"别人拿到本项目（AGH 宿主仓库 + 本项目 physics-agent-governance skill）要在自己电脑上跑起来"的最小环境清单和安装指引。
 > 跟 `check-env.mjs`（同目录）配套用：先按下面装好，再跑一次 `node dev-notes/env-check/check-env.mjs` 确认全绿。
@@ -9,7 +9,7 @@
 |---|---|---|
 | Node.js | AGH 宿主本身跑在 Node 上，`pnpm install` 也靠它 | 24.21.0（LTS） |
 | pnpm | AGH 宿主仓库的包管理器，`pnpm install` 装宿主依赖 | 10.34.5 |
-| Python | 本项目 `program-design/hooks/` 下所有确定性 hook 脚本（量纲门禁、边界检查、ODE 建模、报告图表等）的运行环境，`dev-notes/self-tests/` 验收脚本也是 Python | 3.13.9 |
+| Python | 本项目 `physics-agent/hooks/` 下所有确定性 hook 脚本（量纲门禁、边界检查、ODE 建模、报告图表等）的运行环境，`dev-notes/self-tests/` 验收脚本也是 Python | 3.13.9 |
 
 这三个版本的对应关系，跟 `dev-notes/self-tests/00-meta/self-test-index.md` §3"固定事实块"记录的"这份清单在哪个 Node/pnpm/Python 版本组合上实际跑通过"一致——`check-env.mjs` 里检查的下限就是这份清单，不是拍脑袋定的"最低版本号"。
 

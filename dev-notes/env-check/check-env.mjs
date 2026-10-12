@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 // AGH 宿主 + 本项目 hooks 的环境检查脚本
 // 用法：从仓库根目录运行
 //   node dev-notes/env-check/check-env.mjs
@@ -79,7 +79,7 @@ function probePythonReal() {
 
 const PYTHON = {
   name: 'Python', min: [3, 13, 9],
-  installHint: 'https://www.python.org/downloads/ （注意安装时勾选 "Add Python to PATH"；本项目锁定版本是 3.13.9，见 program-design/third_party/portable-runtime/PORTABLE_RUNTIME.md）',
+  installHint: 'https://www.python.org/downloads/ （注意安装时勾选 "Add Python to PATH"；本项目锁定版本是 3.13.9，见 physics-agent/third_party/portable-runtime/PORTABLE_RUNTIME.md）',
 };
 
 function check(item, label, customProbe) {

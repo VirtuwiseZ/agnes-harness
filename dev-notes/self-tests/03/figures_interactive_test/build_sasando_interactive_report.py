@@ -1,4 +1,4 @@
-"""Render a minimal Node-4-style HTML page around the real 2025A sasando
+﻿"""Render a minimal Node-4-style HTML page around the real 2025A sasando
 interactive figure, using the real trace_visualizer.py inlining path —
 not a standalone fragment — so the result is exactly what the pipeline
 would produce in a real run."""
@@ -27,7 +27,7 @@ with open(trace_path, "w", encoding="utf-8") as f:
     f.write('{"type":"tool/call","toolName":"shell"}\n')
 
 out_html = os.path.join(here, "research_report_sasando_interactive.html")
-script = os.path.join(repo_root, "program-design", "hooks", "trace_visualizer.py")
+script = os.path.join(repo_root, "physics-agent", "hooks", "trace_visualizer.py")
 r = subprocess.run([sys.executable, script, "--trace", trace_path, "--report", report_md_path,
                     "--state", state_path, "--figures-dir", figures_dir, "--out", out_html],
                    capture_output=True, text=True)

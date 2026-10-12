@@ -1,4 +1,4 @@
-# 第 3 轮测试（03，两道全新题 2025A Sasando / 2025B 火炮）流程层面质量分析
+﻿# 第 3 轮测试（03，两道全新题 2025A Sasando / 2025B 火炮）流程层面质量分析
 
 分析范围（按本轮测试要求）：**只看 AGH 运行机制 + AI 按协议执行的顺利点/不足点，不评判物理
 分析本身对不对**（那部分等用户提供题目范文后单独做）。基于：
@@ -77,9 +77,9 @@
 - 报告里出现 agent 自言自语式措辞（"这一点必须在最终结论里明确写出，不能藏在代码里"被原样
   带进给用户看的正文）。**共识：Node 3 加一道规则——给自己的后续提醒不能写进
   `report_<slug>.md` 正文，要留就写进 `problem_state.json` 的独立内部字段。**
-- `program-design/runtime/` 下多个会话的产物平铺在同一目录，实际造成了 2025A 报告里提到
-  2025B 的跨任务串档。**共识：改成 `program-design/runtime/<task-slug>/` 按任务分子目录。**
-- 报告/产物路径太深（`program-design/runtime/` 下 4 级），用户得进文件管理器逐层翻。
+- `physics-agent/runtime/` 下多个会话的产物平铺在同一目录，实际造成了 2025A 报告里提到
+  2025B 的跨任务串档。**共识：改成 `physics-agent/runtime/<task-slug>/` 按任务分子目录。**
+- 报告/产物路径太深（`physics-agent/runtime/` 下 4 级），用户得进文件管理器逐层翻。
   **共识：至少让 agent 在回复里给一个 `file:///` 可直接粘贴进浏览器的链接（AGH 前端
   做不了会话内可点链接时的兜底），产物目录也考虑放到更浅的位置。**
 - 报告里缺乏仿真数据图表（只有文字 + 简单 markdown 表格）。**共识：方向认可、要认真做，
@@ -105,8 +105,8 @@
    "每次独立的可用性探测都算一条 `availability_check` 记录，即使第一次探测失败"。
 3. **2025B 里 `node1_audit_setup.py` 因为 `import audit_log` 找不到模块路径而失败两次**
    （`ModuleNotFoundError: No module named 'audit_log'`）——agent 是把它写在
-   `E:\agh-test3\node1_audit_setup.py`（worktree 根目录）而不是 `program-design/hooks/` 下面，
-   用 `import audit_log` 裸 import 当然找不到（`audit_log.py` 在 `program-design/hooks/` 里，
+   `E:\agh-test3\node1_audit_setup.py`（worktree 根目录）而不是 `physics-agent/hooks/` 下面，
+   用 `import audit_log` 裸 import 当然找不到（`audit_log.py` 在 `physics-agent/hooks/` 里，
    不在 Python 的 `sys.path` 默认搜索路径上）。agent 最终修正了这个路径问题（改成了正确的
    import 方式），但这个"钩子脚本该从哪里 import"本身是一个**没有写进任何协议/文档的隐性
    约定**（`boundary_gate.py` 的 `model_module` 上一轮刚补过一条"要在启动目录下可 import"

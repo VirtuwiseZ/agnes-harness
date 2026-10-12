@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang='zh'><head><meta charset='utf-8'><title>物理研究汇报 — synthetic-1</title><style>
 :root{--bg:#0f1117;--card:#1a1d27;--card2:#232733;--ink:#e8eaf2;--muted:#9aa0b4;
 --accent:#4f8cff;--orange:#ff9f43;--red:#ff5470;--green:#2ecc71;--line:#3a3f52}
@@ -72,7 +72,7 @@ text-align:left;font-size:13px}
     &quot;type&quot;: &quot;data_source_unavailable&quot;,
     &quot;note&quot;: &quot;Level 1 blocked, Level 3 fallback&quot;
   }
-]</pre></details></section><section class='report-section' id='sec-1'><h2>二、模型假设（Node 2a 方法论适配判断）</h2><div class='sec-body'><p>我匹配到的方法论模板是 <code>program-design/knowledge/atmosphere-drag-ode.md</code>（垂直</p>
+]</pre></details></section><section class='report-section' id='sec-1'><h2>二、模型假设（Node 2a 方法论适配判断）</h2><div class='sec-body'><p>我匹配到的方法论模板是 <code>physics-agent/knowledge/atmosphere-drag-ode.md</code>（垂直</p>
 <p>下降 ODE，按局地马赫数分段 CD）。</p>
 <p><strong>关键适配判断（不是照搬模板数值）</strong>：模板自带的 CD 分段阈值（Mach 0.8 / 1.2）</p>
 <p>与面积参数（A=0.18/0.2 m²）是<strong>模板通用候选值</strong>，不是针对本题（马赫数高达 15 级</p>
@@ -146,7 +146,7 @@ text-align:left;font-size:13px}
     &quot;type&quot;: &quot;data_source_unavailable&quot;,
     &quot;note&quot;: &quot;Level 1 blocked, Level 3 fallback&quot;
   }
-]</pre></details></section><section class='report-section' id='sec-3'><h2>四、数值模型与门禁（Node 2b）</h2><div class='sec-body'><p>我用 <code>program-design/hooks/ode_model.py</code>（数据源无关的 ODE 求解脚本）做垂直下降</p>
+]</pre></details></section><section class='report-section' id='sec-3'><h2>四、数值模型与门禁（Node 2b）</h2><div class='sec-body'><p>我用 <code>physics-agent/hooks/ode_model.py</code>（数据源无关的 ODE 求解脚本）做垂直下降</p>
 <p>积分：状态变量取 u = v²/2（比动能），自变量取下落距离 x，方程为</p>
 <p>du/dx = g_eff(z) − [ρ(z)·CD(Mach)·A(Mach)/(2m)]·u，z = z0 − x。</p>
 <p>量纲门禁（<code>dimensional_gate.py</code>，Pint 引擎）：<strong>通过</strong>。g_eff 项（m/s²）与</p>

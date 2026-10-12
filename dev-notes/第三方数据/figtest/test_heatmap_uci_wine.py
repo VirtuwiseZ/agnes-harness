@@ -1,4 +1,4 @@
-"""Test 1: UCI Wine Quality — 变量相关性热图（方阵相关系数矩阵 + 理化指标×quality 非方阵热图）
+﻿"""Test 1: UCI Wine Quality — 变量相关性热图（方阵相关系数矩阵 + 理化指标×quality 非方阵热图）
 
 按 heatmap推荐数据源.md 的建议实现。依赖：pandas, matplotlib, seaborn（seaborn
 缺失时降级用纯 matplotlib pcolormesh 画同样的矩阵，不影响数据验证）。
@@ -20,7 +20,7 @@ DATA = os.path.join(BASE, "data")
 OUT = os.path.join(BASE, "figs_heatmap_wine")
 os.makedirs(OUT, exist_ok=True)
 
-sys.path.insert(0, r"E:\agnes-harness\program-design\hooks")
+sys.path.insert(0, r"E:\agnes-harness\physics-agent\hooks")
 import make_report_figures as m
 m._configure_cjk_font()
 

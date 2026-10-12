@@ -1,4 +1,4 @@
-import json, subprocess, sys, os, tempfile, re
+﻿import json, subprocess, sys, os, tempfile, re
 
 base = os.path.dirname(os.path.abspath(__file__))  # .../dev-notes/self-tests/03/figures_interactive_test/
 repo_root = os.path.abspath(os.path.join(base, "..", "..", "..", ".."))
@@ -40,7 +40,7 @@ with open(state_mod_path, "w", encoding="utf-8") as f:
     json.dump(state, f)
 
 out_dir = os.path.join(tmp, "figs")
-r = subprocess.run([sys.executable, os.path.join(repo_root, "program-design", "hooks", "make_report_figures.py"),
+r = subprocess.run([sys.executable, os.path.join(repo_root, "physics-agent", "hooks", "make_report_figures.py"),
                     "--state", state_mod_path, "--out-dir", out_dir],
                    capture_output=True, text=True)
 print(r.stdout)

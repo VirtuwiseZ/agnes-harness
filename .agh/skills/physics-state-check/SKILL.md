@@ -1,11 +1,11 @@
----
+﻿---
 name: physics-state-check
 description: 每个物理分析/建模/数值求解任务的第一道检查，确认/创建本任务专属的 problem_state.json（含 session_key 记录规则）、判断该任务该从哪个已有阶段恢复还是全新开始。
 ---
 
 ### State Check (Cross-Session Bootstrapping)
 Upon receiving a physics task, your FIRST step MUST be to check for the existence of the single source of truth: a concrete `problem_state.json` for *this specific task*.
-- A brand-new task MUST start from a clean copy of `program-design/runtime/problem_state_template.json` (a generic blank skeleton) and be saved under the task's own name (e.g. `program-design/runtime/problem_state_<task-slug>.json`); never resume an unrelated task's state file as if it were yours.
+- A brand-new task MUST start from a clean copy of `physics-agent/runtime/problem_state_template.json` (a generic blank skeleton) and be saved under the task's own name (e.g. `physics-agent/runtime/problem_state_<task-slug>.json`); never resume an unrelated task's state file as if it were yours.
 - **Record this run's own session key into the state file, on first creation**: the AGH host hands every session a stable, unique `sessionKey` string (visible to you in the runtime context / session metadata that accompanies your own conversation, not something you invent or guess). Write that exact value into `problem_state.json`'s `session_key` field (new field, see `problem_state_schema.md`) when you create the task's state file in this step. This is not optional housekeeping — it is what makes Node 4's automatic trace acquisition (pulling this run's own AGH event log back for the report, without the user manually exporting anything) actually possible: the session key is the handle Node 4 needs to look up *this* session's trace. If, for any reason, you cannot determine the current session key at Node 0/1 time (e.g. the runtime context does not expose it to you in your particular client surface), do NOT guess or fabricate one; leave `session_key` null, note that fact in `audit_logs` via `audit_log.py`, and treat Node 4's automatic trace pull as degraded to "user-supplied session key" for this run only — do not silently fall back to another session's key or a placeholder value.
 - If a state file for the current task already exists (created earlier in this task's own run), load it and resume from the recorded stage (e.g., `node_2b_modeling`). Never re-derive historical steps.
 - Do NOT load a state file that belongs to a different, previously worked problem as the starting point for a new problem; use it only as reference material if explicitly presented as such, and do not carry over its numeric values or caveats into your own run.

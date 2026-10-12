@@ -1,4 +1,4 @@
-"""Build numerical_artifacts.figures JSON for each of the 4 immediately-usable
+﻿"""Build numerical_artifacts.figures JSON for each of the 4 immediately-usable
 third-party datasets (curve/scatter/error_bar/interval_highlight x2), then run
 make_report_figures.py on each and confirm the output PNGs exist and are
 non-trivial in size. Heatmap (NOAA SST) is skipped for now: its data file
@@ -18,7 +18,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 THIRD = r"E:\agnes-harness\dev-notes\第三方数据"
 FIGTEST = os.path.join(THIRD, "figtest")
-SCRIPT = r"E:\agnes-harness\program-design\hooks\make_report_figures.py"
+SCRIPT = r"E:\agnes-harness\physics-agent\hooks\make_report_figures.py"
 
 
 def run_figures(figures, label, out_dir):

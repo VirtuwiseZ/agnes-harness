@@ -1,4 +1,4 @@
-# 项目开发待办回顾（2026-10-09）
+﻿# 项目开发待办回顾（2026-10-09）
 
 > 整理方法：不是凭印象列，是逐条对照 `git status --short`、最近 15 条 commit、
 > `dev-notes/self-tests/02/commit_summaries_round2.md`、`dev-notes/self-tests/03/
@@ -16,11 +16,11 @@
 - `M .agh/skills/physics-agent-governance/SKILL.md`
 - `M dev-notes/self-tests/03/charting_generic_architecture.md`
 - `M "dev-notes/第三轮数据/figtest/test_heatmap_nasa_power.py"`
-- `M program-design/hooks/make_report_figures.py`
-- `M program-design/hooks/requirements.txt`
-- `M program-design/hooks/trace_visualizer.py`
-- `M program-design/parser_requirements.md`
-- `M program-design/problem_state_schema.md`
+- `M physics-agent/hooks/make_report_figures.py`
+- `M physics-agent/hooks/requirements.txt`
+- `M physics-agent/hooks/trace_visualizer.py`
+- `M physics-agent/parser_requirements.md`
+- `M physics-agent/problem_state_schema.md`
 - 另外一大片 `??`（untracked，未纳入 git）：
   - `dev-notes/interactive_figure_design.md`（含本轮新增的 §7）
   - `dev-notes/self-tests/03/figures_interactive_test/`（整个目录，含本轮新增的
@@ -67,10 +67,10 @@ commit message、直接复制即可"的格式写好了 3 个 commit：
 
 1. `fix(dimensional-gate)`：DIM_ALIAS 从 15 键扩到 60 余键 + 齐次性判定改成
    排序后量纲项做判定键（100% 稳定）+ SymPy Derivative 处理缺陷修复 + 测试
-   从 4 个扩到 13 个全过（涉及 `program-design/hooks/dimensional_gate.py` +
+   从 4 个扩到 13 个全过（涉及 `physics-agent/hooks/dimensional_gate.py` +
    `dev-notes/self-tests/test_dimensional_gate.py`，两者均已 `M`/tracked）。
 2. `chore(gitignore)`：补 `__pycache__/`、`*.pyc` 忽略规则 + 删掉本轮跑量纲门
-   测试产生的 `program-design/hooks/__pycache__/` 整个目录。
+   测试产生的 `physics-agent/hooks/__pycache__/` 整个目录。
 3. `docs(self-tests)`：把走查 1 三件套迁入 `01/`，新增 `02/` 下完整的
    agent 真实产物 + 官方 trace 导出 + 完整性核验脚本 + §5 隔离核验证据 +
    量纲表检索提示词及两份 AI 答复与研判（全部 untracked，一次性 `git add`）。

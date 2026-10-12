@@ -1,7 +1,7 @@
 ﻿"""Node 2.7 (optional) — render numerical-artifact figures for a report.
 
 Reads ONLY `problem_state.json`'s `numerical_artifacts.figures` (the domain-
-neutral sub-schema documented in program-design/problem_state_schema.md
+neutral sub-schema documented in physics-agent/problem_state_schema.md
 §Figures and in dev-notes/self-tests/03/charting_generic_architecture.md §2,
 v2) and writes one image file per figure to an output directory, for Node 4
 (trace_visualizer.py --figures-dir) to inline into the final HTML.
@@ -35,9 +35,9 @@ Design principles (kept deliberately narrow — see the v2 architecture doc):
   same as `figures` present but malformed, which is an error.
 
 Usage:
-    python program-design/hooks/make_report_figures.py \
-        --state program-design/runtime/problem_state_<task-slug>.json \
-        --out-dir program-design/runtime/figures_<task-slug> \
+    python physics-agent/hooks/make_report_figures.py \
+        --state physics-agent/runtime/problem_state_<task-slug>.json \
+        --out-dir physics-agent/runtime/figures_<task-slug> \
         [--format png|svg]
 """
 import argparse

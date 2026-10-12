@@ -1,4 +1,4 @@
-"""Test 2: NASA POWER T2M — 经纬度空间网格热图（真实地理数据，替代原计划失败的 NOAA）
+﻿"""Test 2: NASA POWER T2M — 经纬度空间网格热图（真实地理数据，替代原计划失败的 NOAA）
 
 按 heatmap推荐数据源.md 的建议实现。依赖：pandas, matplotlib。
 NASA POWER CSV 前部有元数据（不是标准表头），必须先自动定位表头行（不能硬编码
@@ -19,7 +19,7 @@ DATA = os.path.join(BASE, "data")
 OUT = os.path.join(BASE, "figs_heatmap_nasa_power")
 os.makedirs(OUT, exist_ok=True)
 
-sys.path.insert(0, r"E:\agnes-harness\program-design\hooks")
+sys.path.insert(0, r"E:\agnes-harness\physics-agent\hooks")
 import make_report_figures as m
 m._configure_cjk_font()
 

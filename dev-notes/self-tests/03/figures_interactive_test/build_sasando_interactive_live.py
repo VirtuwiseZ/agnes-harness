@@ -1,4 +1,4 @@
-"""Build the 2025A Sasando demo using the REAL interactive_live kind, with a
+﻿"""Build the 2025A Sasando demo using the REAL interactive_live kind, with a
 live zeta (damping ratio) slider — the GeoGebra-style 'drag a parameter,
 watch the curve re-draw in real time' behavior, fully static, no server.
 
@@ -130,7 +130,7 @@ print("wrote", out_state_path)
 
 out_dir = os.path.join(repo_root, "dev-notes", "self-tests", "03", "figures_interactive_test",
                        "sasando_live_out")
-script = os.path.join(repo_root, "program-design", "hooks", "make_report_figures.py")
+script = os.path.join(repo_root, "physics-agent", "hooks", "make_report_figures.py")
 r = subprocess.run([sys.executable, script, "--state", out_state_path, "--out-dir", out_dir],
                    capture_output=True, text=True)
 print(r.stdout)

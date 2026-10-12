@@ -103,7 +103,7 @@ def peak_g_short(a_profile, G=10.0, tol_s=0.1, dt_profile=None):
 
 
 if __name__ == "__main__":
-    state = json.load(open(r"E:\agnes-harness\program-design\runtime\problem_state_space_diving.json"))
+    state = json.load(open(r"E:\agnes-harness\physics-agent\runtime\problem_state_space_diving.json"))
     # The profile arrays are expected in numerical_artifacts, populated by Node 1.5
     art = state["numerical_artifacts"].get("atmosphere_profile", {})
     if not art:

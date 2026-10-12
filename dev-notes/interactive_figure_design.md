@@ -1,4 +1,4 @@
-# Node 2.7 交互图表分支 — 设计方案（v1，待动手实现）
+﻿# Node 2.7 交互图表分支 — 设计方案（v1，待动手实现）
 
 > 状态：**设计已定、代码未写**。这份文档先把"交互分支"的边界、schema 改动、
 > 代码改动点、依赖改动列清楚，等确认后一起动手（不抢跑）。
@@ -67,7 +67,7 @@
 
 ## 3. 代码改动点（都是新增分支，不改任何现有 kind 的行为）
 
-- `program-design/hooks/make_report_figures.py`：
+- `physics-agent/hooks/make_report_figures.py`：
   - `render_all()` 里加一个 `kind == "interactive"` 分支：不走
     `matplotlib`，走 `plotly`（新建 `import plotly.graph_objects`、
     `plotly.io`，跟现有 `import matplotlib` 并列，只有 `kind=="interactive"`
@@ -82,7 +82,7 @@
   - 沿用现有"维度不一致/缺数据硬报错、不静默修补"的原则：interactive
     series 缺 `points.x`/`points.y`（或 `layout_3d=true` 时缺 `z`）跟现有
     kind 一样直接报错，不为交互图"放宽"数据完整性要求。
-- `program-design/hooks/trace_visualizer.py`：
+- `physics-agent/hooks/trace_visualizer.py`：
   - `--figures-dir` 的内联逻辑（现在只认 `.png`/`.svg` 走 base64 `<img>`）
     加一条：遇到 `.html` 文件（interactive kind 的产物）不转成 `<img>`，
     直接把该 HTML 片段里的 `<div id="...">` + `<script>` 主体抠出来内联进
@@ -90,7 +90,7 @@
     `<script>`，内联方式 = 直接把这段字符串插到 `{{figure: <id>}}` 占位符
     位置，不需要再包一层 `<img>`）；找不到文件时的"红色缺失占位框"兜底
     逻辑对 `.html` 文件同样适用（不能静默吞掉）。
-- `program-design/hooks/requirements.txt`：加 `plotly>=5.0`（跟现有
+- `physics-agent/hooks/requirements.txt`：加 `plotly>=5.0`（跟现有
   `matplotlib>=3.8` 那一段并列，注明"仅 kind=interactive 用到，静态 kind
   不需要装"）。
 - `dev-notes/self-tests/03/charting_generic_architecture.md`：§2（schema）

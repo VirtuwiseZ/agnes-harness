@@ -1,4 +1,4 @@
-# AI 备忘：physics-agent-orchestrator 插件（面向未来的 AI，不是给人看的）
+﻿# AI 备忘：physics-agent-orchestrator 插件（面向未来的 AI，不是给人看的）
 
 > 本文档目的：让未来的你（AI）能（a）直接读懂这个插件是什么、（b）不重复踩以前踩过的坑、（c）知道怎么安全地更新它。
 > 写完后如有出入，以仓库源码为准；本文档里的文件路径/行号是插件开发之初核实的，动手前先 `git grep`/`read` 重新确认一遍，别直接照抄行号。
@@ -13,8 +13,8 @@
 ## 2. 文件位置（核实过的事实，不是猜的）
 
 - **源文件（要编辑的地方）**：
-  - `program-design/plugins/physics-agent-orchestrator/package.json`
-  - `program-design/plugins/physics-agent-orchestrator/index.mjs`
+  - `physics-agent/plugins/physics-agent-orchestrator/package.json`
+  - `physics-agent/plugins/physics-agent-orchestrator/index.mjs`
 - **安装后落盘的位置（daemon 侧，只读镜像，不要直接编辑）**：
   - `C:\Users\StanleyZ\.agh\data\profiles\local-dev\packages\@agnes-examples__physics-agent-orchestrator\`（`index.mjs` + `package.json`）
 - **注册/信任/启用状态**：由 daemon 维护（不在上述目录里，不靠文件存在与否判断），用 `node packages/cli/dist/local/agnes.mjs package list` 查，正常应该看到：
@@ -31,7 +31,7 @@
 ## 4. 怎么更新这个插件（改内容后）
 
 - **日常改内容**（比如改 `index.mjs` 里路由说明文字、改 `description`）：
-  1. 直接编辑 `program-design/plugins/physics-agent-orchestrator/index.mjs`（**源文件**，不是第 2 节里那个 `C:\Users\StanleyZ\.agh\...` 下的落盘镜像，那个是只读副本）。
+  1. 直接编辑 `physics-agent/plugins/physics-agent-orchestrator/index.mjs`（**源文件**，不是第 2 节里那个 `C:\Users\StanleyZ\.agh\...` 下的落盘镜像，那个是只读副本）。
   2. 重新走一遍第 3 节第 3 点的非交互直连路线（复用/重写 `_drive_pkg_sdk8.cjs` 那种脚本），把最后的 `enable` 换成 `inspect`（拿到新的 `integrity`）→ `update`（`PackageUpdateParams`，带上 `source` + 新的 `expectedIntegrity`）。
   3. **不需要**手动先 `untrust` 再重新 `trust`——只要 `capabilityHash` 没变（见第 5 点），`update` 会自动保持信任状态。
 - **`integrity`（sha256）是内容哈希，自动跟着内容变**，不是手填的；改完重新 `inspect` 一遍拿新值就行。

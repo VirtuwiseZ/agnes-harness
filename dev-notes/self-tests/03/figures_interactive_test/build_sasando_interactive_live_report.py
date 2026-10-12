@@ -1,4 +1,4 @@
-"""Render the full Node-4-style report page around the interactive_live sasando
+﻿"""Render the full Node-4-style report page around the interactive_live sasando
 figure, verifying the .html-fragment inlining path works for interactive_live
 figures too (same code path as plain 'interactive' — no separate handling
 needed, since both produce <figure_id>.html)."""
@@ -29,7 +29,7 @@ with open(trace_path, "w", encoding="utf-8") as f:
     f.write('{"type":"tool/call","toolName":"shell"}\n')
 
 out_html = os.path.join(here, "research_report_sasando_interactive_live.html")
-script = os.path.join(repo_root, "program-design", "hooks", "trace_visualizer.py")
+script = os.path.join(repo_root, "physics-agent", "hooks", "trace_visualizer.py")
 r = subprocess.run([sys.executable, script, "--trace", trace_path, "--report", report_md_path,
                     "--state", state_path, "--figures-dir", figures_dir, "--out", out_html],
                    capture_output=True, text=True, encoding="utf-8")

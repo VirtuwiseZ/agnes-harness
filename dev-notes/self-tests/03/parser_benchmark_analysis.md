@@ -1,4 +1,4 @@
-# pypdf / pdfplumber / PyMuPDF4LLM / MinerU 实测对比
+﻿# pypdf / pdfplumber / PyMuPDF4LLM / MinerU 实测对比
 
 > 数据源：`benchmark_parsers.py`（本次新写，未提交，本地）对 5 篇范文
 > （`dev-notes/reference-solutions/例题/2025AB/*.pdf`）逐一实测；MinerU 那 5 篇沿用
@@ -186,5 +186,5 @@ encoding="utf-8").write(text)` 会抛
 **尚未做的事（等你回复 §5 那个"降级 vs 删去"的决定，以及要不要把 §3 那个
   surrogate 清洗规则也一并写进 SKILL 草案）：**
 - 没有改动 `.agh/skills/` 里任何 SKILL 文件
-- 没有改动 `program-design/` 任何内容
+- 没有改动 `physics-agent/` 任何内容
 - 没有 `git commit` 本次新写的任何文件

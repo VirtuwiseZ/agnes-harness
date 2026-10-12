@@ -1,4 +1,4 @@
-# 通用图表呈现层：架构设计与指令规范（v2）
+﻿# 通用图表呈现层：架构设计与指令规范（v2）
 
 > 目标：给"报告里呈现数据"这件事定一套**通用、题目无关**的机制。2025A/2025B 只作为
 > **试运行数据源**用一次，验证通用机制本身跑通，不为这两道题做专门设计。
@@ -146,11 +146,11 @@
   决定"哪些点放进 `series.points`"是上游建模 agent 的责任，不是绘图脚本
   的；脚本拿到什么点就画什么点。
 
-## 3. 新增脚本：`program-design/hooks/make_report_figures.py`（v2.1 已实现，见该文件本体）
+## 3. 新增脚本：`physics-agent/hooks/make_report_figures.py`（v2.1 已实现，见该文件本体）
 
 > 注：本节的"规格"部分在 v2 定稿时脚本尚未实现；后续多个版本（v2.1，
 > 类别轴支持、log 坐标轴、`boxplot` kind、脚注溢出自动收缩等）已直接落在
-> `program-design/hooks/make_report_figures.py` 里，代码本体是现在的事实
+> `physics-agent/hooks/make_report_figures.py` 里，代码本体是现在的事实
 > 基准，本节文字仅作历史规格记录，不保证与代码逐字同步。
 
 - 读入：`--state problem_state_<slug>.json`（只读 `numerical_artifacts.figures`

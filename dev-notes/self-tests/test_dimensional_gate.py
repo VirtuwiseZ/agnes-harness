@@ -1,10 +1,10 @@
-import os
+﻿import os
 import subprocess
 import sys
 
-# dimensional_gate.py lives in program-design/hooks/; run it by absolute path
+# dimensional_gate.py lives in physics-agent/hooks/; run it by absolute path
 # so this test works no matter where it is invoked from.
-_GATE = os.path.join(os.path.dirname(__file__), "..", "..", "program-design", "hooks", "dimensional_gate.py")
+_GATE = os.path.join(os.path.dirname(__file__), "..", "..", "physics-agent", "hooks", "dimensional_gate.py")
 _GATE = os.path.abspath(_GATE)
 
 cases = [

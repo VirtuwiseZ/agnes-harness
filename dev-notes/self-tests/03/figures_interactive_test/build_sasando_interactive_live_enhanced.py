@@ -1,4 +1,4 @@
-import json, os, subprocess, sys, math
+﻿import json, os, subprocess, sys, math
 
 here = os.path.dirname(os.path.abspath(__file__))
 repo_root = os.path.abspath(os.path.join(here, "..", "..", "..", ".."))
@@ -70,7 +70,7 @@ print("wrote", out_state_path)
 
 out_dir = os.path.join(here, "sasando_live_enhanced_out")
 os.makedirs(out_dir, exist_ok=True)
-script = os.path.join(repo_root, "program-design", "hooks", "make_report_figures.py")
+script = os.path.join(repo_root, "physics-agent", "hooks", "make_report_figures.py")
 r = subprocess.run([sys.executable, script, "--state", out_state_path, "--out-dir", out_dir],
                    capture_output=True, text=True, encoding="utf-8")
 print(r.stdout)

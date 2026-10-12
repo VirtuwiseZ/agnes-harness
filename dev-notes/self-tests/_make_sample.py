@@ -1,4 +1,4 @@
-import json, os, glob
+﻿import json, os, glob
 
 base = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
@@ -8,7 +8,7 @@ events = [
     ("user/message", {"content": [{"type": "text", "text": "synthetic sample prompt"}]}),
     ("turn/start", {"turn": 1}),
     ("tool/call", {"toolUseId": "t0", "name": "write",
-                   "args": {"path": "program-design/runtime/problem_state_sample.json",
+                   "args": {"path": "physics-agent/runtime/problem_state_sample.json",
                             "content": "{\"task\": {\"problem_id\": \"space-diving\"}}"},
                    "ordinal": 0}),
     ("tool/result", {"toolUseId": "t0", "content": [{"type": "text", "text": "written"}], "isError": False}),

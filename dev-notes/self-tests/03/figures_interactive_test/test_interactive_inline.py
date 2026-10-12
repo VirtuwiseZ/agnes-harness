@@ -1,4 +1,4 @@
-import os, sys, re, subprocess, tempfile, json
+﻿import os, sys, re, subprocess, tempfile, json
 
 repo_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))
 base = os.path.join(repo_root, "dev-notes")
@@ -23,7 +23,7 @@ state_mod = os.path.join(tmp, "problem_state_test.json")
 json.dump(state, open(state_mod, "w", encoding="utf-8"))
 
 out_dir = os.path.join(tmp, "figs")
-r = subprocess.run([sys.executable, os.path.join(repo_root, "program-design", "hooks", "make_report_figures.py"),
+r = subprocess.run([sys.executable, os.path.join(repo_root, "physics-agent", "hooks", "make_report_figures.py"),
                     "--state", state_mod, "--out-dir", out_dir], capture_output=True, text=True)
 if r.returncode != 0:
     print(r.stdout, r.stderr); sys.exit(1)
@@ -37,7 +37,7 @@ trace_jsonl = os.path.join(tmp, "trace.jsonl")
 open(trace_jsonl, "w", encoding="utf-8").write('{"type":"tool/call","toolName":"shell"}\n')
 
 out_html = os.path.join(tmp, "out_report.html")
-script = os.path.join(repo_root, "program-design", "hooks", "trace_visualizer.py")
+script = os.path.join(repo_root, "physics-agent", "hooks", "trace_visualizer.py")
 r2 = subprocess.run([sys.executable, script, "--trace", trace_jsonl, "--report", report_md,
                      "--state", state_mod, "--figures-dir", out_dir, "--out", out_html],
                     capture_output=True, text=True)

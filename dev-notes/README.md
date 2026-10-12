@@ -14,7 +14,7 @@
 
 这两类内容一旦混在一起，会造成一种具体的、已经真实发生过的风险：**运行 agent 把“开发时随手算出来、并对照过某篇范文的具体数值”误当成“这类题的标准答案 / 正确性判据”**（例如曾把 2023 题那次冒烟测试的中间数值、及其与范文数值的差距，当作验证 ODE 公式写对与否的参照——这在真实演示场景下不成立，因为演示时根本不会给 agent 提供范文做对照）。因此确立三条硬性规则：
 
-1. 任何**带具体题目数值、带“跟某范文对得上/对不上”这类 caveat 的状态记录**，属于开发留档，归入 `dev-notes/self-tests/`，**不**作为通用协议或验证判据留在 `program-design/` 里。
+1. 任何**带具体题目数值、带“跟某范文对得上/对不上”这类 caveat 的状态记录**，属于开发留档，归入 `dev-notes/self-tests/`，**不**作为通用协议或验证判据留在 `physics-agent/` 里。
 2. 任何**题目无关的通用操作规则**（方法论模板、门禁脚本、状态机字段规范、Skill 宪法），必须独立成立、不依赖 `dev-notes/` 里的任何文件才能被理解或执行——这是“排除 `dev-notes/` 后能直接打包演示”这条规则的实质含义，不只是目录层面的整洁。
 3. 拿不准某份文件该放哪边时，**默认放进 `dev-notes/`**：多隔离一份开发记录的代价，远小于让运行 agent 被一条开发留档里的具体数值带偏的代价。
 
@@ -23,7 +23,7 @@
 
 判定规则：
 - 如果某个文件是**告诉开发者"我们为什么这样设计 / 我们要满足哪些赛事要求 / 我参考了哪篇范文"** → 放这里。
-- 如果某个文件是**告诉运行 agent"拿到物理题后该做什么、该调用哪个钩子、该遵守哪些门禁"** → 不放在这里（应放在 `.agh/skills/` 或 `program-design/` 下对应位置）。
+- 如果某个文件是**告诉运行 agent"拿到物理题后该做什么、该调用哪个钩子、该遵守哪些门禁"** → 不放在这里（应放在 `.agh/skills/` 或 `physics-agent/` 下对应位置）。
 
 ## 当前内容清单
 
@@ -32,10 +32,10 @@
 | `competition/项目开发要求.md` | 仓库根目录 | 赛事合规要求原文（开发侧对照清单，非 agent 指令） |
 | `competition/黑客松参赛指南.md` | 仓库根目录 | 赛事流程/时间线（开发侧参考，非 agent 指令） |
 | `reference-solutions/例题/` | 仓库根目录 `例题/` | 2010/2020/2023 三篇参考范文（PDF + 提取文本），仅用于开发时的思路借鉴 |
-| `architecture/project_consensus.md` | 原 `program-design/project_consensus.md` | 开发过程达成的架构决策记录（§0 顶层铁律、题目分工、赛事条款映射等）；**其中给运行 agent 的操作规则，已在 `.agh/skills/physics-agent-governance/SKILL.md` 和 `program-design/knowledge/` 各模板里独立成文，本文件本身不需要被 agent 加载** |
-| `self-tests/` | 原 `program-design/hooks/` 下的 `example_*` 与 `test_*` 文件 | 开发者自测样例/脚本，用于证明各钩子本身可运行；**不是**运行 agent 解题时需要的东西，打包演示版时应剔除 |
+| `architecture/project_consensus.md` | 原 `physics-agent/project_consensus.md` | 开发过程达成的架构决策记录（§0 顶层铁律、题目分工、赛事条款映射等）；**其中给运行 agent 的操作规则，已在 `.agh/skills/physics-agent-governance/SKILL.md` 和 `physics-agent/knowledge/` 各模板里独立成文，本文件本身不需要被 agent 加载** |
+| `self-tests/` | 原 `physics-agent/hooks/` 下的 `example_*` 与 `test_*` 文件 | 开发者自测样例/脚本，用于证明各钩子本身可运行；**不是**运行 agent 解题时需要的东西，打包演示版时应剔除 |
 | `dev-selftest-log.md` | 本目录 | 自测索引：记录每个钩子/脚本"测过、何时测、结果如何"，供开发者复查，不需要被 agent 看见 |
 | `reference-solutions/例题/2023_无范文走查题干.md` | 本目录 | 无范文走查的输入题干（仅赛事原题 3 行，无范文分析）+ 7 项判据清单 + "不要求什么"说明，供开发者自己发起走查时参考，不是运行 agent 读取的协议文件 |
 | `self-tests/trace_2023_walkthrough1_readonly.json` | 原 `dev-notes/真题走查1-协议形式隔离开发文件/` | 第一次无范文走查（只读权限，无编辑/shell 权限）的完整会话 trace，存档用于事后分析协议执行情况，不是运行 agent 读取的东西 |
-| `self-tests/problem_state_2023_walkthrough1.json` | 原 `program-design/runtime/problem_state_space_diving.json` | 该次走查实际产生的 `problem_state.json` 实例（走查因权限受限停在很早期，字段大量为 null），属于"某次走查的产出留档"，不作为通用状态文件或验证判据 |
-| `self-tests/space_diving_driver_2023_walkthrough1.py` | 原 `program-design/runtime/space_diving_driver.py` | 该次走查中新 agent 自己写的 ODE 驱动脚本（数据源无关），留作参考样例，不是项目自带钩子 |
+| `self-tests/problem_state_2023_walkthrough1.json` | 原 `physics-agent/runtime/problem_state_space_diving.json` | 该次走查实际产生的 `problem_state.json` 实例（走查因权限受限停在很早期，字段大量为 null），属于"某次走查的产出留档"，不作为通用状态文件或验证判据 |
+| `self-tests/space_diving_driver_2023_walkthrough1.py` | 原 `physics-agent/runtime/space_diving_driver.py` | 该次走查中新 agent 自己写的 ODE 驱动脚本（数据源无关），留作参考样例，不是项目自带钩子 |

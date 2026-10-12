@@ -1,4 +1,4 @@
-"""Test 3: OWID Annual CO2 emissions per country — 类别 × 时间热图（非地理网格）
+﻿"""Test 3: OWID Annual CO2 emissions per country — 类别 × 时间热图（非地理网格）
 
 按 heatmap推荐数据源.md 的建议实现。重点验证：
 - 长表转宽表 (pivot_table)
@@ -24,7 +24,7 @@ DATA = os.path.join(BASE, "data")
 OUT = os.path.join(BASE, "figs_heatmap_owid_co2")
 os.makedirs(OUT, exist_ok=True)
 
-sys.path.insert(0, r"E:\agnes-harness\program-design\hooks")
+sys.path.insert(0, r"E:\agnes-harness\physics-agent\hooks")
 import make_report_figures as m
 m._configure_cjk_font()
 

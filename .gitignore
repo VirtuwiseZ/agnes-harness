@@ -1,4 +1,4 @@
-.superpowers/
+﻿.superpowers/
 node_modules/
 dist/
 *.tsbuildinfo
@@ -36,7 +36,7 @@ outputs/
 spikes/
 docs/task-records/
 
-# Python bytecode caches from running the program-design hooks/tests.
+# Python bytecode caches from running the physics-agent hooks/tests.
 __pycache__/
 *.pyc
 

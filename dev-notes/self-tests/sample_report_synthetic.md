@@ -1,4 +1,4 @@
-# 研究汇报：高空跳伞垂直下降（Space Diving Descent）
+﻿# 研究汇报：高空跳伞垂直下降（Space Diving Descent）
 
 ## 一、题目拆解与安全边界
 
@@ -15,7 +15,7 @@
 
 ## 二、模型假设（Node 2a 方法论适配判断）
 
-我匹配到的方法论模板是 `program-design/knowledge/atmosphere-drag-ode.md`（垂直
+我匹配到的方法论模板是 `physics-agent/knowledge/atmosphere-drag-ode.md`（垂直
 下降 ODE，按局地马赫数分段 CD）。
 
 **关键适配判断（不是照搬模板数值）**：模板自带的 CD 分段阈值（Mach 0.8 / 1.2）
@@ -52,7 +52,7 @@ verification 部分只能先留空，等下次有网络/有权限的环境重跑
 
 ## 四、数值模型与门禁（Node 2b）
 
-我用 `program-design/hooks/ode_model.py`（数据源无关的 ODE 求解脚本）做垂直下降
+我用 `physics-agent/hooks/ode_model.py`（数据源无关的 ODE 求解脚本）做垂直下降
 积分：状态变量取 u = v²/2（比动能），自变量取下落距离 x，方程为
 du/dx = g_eff(z) − [ρ(z)·CD(Mach)·A(Mach)/(2m)]·u，z = z0 − x。
 

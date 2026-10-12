@@ -1,9 +1,9 @@
-# 第三轮测试（test3）科学性对比分析：test3 结果 vs 官方范文（5 篇 IPhO 2025 GM 参考方案）
+﻿# 第三轮测试（test3）科学性对比分析：test3 结果 vs 官方范文（5 篇 IPhO 2025 GM 参考方案）
 
 分析对象：
 - **test3 结果**（本项目 agent 在 `ability-test3` 分支上独立跑出的两份产出）：
-  - 2025A Sasando（音板/电拾音器重设计）：`program-design/runtime/report_2025A_sasando.md` / `problem_state_2025A_sasando.json`
-  - 2025B 火炮（150–200 年前滑膛炮，5kg 球形弹丸，1200 m 命中）：`program-design/runtime/report_2025B_artillery.md` / `problem_state_2025B_artillery.json`
+  - 2025A Sasando（音板/电拾音器重设计）：`physics-agent/runtime/report_2025A_sasando.md` / `problem_state_2025A_sasando.json`
+  - 2025B 火炮（150–200 年前滑膛炮，5kg 球形弹丸，1200 m 命中）：`physics-agent/runtime/report_2025B_artillery.md` / `problem_state_2025B_artillery.json`
 - **官方范文**（用户放入 `dev-notes/reference-solutions/例题/2025AB/` 的 5 篇 PDF，MinerU 4.0.10 本机 `basic` 档
   解析结果在 `dev-notes/reference-solutions/例题/2025AB/mineru_output/`）：
   - 2025A 题：`2025-GM-A-112`（IIR/SOS 滤波器方案，Team 112）、`2025-GM-A-182`（光学拾音器+Biquad，Team 182）

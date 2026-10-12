@@ -1,4 +1,4 @@
-# 交付体量评估：项目交付给外部组员/比赛方时，能做多小？（2026-10-09）
+﻿# 交付体量评估：项目交付给外部组员/比赛方时，能做多小？（2026-10-09）
 
 > 状态：思考稿，不是实施方案。本次没有创建 `ability-test4` 分支，没有写任何
 > 插件代码，只做了三件事：(1) 实测仓库各顶层目录的真实体量；(2) 查清楚 AGH
@@ -19,14 +19,14 @@
 | `tools/` | 72 | 0.76 MiB | 否 |
 | `examples/` | 210 | 0.48 MiB | 否 |
 | `third-party/` | 3 | 0.02 MiB | 否 |
-| **`program-design/`** | **17** | **0.16 MiB** | **是**——全部核心：
+| **`physics-agent/`** | **17** | **0.16 MiB** | **是**——全部核心：
   `hooks/`（6 个 .py + `requirements.txt` + `trace_capture.cjs`）、
   `knowledge/`（4 篇 .md + 1 个 .json）、`problem_state_schema.md`、
   `parser_requirements.md`、`runtime/` 模板 |
 | **`.agh/skills/physics-agent-governance/SKILL.md`** | **1** | **0.04 MiB** |
   **是**——项目唯一的 SKILL 文件 |
 
-**"我们的项目"真正交付相关的两部分（`program-design/` + `.agh/`）合计
+**"我们的项目"真正交付相关的两部分（`physics-agent/` + `.agh/`）合计
 18 个文件、约 0.20 MiB（≈ 200 KB）**——这已经是"极小"了，比 AGH 框架
 本体（`packages/`，28.43 MiB）小两个数量级。
 
@@ -39,7 +39,7 @@
   `prepare-windows-native.ps1` 拉 Node headers，需要 .NET/Visual Studio
   C++ Build Tools/Windows SDK）→ 才能 `serve`。
 - 也就是说：**"交付项目"实际分两层**——(a) 我们自己的
-  `program-design/` + `.agh/` 内容层（≈200 KB，真正要"分享"的东西）；
+  `physics-agent/` + `.agh/` 内容层（≈200 KB，真正要"分享"的东西）；
   (b) 承载它的 AGH 框架层（`packages/` 28.43 MiB，组员自己
   `git clone` 上游/本仓库都要重新构建一遍，这一层不需要我们"交付"，
   他们本来就要跑起来整个 AGH）。
@@ -49,7 +49,7 @@
 知识文件或 hook 脚本，得不偿失；真正会让人觉得"体积大"的不是这一层，
 而是(b)层——但(b)层跟"交付哪个分支"无关，组员无论切哪个分支，只要
 要真的跑起来 AGH，都得重新构建一次 `packages/`，跟分支里有没有放
-`program-design/` 没有关系。
+`physics-agent/` 没有关系。
 
 ## 3. "用插件挂下载链接、安装时自动拉取配置"这条路，走不走得通
 
@@ -63,7 +63,7 @@
   走 GitHub REST API 拉某个 repo/分支的某个子目录，校验 SHA/字节数/条数，
   再走 `skill_helper_install` 的提案-审批流程装进 `.agh/skills/`）。所以
   "写一个 `physics-agent-bootstrap` 插件，`apply()` 里用 `ctx.net` 拉
-  本仓库 `ability-test4` 分支的 `program-design/` + `.agh/` 两个目录、
+  本仓库 `ability-test4` 分支的 `physics-agent/` + `.agh/` 两个目录、
   校验、落盘、提示用户已就绪"——**机制上是成立的，有现成先例可以抄
   （`skill-helper` 的 `github.mjs` 几乎就是这个需求的现成模板，只是它
   拉的是"一个 Skill 目录"，我们要改成拉两个顶层目录）**。
@@ -71,10 +71,10 @@
   AGH"，插件**替代不了** `packages/` 那 28 MiB 的本体构建（Node 版本、
   pnpm、Windows 原生 helper 这些环境依赖，没有任何"插件安装"动作能
   绕过——它们是要组员机器自己满足的前提条件，不是可以打包进一个
-  `.mjs` 文件里带走的）；如果目标只是"把我们的项目内容（program-design/
+  `.mjs` 文件里带走的）；如果目标只是"把我们的项目内容（physics-agent/
   + .agh/，≈200 KB）送到一个**已经装好 AGH 本体**的组员机器上"，那
   插件这条路和"直接给一个 GitHub 分支链接 + 一句 `git checkout
-  ability-test4 && 把 program-design/ .agh/ 复制到你 AGH home 里`"
+  ability-test4 && 把 physics-agent/ .agh/ 复制到你 AGH home 里`"
   相比，**收益几乎为零**：这 200 KB / 18 个文件，复制一条命令就能完成，
   用一整个插件（要写 manifest、要走 `plugin_helper_create`/
   `plugin_helper_install` 的提案-审批流程、要组员再装一遍这个插件本身
@@ -83,10 +83,10 @@
 ## 4. 建议（供建 `ability-test4` 分支时参考，本次未实施）
 
 1. `ability-test4` 分支内容 = `main`（或当前 `physics-agent`）+ 把
-   `program-design/` + `.agh/` 这两块"真·交付物"原样带上，**不需要**为了
+   `physics-agent/` + `.agh/` 这两块"真·交付物"原样带上，**不需要**为了
    "更小"把 `dev-notes/`/`docs/`/`packages/` 从分支里删掉——那三个目录
    是 AGH 框架/开发留痕，删了组员反而没法构建/跑起来 AGH 本体；
-   "交付体量"这件事靠**跟组员说清楚'你们只需要关注 program-design/ 和
+   "交付体量"这件事靠**跟组员说清楚'你们只需要关注 physics-agent/ 和
    .agh/ 这两个目录，其余不用动'**来达成，而不是靠物理删文件。
 2. **不做**"插件挂下载链接"这条路：如上第 3 节，200 KB 的内容用一条
    复制命令/一个 README 说明就能送达，为一个这个体量的东西专门造一个

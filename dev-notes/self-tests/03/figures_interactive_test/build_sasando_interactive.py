@@ -1,4 +1,4 @@
-"""Real-data interactive-figure demo: 2025A Sasando (test3 / self-tests 03).
+﻿"""Real-data interactive-figure demo: 2025A Sasando (test3 / self-tests 03).
 
 Uses the EXISTING, already-computed `ei_curve_sample_dB` field from
 problem_state_2025A_sasando.json — no new physics is solved or invented,
@@ -64,7 +64,7 @@ print("wrote", out_state_path)
 
 out_dir = os.path.join(repo_root, "dev-notes", "self-tests", "03", "figures_interactive_test",
                        "sasando_interactive_out")
-script = os.path.join(repo_root, "program-design", "hooks", "make_report_figures.py")
+script = os.path.join(repo_root, "physics-agent", "hooks", "make_report_figures.py")
 r = subprocess.run([sys.executable, script, "--state", out_state_path, "--out-dir", out_dir],
                    capture_output=True, text=True)
 print(r.stdout)

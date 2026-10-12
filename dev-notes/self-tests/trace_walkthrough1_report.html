@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang='zh'><head><meta charset='utf-8'><title>物理分析 Trace 报告 — bf22e58f-60a3-49d3-8828-ba7260b33f1c</title><style>
 :root{--bg:#0f1117;--card:#1a1d27;--card2:#232733;--ink:#e8eaf2;--muted:#9aa0b4;
 --accent:#4f8cff;--orange:#ff9f43;--red:#ff5470;--green:#2ecc71;--line:#3a3f52}
@@ -65,10 +65,10 @@ text-align:left;font-size:13px}
   &quot;user_choice&quot;: null,
   &quot;note&quot;: &quot;Only Node 1.5 writes this; downstream data-source fallbacks must surface as an anomaly, not by editing this in place.&quot;
 }</pre><ul class="seq-list"><li>seq 481</li><li>seq 498</li><li>seq 515</li><li>seq 533</li></ul></details></div></section>
-<section class="layer-card" id="layer-4"><h2><span class="layer-num">4</span> 测验与迭代</h2><div class="step-block anomaly-normal" id="step-4-0"><div class="step-head"><strong>ODE 驱动脚本编写与数值尝试</strong></div><div class="step-summary">7 次 shell 调用，其中 4 次调用 audit_log.py、0 次调用量纲/边界门禁；全部 shell 调用均获批准执行。</div><div class="step-evidence"><em>依据:</em> trace: shell tool/call + approval/decided 事件配对 · <em>条款:</em> Node 2b 数值计算</div><div class="step-seqs">trace seq: 307, 324, 360, 376, 392, 408, 533</div><details class="step-detail"><summary>展开细节</summary><pre>python E:\agnes-harness\program-design\hooks\audit_log.py append --state E:\agnes-harness\program-design\runtime\problem
-python E:\agnes-harness\program-design\hooks\audit_log.py append --state E:\agnes-harness\program-design\runtime\problem
-python &quot;E:\agnes-harness\program-design\hooks\audit_log.py&quot; append --state &quot;E:\agnes-harness\program-design\runtime\prob
-cd E:\agnes-harness; python program-design\hooks\audit_log.py append --state program-design\runtime\problem_state_space_
+<section class="layer-card" id="layer-4"><h2><span class="layer-num">4</span> 测验与迭代</h2><div class="step-block anomaly-normal" id="step-4-0"><div class="step-head"><strong>ODE 驱动脚本编写与数值尝试</strong></div><div class="step-summary">7 次 shell 调用，其中 4 次调用 audit_log.py、0 次调用量纲/边界门禁；全部 shell 调用均获批准执行。</div><div class="step-evidence"><em>依据:</em> trace: shell tool/call + approval/decided 事件配对 · <em>条款:</em> Node 2b 数值计算</div><div class="step-seqs">trace seq: 307, 324, 360, 376, 392, 408, 533</div><details class="step-detail"><summary>展开细节</summary><pre>python E:\agnes-harness\physics-agent\hooks\audit_log.py append --state E:\agnes-harness\physics-agent\runtime\problem
+python E:\agnes-harness\physics-agent\hooks\audit_log.py append --state E:\agnes-harness\physics-agent\runtime\problem
+python &quot;E:\agnes-harness\physics-agent\hooks\audit_log.py&quot; append --state &quot;E:\agnes-harness\physics-agent\runtime\prob
+cd E:\agnes-harness; python physics-agent\hooks\audit_log.py append --state physics-agent\runtime\problem_state_space_
 python --version
 Write-Output &quot;hello&quot;</pre><ul class="seq-list"><li>seq 307</li><li>seq 324</li><li>seq 360</li><li>seq 376</li><li>seq 392</li><li>seq 408</li><li>seq 533</li></ul></details></div>
 <div class="step-block anomaly-normal" id="step-4-1"><div class="step-head"><strong>problem_state.json 增量写入 + 写回验证</strong></div><div class="step-summary">13 次 edit 调用，其中 0 次因权限被拒，全部成功落盘</div><div class="step-evidence"><em>依据:</em> trace: edit tool/call + 后续 read 回读验证配对 · <em>条款:</em> §3 Write-back verification</div><div class="step-seqs">trace seq: 425, 444, 549, 566, 597, 611, 627, 644, 679, 695, 711, 725, 743</div><details class="step-detail"><summary>展开细节</summary><pre>[{&quot;newText&quot;: &quot;  \&quot;anomalies\&quot;: [\n    {\n      \&quot;type\&quot;: \&quot;shell_unavailable\&quot;,\n      \&quot;note\&quot;: \&quot;The shell tool is approval-rejected in this session; hooks (dimensional_gate.py, boundary_gate.py, au
