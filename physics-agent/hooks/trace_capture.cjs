@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 // trace_capture.cjs — Node 4's automatic trace-source tool.
 //
 // What it is: a stand-alone, zero-dependency (Node stdlib only) script that
@@ -7,7 +7,7 @@
 // handshake for a given session key, and (3) captures every session/update
 // notification the daemon streams back as the session's full history is
 // replayed — converting each one, on the fly, into the JSONL event schema
-// ({seq, ts, type, data}) that program-design/hooks/trace_visualizer.py
+// ({seq, ts, type, data}) that physics-agent/hooks/trace_visualizer.py
 // expects for its --trace argument. The output file is directly usable as
 // that argument; no further transformation is needed.
 //
@@ -32,7 +32,7 @@
 //     <sessionId>   the AGH session key to capture; typically read from
 //                   problem_state.json's `session_key` field for the current
 //                   task, not hand-typed.
-//     [outputFile]  optional; defaults to program-design/runtime/
+//     [outputFile]  optional; defaults to physics-agent/runtime/
 //                   trace_capture_converted_<short-session-id>.jsonl.
 //   Env overrides (for testing / pinning, not for normal Node 4 use):
 //     AGH_SESSION_ID  fallback source for <sessionId> if the positional arg

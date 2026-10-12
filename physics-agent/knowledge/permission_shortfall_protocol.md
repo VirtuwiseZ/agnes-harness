@@ -1,4 +1,4 @@
-# 权限/环境缺口处理协议（Permission & Environment Shortfall Protocol）
+﻿# 权限/环境缺口处理协议（Permission & Environment Shortfall Protocol）
 
 本文档收纳 `SKILL.md` §4/§4a 里"停下来要念的固定话术模板"全文。`SKILL.md` 正文在
 §4/§4a 只保留"遇到这类缺口时，按本协议的固定话术停止并上报"这一句 + 指向本文档的
@@ -17,7 +17,7 @@ vs Kind 2 怎么区分等判断逻辑）仍写在 `SKILL.md` §4/§4a 正文里�
   ⏸ PERMISSION REQUIRED — analysis stopped at Node {current node}.
 
   This step requires {specific permission} (e.g. shell/command execution to run
-  program-design/hooks/dimensional_gate.py / boundary_gate.py / ode_model.py /
+  physics-agent/hooks/dimensional_gate.py / boundary_gate.py / ode_model.py /
   audit_log.py, or write permission to update the task's problem_state.json).
 
   What is already done and verified so far:
@@ -68,7 +68,7 @@ vs Kind 2 怎么区分等判断逻辑）仍写在 `SKILL.md` §4/§4a 正文里�
   停止时要具体说明（不是照抄一段模板，是这四项必须逐条写清楚）：
   - 卡住的具体节点/钩子/脚本是哪个；
   - 缺的依赖具体是什么（例如"pint 没装"，不是笼统说"缺了某个依赖"）；
-  - 装这个依赖是用户自己能做的机械步骤（例如"按 `program-design/hooks/
+  - 装这个依赖是用户自己能做的机械步骤（例如"按 `physics-agent/hooks/
     requirements.txt` 跑 `pip install pint`"），还是当前环境里 Agent 无法解决的情况
     （例如没有包管理器访问权、没有网络、或者根本缺一个可用的运行时，比如只有
     Python 没有 Node.js）；

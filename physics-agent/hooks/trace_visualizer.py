@@ -1,4 +1,4 @@
-"""Node 4 — trace visualizer / research-report HTML generator.
+﻿"""Node 4 — trace visualizer / research-report HTML generator.
 
 Rendering architecture (repositioned 2026-10-05, per project owner's explicit
 feedback: the page's audience is the *user of the physics study*, not the
@@ -7,7 +7,7 @@ material, not the headline):
 
   Primary narrative source:
     --report  the incremental markdown research report written by the agent
-              during the run (program-design/runtime/report_<task-slug>.md,
+              during the run (physics-agent/runtime/report_<task-slug>.md,
               appended node-by-node per protocol Node 3). Rendered as the
               main body of the page, section by section, in the agent's own
               words — not paraphrased by this script.
@@ -53,10 +53,10 @@ material, not the headline):
     - Self-contained single file: no external assets, no CDN, no network.
 
 Usage:
-    python program-design/hooks/trace_visualizer.py \
+    python physics-agent/hooks/trace_visualizer.py \
         --trace dev-notes/self-tests/trace_walkthrough1_raw.json \
-        --report program-design/runtime/report_<task-slug>.md \
-        --state  program-design/runtime/problem_state_<task-slug>.json \
+        --report physics-agent/runtime/report_<task-slug>.md \
+        --state  physics-agent/runtime/problem_state_<task-slug>.json \
         --out    dev-notes/self-tests/trace_<task>_report.html
 """
 import argparse
@@ -76,7 +76,7 @@ def load_trace(path):
 
     Lines without a top-level "seq" field are ignored (not an error): the
     official `agh export --raw` format guarantees every line has one, but the
-    automatic Node 4 capture tool (program-design/hooks/trace_capture.cjs)
+    automatic Node 4 capture tool (physics-agent/hooks/trace_capture.cjs)
     prepends a single `_capture_meta` audit line (sessionId + timestamp,
     useful for the HTML's provenance display but not a trace event) which has
     no seq — skipping such lines keeps this loader robust to both sources

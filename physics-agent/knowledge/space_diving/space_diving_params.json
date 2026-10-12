@@ -1,4 +1,4 @@
-{
+﻿{
   "description": "Problem domain parameters and empirical baselines for 2023 Space Diving (GM-A-131) physical modeling.",
   "mass_total_kg": 190,
   "safety_constraints": {
@@ -28,5 +28,5 @@
     "note": "Runtime confirmation target for Node 1.5 Data-Source Routing; the ODE code must not reference this by name",
     "source_name": "NRLMSIS 2.0 Atmospheric Model / API"
   },
-  "method_template_ref": "program-design/knowledge/atmosphere-drag-ode.md"
+  "method_template_ref": "physics-agent/knowledge/atmosphere-drag-ode.md"
 }

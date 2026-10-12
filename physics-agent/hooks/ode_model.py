@@ -25,7 +25,7 @@ module — that is the correct move, and this file is not required to be
 the one that gets modified.
 
 Design constraints this example demonstrates (from the agreed-upon
-architecture - see the methodology templates in program-design/knowledge/,
+architecture - see the methodology templates in physics-agent/knowledge/,
 which are the canonical, agent-facing source of these rules):
 
   * The ODE itself must NOT reference any named data source. It receives
