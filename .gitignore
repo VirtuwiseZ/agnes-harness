@@ -78,3 +78,6 @@ dev-notes/项目架构设计说明1009（开发者原文）.md
 
 # 10/12 开发者定论：49 包 portable-runtime 整体不进 git 历史（git rm --cached 已执行，磁盘文件保留不动）
 physics-agent/third_party/portable-runtime/
+
+# 10/13 C 类：测试 6 历史诊断大体积日志包（保留在磁盘供复盘参考，不进 git 历史）
+dev-notes/self-tests/06/测试6-1agh-diagnostics-*/
