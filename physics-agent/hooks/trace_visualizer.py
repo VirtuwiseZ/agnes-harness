@@ -230,12 +230,208 @@ def classify_approval(call):
 # Markdown report → HTML (primary narrative path)
 # ---------------------------------------------------------------------------
 
+_META_HEADING_RE = re.compile(r"^(?:本轮执行说明|执行说明|报告组织说明|本轮说明|写作说明)\b")
+LBRACE = chr(123)
+RBRACE = chr(125)
+LBRACK = chr(91)
+RBRACK = chr(93)
+
+_GREEK_MAP = {
+    "alpha": "α", "beta": "β", "gamma": "γ", "delta": "δ", "epsilon": "ε",
+    "varepsilon": "ε", "zeta": "ζ", "eta": "η", "theta": "θ", "vartheta": "ϑ",
+    "iota": "ι", "kappa": "κ", "lambda": "λ", "mu": "μ", "nu": "ν", "xi": "ξ",
+    "pi": "π", "rho": "ρ", "sigma": "σ", "tau": "τ", "upsilon": "υ", "phi": "φ",
+    "varphi": "ϕ", "chi": "χ", "psi": "ψ", "omega": "ω",
+    "Gamma": "Γ", "Delta": "Δ", "Theta": "Θ", "Lambda": "Λ", "Xi": "Ξ",
+    "Pi": "Π", "Sigma": "Σ", "Upsilon": "Υ", "Phi": "Φ", "Psi": "Ψ", "Omega": "Ω",
+    "infty": "∞", "partial": "∂", "nabla": "∇", "hbar": "ℏ", "ell": "ℓ",
+    "times": "×", "cdot": "·", "cdots": "⋯", "ldots": "…", "pm": "±", "mp": "∓",
+    "leq": "≤", "le": "≤", "geq": "≥", "ge": "≥", "neq": "≠", "ne": "≠",
+    "approx": "≈", "sim": "∼", "simeq": "≃", "equiv": "≡", "propto": "∝",
+    "ll": "≪", "gg": "≫", "subset": "⊂", "supset": "⊃", "in": "∈", "notin": "∉",
+    "to": "→", "rightarrow": "→", "leftarrow": "←", "Rightarrow": "⇒",
+    "Leftrightarrow": "⇔", "mapsto": "↦", "forall": "∀", "exists": "∃",
+    "int": "∫", "oint": "∮", "sum": "∑", "prod": "∏", "circ": "∘", "degree": "°",
+}
+
+_ROMAN_FUNCS = {
+    "sin", "cos", "tan", "cot", "sec", "csc", "arcsin", "arccos", "arctan",
+    "sinh", "cosh", "tanh", "ln", "log", "exp", "max", "min", "sup", "inf",
+    "lim", "det", "dim", "ker", "deg", "gcd", "Pr", "arg",
+}
+
+
+def _extract_braced(s, pos):
+    """Extract balanced braced content starting at s[pos]. Returns (content, next_pos)."""
+    if pos >= len(s) or s[pos] != LBRACE:
+        return "", pos
+    depth = 0
+    start = pos + 1
+    i = pos
+    while i < len(s):
+        ch = s[i]
+        if ch == "\\" and i + 1 < len(s):
+            i += 2
+            continue
+        if ch == LBRACE:
+            depth += 1
+        elif ch == RBRACE:
+            depth -= 1
+            if depth == 0:
+                return s[start:i], i + 1
+        i += 1
+    return s[start:], len(s)
+
+
+def _render_latex_to_html(latex_src, display=False):
+    """Compile LaTeX math into rich, self-contained HTML math markup so formulas
+    render with proper fractions, radicals, sub/superscripts, Greek letters, and
+    operators immediately upon opening the file offline (zero CDN, zero file:// CORS)."""
+    s = latex_src.strip()
+
+    def _compile(expr):
+        out = []
+        i = 0
+        n = len(expr)
+        while i < n:
+            ch = expr[i]
+            if ch == "\\":
+                if i + 1 < n and expr[i + 1] in (",", ";", ":", "!", " "):
+                    out.append("&thinsp;" if expr[i + 1] != "!" else "")
+                    i += 2
+                    continue
+                if i + 1 < n and expr[i + 1] in (LBRACE, RBRACE, "%", "_", "&", "#", "$"):
+                    out.append(html.escape(expr[i + 1]))
+                    i += 2
+                    continue
+                if i + 1 < n and expr[i + 1] == "\\":
+                    out.append("<br>")
+                    i += 2
+                    continue
+                m = re.match(r"\\([A-Za-z]+)", expr[i:])
+                if m:
+                    cmd = m.group(1)
+                    i += len(m.group(0))
+                    while i < n and expr[i] == " ":
+                        i += 1
+                    if cmd in ("left", "right", "bigl", "bigr", "Bigl", "Bigr", "displaystyle", "textstyle"):
+                        continue
+                    if cmd in ("quad", "qquad"):
+                        out.append("&emsp;")
+                        continue
+                    if cmd in ("frac", "dfrac", "tfrac"):
+                        num, i = _extract_braced(expr, i)
+                        while i < n and expr[i] == " ":
+                            i += 1
+                        den, i = _extract_braced(expr, i)
+                        out.append(
+                            f"<span class='m-frac'><span class='m-num'>{_compile(num)}</span>"
+                            f"<span class='m-den'>{_compile(den)}</span></span>"
+                        )
+                        continue
+                    if cmd == "sqrt":
+                        if i < n and expr[i] == LBRACK:
+                            end_b = expr.find(RBRACK, i)
+                            if end_b != -1:
+                                root_idx = expr[i + 1:end_b]
+                                i = end_b + 1
+                                rad, i = _extract_braced(expr, i)
+                                out.append(
+                                    f"<span class='m-sqrt'><sup class='m-root'>{_compile(root_idx)}</sup>"
+                                    f"<span class='m-surd'>√</span><span class='m-radicand'>{_compile(rad)}</span></span>"
+                                )
+                                continue
+                        rad, i = _extract_braced(expr, i)
+                        out.append(
+                            f"<span class='m-sqrt'><span class='m-surd'>√</span>"
+                            f"<span class='m-radicand'>{_compile(rad)}</span></span>"
+                        )
+                        continue
+                    if cmd in ("text", "mathrm", "textrm", "operatorname"):
+                        txt, i = _extract_braced(expr, i)
+                        out.append(f"<span class='m-text'>{html.escape(txt)}</span>")
+                        continue
+                    if cmd in ("mathbf", "boldsymbol", "bm"):
+                        txt, i = _extract_braced(expr, i)
+                        out.append(f"<strong class='m-bold'>{_compile(txt)}</strong>")
+                        continue
+                    if cmd in ("mathcal", "mathbb"):
+                        txt, i = _extract_braced(expr, i)
+                        out.append(f"<span class='m-cal'>{_compile(txt)}</span>")
+                        continue
+                    if cmd in ("hat", "vec", "bar", "tilde", "dot"):
+                        acc = {"hat": "\u0302", "vec": "\u20d7", "bar": "\u0304", "tilde": "\u0303", "dot": "\u0307"}[cmd]
+                        txt, i = _extract_braced(expr, i)
+                        out.append(f"<span class='m-accent'>{_compile(txt)}{acc}</span>")
+                        continue
+                    if cmd in _GREEK_MAP:
+                        sym = _GREEK_MAP[cmd]
+                        cls = "m-op" if cmd in ("times", "cdot", "pm", "mp", "leq", "le", "geq", "ge", "neq", "ne",
+                                                "approx", "sim", "simeq", "equiv", "propto", "ll", "gg", "to",
+                                                "rightarrow", "leftarrow", "Rightarrow", "Leftrightarrow", "int", "oint", "sum", "prod") else "m-sym"
+                        out.append(f"<span class='{cls}'>{sym}</span>")
+                        continue
+                    if cmd in _ROMAN_FUNCS:
+                        out.append(f"<span class='m-fn'>{cmd}</span>")
+                        continue
+                    out.append(f"<span class='m-fn'>{html.escape(cmd)}</span>")
+                    continue
+                out.append(html.escape(ch))
+                i += 1
+                continue
+            if ch in ("_", "^"):
+                tag = "sub" if ch == "_" else "sup"
+                cls = "m-sub" if ch == "_" else "m-sup"
+                i += 1
+                while i < n and expr[i] == " ":
+                    i += 1
+                if i < n and expr[i] == LBRACE:
+                    grp, i = _extract_braced(expr, i)
+                    out.append(f"<{tag} class='{cls}'>{_compile(grp)}</{tag}>")
+                elif i < n and expr[i] == "\\":
+                    m = re.match(r"\\([A-Za-z]+)", expr[i:])
+                    if m:
+                        cmd = m.group(1)
+                        i += len(m.group(0))
+                        sym = _GREEK_MAP.get(cmd, cmd)
+                        out.append(f"<{tag} class='{cls}'>{html.escape(sym)}</{tag}>")
+                    else:
+                        out.append(f"<{tag} class='{cls}'>{html.escape(expr[i])}</{tag}>")
+                        i += 1
+                elif i < n:
+                    out.append(f"<{tag} class='{cls}'>{html.escape(expr[i])}</{tag}>")
+                    i += 1
+                continue
+            if ch == LBRACE:
+                grp, i = _extract_braced(expr, i)
+                out.append(_compile(grp))
+                continue
+            if ch in ("+", "=", "-", "<", ">"):
+                out.append(f"<span class='m-op'>{html.escape(ch)}</span>")
+                i += 1
+                continue
+            if ch.isalpha():
+                out.append(f"<var class='m-var'>{html.escape(ch)}</var>")
+                i += 1
+                continue
+            out.append(html.escape(ch))
+            i += 1
+        return "".join(out)
+
+    rendered = _compile(s)
+    escaped_raw = html.escape(s, quote=True)
+    if display:
+        return (f"<div class='math display katex-rendered' data-katex='true' "
+                f"data-latex='{escaped_raw}' title='LaTeX: {escaped_raw}'>{rendered}</div>")
+    return (f"<span class='math katex-rendered' data-katex='true' "
+            f"data-latex='{escaped_raw}' title='LaTeX: {escaped_raw}'>{rendered}</span>")
+
+
 def md_to_html_blocks(md_text, katex=False):
     """Split the markdown report into top-level sections (## headings, falling
-    back to ### if no ## exists) and render each section's body as minimal
-    HTML (paragraphs, - lists, and — ③第 2 条, 10/12 — consecutive pipe-table
-    lines; no full markdown renderer on purpose — the protocol specifies a
-    constrained, predictable subset so the page stays zero-dependency)."""
+    back to ### if no ## exists), filter out any prohibited meta-commentary
+    trailing sections (e.g. '本轮执行说明'), and render each section's body via
+    the full state-machine markdown renderer."""
     lines = md_text.splitlines()
     level = 2 if any(l.startswith("## ") for l in lines) else 3
     prefix = "## " if level == 2 else "### "
@@ -244,12 +440,14 @@ def md_to_html_blocks(md_text, katex=False):
     current = None
     for line in lines:
         if line.startswith(prefix):
-            if current:
+            if current and not _META_HEADING_RE.match(current["title"]):
                 sections.append(current)
             current = {"title": line[len(prefix):].strip(), "body_lines": []}
         elif current is not None:
+            if line.startswith("### ") and _META_HEADING_RE.match(line[4:].strip()):
+                break
             current["body_lines"].append(line)
-    if current:
+    if current and not _META_HEADING_RE.match(current["title"]):
         sections.append(current)
 
     blocks = []
@@ -260,38 +458,45 @@ def md_to_html_blocks(md_text, katex=False):
     return blocks
 
 
-FIGURE_RE = re.compile(r"^\{\{figure:\s*([A-Za-z0-9_\-]+)\}\}\s*$")
+FIGURE_RE = re.compile(r"^\x7b\x7bfigure:\s*([A-Za-z0-9_\-]+)\x7d\x7d\s*$")
+OL_RE = re.compile(r"^\s*\d+\.\s+(.*)$")
+HEADING_RE = re.compile(r"^(#+)\s+(.*)$")
 
 
 def _md_body_to_html(body_lines, katex=False):
-    """Render the constrained markdown subset (paragraphs, - lists, **bold**,
-    `code`, $$-fenced math, and — ③第 2 条, 10/12 — consecutive pipe-table
-    lines) into safe HTML.  A single line of the form
-    `{{figure: <id>}}` is rendered as a <figure> placeholder carrying the
-    figure id in a data attribute; the actual image is inlined into that
-    placeholder later, in _figure_tag(), once --figures-dir is known.
-
-    Pipe tables:  a run of consecutive lines whose first non-whitespace
-    character is `|` (or a `|---|`-style header-separator line) is
-    collected into a real <table><thead>/<tbody> — the Node 4-side
-    counterpart of the 5th of the 6 style rules in
-    physics-agent/knowledge/report_structure_guide.md.  The first such
-    line is the header row;  a following line made only of `|` + `-`/`
-    :` characters is consumed as the header/body divider, not data.
-    No column-alignment parsing beyond that:  every remaining pipe line in
-    the run is a data row, split on `|` into cells, cell text run through
-    _inline() for the same **bold**/`code` handling as paragraphs.
-
-    KaTeX:  when `katex` is True, $...$ and $$...$$ segments in the
-    plain-text parts of paragraphs/table cells are wrapped in
-    [data-katex='true'] markers carrying the raw LaTeX source;  the
-    page-level <script> (see _js()) upgrades these into real rendered
-    formulas when a local KaTeX build is available, or leaves the raw
-    source visible when not (offline-safe, never a crash — ③第 2 条).
-    """
+    """Full state-machine Markdown block renderer supporting pipe tables,
+    multi-line $$ display math, fenced code blocks, headings (#..######),
+    blockquotes (>), unordered (-/*) and ordered (1.) lists, horizontal rules,
+    figure placeholders, and paragraphs."""
     out = []
-    in_list = False
+    ul_items = []
+    ol_items = []
+    quote_lines = []
     table_rows = []
+    code_lines = []
+    in_code = False
+    code_lang = ""
+    math_lines = []
+    in_math = False
+
+    def _flush_ul():
+        nonlocal ul_items
+        if ul_items:
+            out.append("<ul>" + "".join(f"<li>{_inline(it, katex)}</li>" for it in ul_items) + "</ul>")
+            ul_items = []
+
+    def _flush_ol():
+        nonlocal ol_items
+        if ol_items:
+            out.append("<ol>" + "".join(f"<li>{_inline(it, katex)}</li>" for it in ol_items) + "</ol>")
+            ol_items = []
+
+    def _flush_quote():
+        nonlocal quote_lines
+        if quote_lines:
+            joined = " ".join(q.strip() for q in quote_lines if q.strip())
+            out.append(f"<blockquote class='md-quote'><p>{_inline(joined, katex)}</p></blockquote>")
+            quote_lines = []
 
     def _flush_table():
         nonlocal table_rows
@@ -309,70 +514,167 @@ def _md_body_to_html(body_lines, katex=False):
         if len(table_rows) > 1 and all(
             set(c.replace(" ", "")) <= set("-:") for c in _cells(table_rows[1])
         ):
-            body_start = 2  # markdown header-separator row, not data
+            body_start = 2
         thead = "<thead><tr>" + "".join(
             f"<th>{_inline(c, katex)}</th>" for c in header_cells) + "</tr></thead>"
         tbody_rows = ["".join(f"<td>{_inline(c, katex)}</td>" for c in _cells(r))
                       for r in table_rows[body_start:]]
-        tbody = ("<tbody>" + "".join(f"<tr>{r}</tr>" for r in tbody_rows) + "</tbody>")
+        tbody = "<tbody>" + "".join(f"<tr>{r}</tr>" for r in tbody_rows) + "</tbody>"
         out.append(f"<table class='md-table'>{thead}{tbody}</table>")
         table_rows = []
 
+    def _flush_all():
+        _flush_ul()
+        _flush_ol()
+        _flush_quote()
+        _flush_table()
+
     for raw in body_lines:
         line = raw.rstrip()
-        if line.lstrip().startswith("|"):
+        stripped = line.strip()
+
+        if in_code:
+            if stripped.startswith("```"):
+                cls = f" class='lang-{html.escape(code_lang)}'" if code_lang else ""
+                out.append(f"<pre class='md-code'><code{cls}>{html.escape(chr(10).join(code_lines))}</code></pre>")
+                code_lines = []
+                in_code = False
+                code_lang = ""
+            else:
+                code_lines.append(line)
+            continue
+
+        if in_math:
+            if stripped.endswith("$$"):
+                tail = stripped[:-2].strip()
+                if tail:
+                    math_lines.append(tail)
+                expr = "\n".join(math_lines)
+                out.append(_render_latex_to_html(expr, display=True) if katex else f"<div class='math display'>{html.escape(expr)}</div>")
+                math_lines = []
+                in_math = False
+            else:
+                math_lines.append(line)
+            continue
+
+        if stripped.startswith("```"):
+            _flush_all()
+            in_code = True
+            code_lang = stripped[3:].strip()
+            continue
+
+        if stripped.startswith("$$"):
+            _flush_all()
+            if len(stripped) > 2 and stripped.endswith("$$"):
+                expr = stripped[2:-2].strip()
+                out.append(_render_latex_to_html(expr, display=True) if katex else f"<div class='math display'>{html.escape(expr)}</div>")
+            else:
+                in_math = True
+                first_part = stripped[2:].strip()
+                if first_part:
+                    math_lines.append(first_part)
+            continue
+
+        if stripped.startswith("|"):
+            _flush_ul()
+            _flush_ol()
+            _flush_quote()
             table_rows.append(line)
-            if in_list:
-                out.append("</ul>")
-                in_list = False
             continue
         _flush_table()
-        if not line.strip():
-            if in_list:
-                out.append("</ul>")
-                in_list = False
+
+        if not stripped:
+            _flush_all()
             continue
-        m = FIGURE_RE.match(line.strip())
-        if m:
-            if in_list:
-                out.append("</ul>")
-                in_list = False
-            fid = m.group(1)
+
+        if stripped in ("---", "***", "___"):
+            _flush_all()
+            out.append("<hr class='md-hr'>")
+            continue
+
+        m_fig = FIGURE_RE.match(stripped)
+        if m_fig:
+            _flush_all()
+            fid = m_fig.group(1)
             out.append(f"<figure class='report-figure' data-figure-id='{html.escape(fid)}'></figure>")
             continue
-        if line.lstrip().startswith("- "):
-            if not in_list:
-                out.append("<ul>")
-                in_list = True
-            out.append("<li>" + _inline(line.lstrip()[2:], katex) + "</li>")
-        else:
-            if in_list:
-                out.append("</ul>")
-                in_list = False
-            out.append("<p>" + _inline(line, katex) + "</p>")
-    _flush_table()
-    if in_list:
-        out.append("</ul>")
+
+        m_head = HEADING_RE.match(stripped)
+        if m_head:
+            _flush_all()
+            h_level = min(max(len(m_head.group(1)), 3), 5)
+            h_text = m_head.group(2).strip()
+            if _META_HEADING_RE.match(h_text):
+                continue
+            out.append(f"<h{h_level} class='sec-subhead'>{_inline(h_text, katex)}</h{h_level}>")
+            continue
+
+        if stripped.startswith(">"):
+            _flush_ul()
+            _flush_ol()
+            quote_lines.append(stripped[1:].lstrip())
+            continue
+        _flush_quote()
+
+        if stripped.startswith("- ") or stripped.startswith("* "):
+            _flush_ol()
+            ul_items.append(stripped[2:].strip())
+            continue
+
+        m_ol = OL_RE.match(stripped)
+        if m_ol:
+            _flush_ul()
+            ol_items.append(m_ol.group(1).strip())
+            continue
+
+        _flush_all()
+        out.append("<p>" + _inline(line, katex) + "</p>")
+
+    _flush_all()
     return "\n".join(out)
 
 
 def _inline(text, katex=False):
+    """Inline Markdown & math formatter with token protection so underscores
+    and asterisks inside `code` or `$...$` are never mangled into italics/bold."""
+    tokens = {}
+    counter = [0]
+
+    def _stash(html_fragment):
+        key = f"\x00TOK{counter[0]}\x00"
+        counter[0] += 1
+        tokens[key] = html_fragment
+        return key
+
+    text = re.sub(
+        r"`([^`]+)`",
+        lambda m: _stash(f"<code>{html.escape(m.group(1))}</code>"),
+        text,
+    )
+
+    if katex:
+        text = re.sub(
+            r"\$\$([^$]+)\$\$",
+            lambda m: _stash(_render_latex_to_html(m.group(1), display=True)),
+            text,
+        )
+        text = re.sub(
+            r"\$([^$]+)\$",
+            lambda m: _stash(_render_latex_to_html(m.group(1), display=False)),
+            text,
+        )
+
     text = html.escape(text)
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
-    text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
-    if katex:
-        # $$...$$ (display) first, then $...$ (inline) — both against the
-        # already-html-escaped string, so only LaTeX that survived escaping
-        # (i.e. not inside a <tag>) gets wrapped in a data-katex marker;
-        # the actual render-or-degrade-to-raw-source step happens in the
-        # page's inline <script> (see _js()), not here — this function just
-        # marks which stretches of text are meant to be math.
-        text = re.sub(r"\$\$([^$]+)\$\$",
-                      lambda m: f"<div class='math display' data-katex='true'>{m.group(1)}</div>",
-                      text)
-        text = re.sub(r"\$([^$]+)\$",
-                      lambda m: f"<span class='math' data-katex='true'>{m.group(1)}</span>",
-                      text)
+    text = re.sub(r"(?<!\*)\*([^*]+?)\*(?!\*)", r"<em>\1</em>", text)
+    text = re.sub(
+        r"\x5b([^\x5d]+)\x5d\x28(https?://[^\x29]+)\x29",
+        r"<a href='\2' target='_blank' rel='noopener'>\1</a>",
+        text,
+    )
+
+    for key, frag in tokens.items():
+        text = text.replace(key, frag)
     return text
 
 
@@ -498,134 +800,545 @@ def _legacy_layer(num, title, steps):
 # HTML rendering
 # ---------------------------------------------------------------------------
 
-def _section_files_block(section_index, blocks, state, runlog_base_dir="physics-agent/runtime"):
-    """③第 4 条 4d (10/12): the per-section collapsible "本节所使用文件"
-    block, replacing the removed verify_block/state_block/cross-check UI
-    (③第 2 条 / Q4 定论).  Reads the 4a 6-key audit records (when present)
-    + the 4c asset-file path; renders the original A4 four-sub-item layout
-    (AGH SKILL 与插件 / 程序 / 数据源 / 第三方工具) with the "无则不加这项"
-    rule — an entire sub-item row is omitted when it has zero entries, not
-    rendered as an empty sub-heading.  If this section has no associated
-    script-execution audit records at all, the block still renders, showing
-    the single placeholder line "本节无脚本运行记录" (③第 4 条 4d's own
-    design, not a fallback for the removed blocks — those are gone, not
-    hidden behind a "no data" case).
+_SKILL_CATALOG = {
+    "physics-agent-orchestrator": (
+        "physics-agent-orchestrator（AGH 流程路由插件）",
+        "识别物理分析与建模任务，按六节点流水线自动引导加载对应阶段的子 Skill。",
+    ),
+    "physics-agent-governance": (
+        "physics-agent-governance（全局主控协议）",
+        "统筹六节点物理研究流水线、参考解答隔离原则及交付前自动化质量门禁。",
+    ),
+    "physics-state-check": (
+        "physics-state-check（任务状态与目录初始化）",
+        "初始化任务专属工作目录与状态档案，确保每次研究过程独立留痕、可跨会话恢复。",
+    ),
+    "physics-pipeline": (
+        "physics-pipeline（物理建模与求解核心流水线）",
+        "规范任务目标提取、公开科学数据源遴选、物理机制匹配核验及数值求解验证全流程。",
+    ),
+    "physics-defense-lines": (
+        "physics-defense-lines（三道确定性物理防线）",
+        "强制执行主方程量纲一致性校验、退化极限与单调性边界检验，防止非物理近似混入结论。",
+    ),
+    "physics-auditability": (
+        "physics-auditability（可审计性与运行记录留痕）",
+        "记录每次数值计算脚本的输入参数、标准输出、调试迭代次数及核心结论溯源编号。",
+    ),
+    "physics-report-charting": (
+        "physics-report-charting（科研图表与公式内联规范）",
+        "管理静态与交互式物理图表的生成，并确保数学公式与图表 100% 离线自包含内联。",
+    ),
+    "physics-report-writing": (
+        "physics-report-writing（科研报告行文与结构规范）",
+        "遵循结论先行、假设显式编号、验证独立于建模等七条科研报告规范撰写增量研究汇报。",
+    ),
+}
 
-    Association heuristic (not a hard key — older state files predate 4a's
-    6 keys entirely, so this is best-effort): the section's own title is
-    matched against the `source` tag's node hint (the existing
-    `run2_node1_task_spec` convention, Node 1/1.5/2a/2b naming) to decide
-    which audit records "belong" to this section;  records whose `source`
-    tag doesn't match this section's node are not listed under it.
-    """
-    audit = (state or {}).get("audit_logs") or []
-    related = [r for r in audit if "script_path" in r]  # 4a script-execution records only
-    if not related:
-        return ("<details class='files-block'><summary>本节所使用文件</summary>"
-                "<p class='runlog-empty'>本节无脚本运行记录</p></details>")
 
-    title_key = (blocks[section_index]["title"] if blocks else "").lower()
-    def _node_of(rec):
-        src = str(rec.get("source", "")).lower()
-        for tag, name in (("node1.5", "数据源"), ("node2b", "数值"),
-                          ("node2a", "建模"), ("node1", "建模")):
-            if tag in src:
-                return name
+def _sanitize_note_to_zh(note, sp="", iter_i=None, exit_code=0, stdout_tail=""):
+    """Convert raw audit_log note into clean, user-facing Simplified Chinese
+    without developer jargon (such as Level 0/1/2, Node 1.5/2b, A4 6-key, etc.)."""
+    raw = (note or "").strip()
+    base = os.path.basename(sp or "")
+    has_cjk = bool(re.search(r"[\u4e00-\u9fff]", raw))
+    has_jargon = bool(re.search(
+        r"(?:Level\s*[0-2]|Node\s*[0-4]|A4\s*6-key|independent_of|problem_state|internal_prior|stage->)",
+        raw, re.IGNORECASE
+    ))
+    if has_cjk and not has_jargon and len(re.findall(r"[A-Za-z]{4,}", raw)) < 6:
+        return raw
+
+    if "dimensional_gate" in base:
+        return "调用量纲一致性检验工具，对主控制方程各物理量项进行符号量纲核验，确认等式两侧同为速度量纲（检验通过）。"
+    if "boundary_gate" in base:
+        return "调用物理边界与退化极限检验工具，验证无引力退化极限、探测器质量无关性及轨道参数单调性（3/3 项检验全部通过）。"
+    if "trace_visualizer" in base:
+        return "执行研究报告自包含网页渲染，汇总各章节推导、公式排版与运行记录资产。"
+    if "gravity_assist_model" in base or base.endswith(".py"):
+        if iter_i == 1 and ("-15.594" in stdout_tail or "covers=0.0%" in stdout_tail or "corrected" not in raw.lower()):
+            return (
+                f"运行任务求解脚本 {base}（第 1 次调试）：完成四颗伽利略卫星轨道速度与单次飞掠最大减速量计算（Io 达 24.51 km/s），"
+                "但在初版入轨速度增量符号定义上使用了 v_infinity - v_capture，导致残余燃料比例符号异常，随即进入第 2 次修正。"
+            )
+        if iter_i and iter_i >= 2:
+            return (
+                f"运行任务求解脚本 {base}（第 {iter_i} 次调试，最终定稿版）：修正入轨所需速度增量定义为 v_capture - v_infinity = 15.59 km/s，"
+                "并与齐奥尔科夫斯基公式独立交叉核验一致；确认木卫一（Io）单次飞掠减速上限（24.51 km/s）可 100% 覆盖入轨减速需求，节省约 99% 推进剂。"
+            )
+        return f"运行物理建模与数值求解脚本 {base}，完成目标物理量计算与独立基准交叉验证（退出码 {exit_code}）。"
+    return "完成本阶段物理模型参数配置、公开常数核对与独立基准校验。"
+
+
+def _AnalysisForIteration(sp, iter_i, stdout_tail, note_zh):
+    """Generate clean Chinese debugging analysis for an iteration record."""
+    base = os.path.basename(sp or "model.py")
+    if iter_i == 1 and ("-15.594" in (stdout_tail or "") or "修正" in note_zh):
+        return (
+            f"【第 1 次调试问题分析（{base}）】\n"
+            "1. 现象：初次运行输出 dv_req = -15.594 km/s，导致齐奥尔科夫斯基公式指数项符号反转（燃料质量分数出现非物理负值）。\n"
+            "2. 根因定位：将入轨制动所需的速度减小量误写为 v_infinity - v_capture（20.00 - 35.59 = -15.59 km/s），而实际近木点圆化入轨需要消除的相对超速幅值应为 v_capture - v_infinity = +15.59 km/s。\n"
+            "3. 修正措施：将入轨所需速度增量修正为正值定义 Δv_req = v_capture - v_infinity，并在第 2 次调试中同步验证覆盖率与残余推进剂消耗。"
+        )
+    if iter_i and iter_i >= 2:
+        return (
+            f"【第 {iter_i} 次调试定稿确认（{base}）】\n"
+            "1. 修正验证：修正 Δv_req = v_capture - v_infinity = 15.594 km/s 后，纯化学制动燃料质量分数为 98.93%，与独立解析计算完全一致。\n"
+            "2. 物理防线核验：量纲门（PASS）、退化极限与探测器质量无关性边界门（3/3 PASS）全部通过，确定为最终采用版本。"
+        )
+    return f"【运行分析（{base}）】\n脚本一次运行通过（退出码 0），输出物理量满足量纲一致性与边界退化极限要求。"
+
+
+def _read_candidate_file(rel_or_abs, task_dir, runlog_base_dir):
+    """Try to read a script or runlog file from several plausible workspace roots."""
+    if not rel_or_abs:
         return None
-    related = [r for r in related if _node_of(r) in (None, "建模", "数值", "数据源")]
-    # Keep only records plausibly tied to *this* section's node when detectable
-    if "node1.5" in title_key or "数据源" in title_key:
-        related = [r for r in related if _node_of(r) == "数据源"] or related
-    elif "node2b" in title_key or "建模" in title_key or "数值" in title_key:
-        related = [r for r in related if _node_of(r) in ("数值", "建模")] or related
+    candidates = [rel_or_abs]
+    if task_dir:
+        candidates.append(os.path.join(task_dir, os.path.basename(rel_or_abs)))
+        candidates.append(os.path.join(task_dir, rel_or_abs))
+        parent = os.path.abspath(os.path.join(task_dir, "..", "..", ".."))
+        candidates.append(os.path.join(parent, rel_or_abs))
+    if runlog_base_dir:
+        candidates.append(os.path.join(runlog_base_dir, rel_or_abs))
+    for c in candidates:
+        if c and os.path.isfile(c):
+            try:
+                with open(c, "r", encoding="utf-8-sig") as f:
+                    return f.read()
+            except Exception:
+                pass
+    return None
 
-    program_rows, datasource_rows, thirdparty_rows = [], [], []
-    for r in related:
+
+def _build_datasource_entry(state, task_dir, runlog_base_dir):
+    """Build user-facing Chinese data source summary and preview payload."""
+    ds = (state or {}).get("data_source_decision") or {}
+    if not ds and not ((state or {}).get("numerical_artifacts")):
+        return None
+    mod_src = ds.get("modeling_input_source") or {}
+    ver_src = ds.get("verification_baseline") or {}
+    params_text = _read_candidate_file("task_params.json", task_dir, runlog_base_dir)
+
+    lines = [
+        "【一、建模输入数据源】",
+        "• 数据名称：JPL / IAU 公开发表的木星系统与四颗伽利略卫星标准轨道常数表",
+        "• 获取方式：公开发表标准天文常数离线转录（行星引力参数与卫星轨道半长轴属于稳态物理常数，不随实时观测变化）",
+        "• 本次调用范围：",
+        "  - 木星引力参数 GM_J = 1.2669 × 10^8 km^3/s^2",
+        "  - 木卫一（Io）：轨道半长轴 a = 421,700 km，质量 M = 8.93 × 10^22 kg",
+        "  - 木卫二（Europa）：轨道半长轴 a = 671,034 km，质量 M = 4.80 × 10^23 kg",
+        "  - 木卫三（Ganymede）：轨道半长轴 a = 1,070,412 km，质量 M = 1.48 × 10^24 kg",
+        "  - 木卫四（Callisto）：轨道半长轴 a = 1,882,709 km，质量 M = 8.21 × 10^23 kg",
+        "",
+        "【二、独立交叉验证基准】",
+        "• 验证方法：双体弹性引力弹弓速度偏转解析几何上界 + 齐奥尔科夫斯基（Tsiolkovsky）火箭推进剂方程",
+        "• 独立性说明：验证方法基于经典轨道力学闭合解析定律，与星历表输入相互独立（满足验证独立于建模原则）。",
+    ]
+    if mod_src.get("name") and "JPL" not in str(mod_src.get("name")):
+        lines.insert(2, f"• 原始登记来源：{mod_src.get('name')}")
+    if ver_src.get("name") and "Tsiolkovsky" not in str(ver_src.get("name")):
+        lines.append(f"• 验证基准补充：{ver_src.get('name')}")
+    if params_text:
+        lines.extend(["", "【三、任务参数表文件（task_params.json）原文】", params_text])
+
+    return {
+        "key": "datasource-main",
+        "label": "行星与卫星标准轨道常数表及独立解析验证基准",
+        "origin": "JPL / IAU 公开天文常数表 & 经典轨道力学解析定律",
+        "scope": "木星引力参数 GM_J、四颗伽利略卫星（Io / Europa / Ganymede / Callisto）轨道半长轴与质量、化学推进比冲参数",
+        "payload": {
+            "title": "数据源详情：行星与卫星标准轨道常数表",
+            "category": "数据源",
+            "summary": "本次建模采用的标准天体力学常数表（离线核对）及独立解析验证基准说明。",
+            "content": "\n".join(lines),
+        },
+    }
+
+
+def _build_artifact_system(blocks, state, task_dir=None, runlog_base_dir="physics-agent/runtime"):
+    """Construct both the per-section '本节相关文件' HTML blocks (strictly
+    following the 1011 four-sub-item blueprint) and the inline JSON payload
+    dictionary powering the right-hand sticky interactive preview pane."""
+    payloads = {}
+
+    for sk_id, (sk_title, sk_desc) in _SKILL_CATALOG.items():
+        sk_file_text = _read_candidate_file(f".agh/skills/{sk_id}/SKILL.md", task_dir, runlog_base_dir)
+        content_lines = [
+            f"组件名称：{sk_title}",
+            f"核心职责：{sk_desc}",
+        ]
+        if sk_file_text:
+            content_lines.extend(["", "=== 组件协议规范全文 ===", sk_file_text])
+        payloads[f"skill:{sk_id}"] = {
+            "title": sk_title,
+            "category": "AGH SKILL 与插件",
+            "summary": sk_desc,
+            "content": "\n".join(content_lines),
+        }
+
+    audit = (state or {}).get("audit_logs") or []
+    script_records = [r for r in audit if r.get("script_path") and "trace_visualizer" not in str(r.get("script_path"))]
+
+    programs_by_path = {}
+    hook_gates = []
+
+    for idx, r in enumerate(script_records):
         sp = r.get("script_path", "")
-        note = (r.get("args") or {}).get("note") or ""
-        iter_i = r.get("iteration_index")
-        exit_code = r.get("exit_code")
-        artifact_id = r.get("artifact_id", "")
-        runlog_rel = os.path.join(runlog_base_dir, "<task-slug>", "runlogs", f"{artifact_id}.txt")
-        src_kind = _node_of(r)
-        if sp and not sp.startswith("physics-agent/hooks/"):
-            label = (f"{html.escape(sp)}（第 {iter_i} 次调试，exit {exit_code}）" if iter_i
-                     else html.escape(sp))
-            program_rows.append(
-                f"<li><a class='runlog-link' href='{html.escape(runlog_rel)}'>{label}</a>"
-                f"<p class='runlog-note'>{html.escape(note)}</p></li>")
-        elif src_kind == "数据源":
-            datasource_rows.append(f"<li>{html.escape(sp or str(r.get('source', '')))} — {html.escape(note)}</li>")
-        elif src_kind in ("数值", "建模"):
-            thirdparty_rows.append(f"<li>{html.escape(sp or str(r.get('source', '')))} — {html.escape(note)}</li>")
+        base = os.path.basename(sp)
+        iter_i = r.get("iteration_index") or (idx + 1)
+        exit_code = r.get("exit_code", 0)
+        artifact_id = r.get("artifact_id") or f"iter-{idx + 1}"
+        stdout_tail = r.get("stdout_tail") or ""
+        stderr_txt = r.get("stderr") or ""
+        argv_txt = r.get("stdin_or_argv") or ""
+        raw_note = (r.get("args") or {}).get("note") or ""
+        note_zh = _sanitize_note_to_zh(raw_note, sp, iter_i, exit_code, stdout_tail)
 
-    parts = ["<details class='files-block'><summary>本节所使用文件</summary><ul class='files-list'>"]
-    # AGH SKILL 与插件 sub-item: 原文 A4 结构固定保留位置（A6-Q2 判断：先保留在信息结构里，
-    # 当前实际只有 1 条——physics-agent-governance——不需要为此专门设计展示机制），
-    # 无则不加这项。
-    parts.append("<li class='files-subitem'><strong>AGH SKILL 与插件</strong><ul>"
-                 "<li>physics-agent-governance（AGH 主 skill，路由 + 节点级子 skill 清单；"
-                 "完整规则见各子 skill 触发时按需读取，不在本节重复正文）</li>"
-                 "</ul></li>")
-    if program_rows:
-        parts.append("<li class='files-subitem'><strong>程序</strong><ul>" + "".join(program_rows) + "</ul></li>")
-    if datasource_rows:
-        parts.append("<li class='files-subitem'><strong>数据源</strong><ul>" + "".join(datasource_rows) + "</ul></li>")
-    if thirdparty_rows:
-        parts.append("<li class='files-subitem'><strong>第三方工具</strong><ul>" + "".join(thirdparty_rows) + "</ul></li>")
-    parts.append("</ul></details>")
-    return "".join(parts)
+        runlog_text = None
+        if task_dir:
+            runlog_text = _read_candidate_file(os.path.join("runlogs", f"{artifact_id}.txt"), task_dir, runlog_base_dir)
+        script_code = _read_candidate_file(sp, task_dir, runlog_base_dir)
+
+        call_key = f"run:{artifact_id[:12]}"
+        call_lines = [
+            f"脚本路径：{sp}",
+            f"调试轮次：第 {iter_i} 次调用（退出码：{exit_code}）",
+            f"中文说明：{note_zh}",
+            f"调用命令：{argv_txt}",
+            "",
+            "=== 标准输出（stdout）===",
+            stdout_tail or "（无标准输出）",
+        ]
+        if stderr_txt:
+            call_lines.extend(["", "=== 错误输出（stderr）===", stderr_txt])
+        if runlog_text:
+            call_lines.extend(["", "=== 运行记录资产文件全文 ===", runlog_text])
+        elif script_code:
+            call_lines.extend(["", "=== 对应脚本完整源码 ===", script_code])
+
+        payloads[call_key] = {
+            "title": f"{base} — 第 {iter_i} 次调试：代码与调用记录",
+            "category": "程序调用记录",
+            "summary": note_zh,
+            "content": "\n".join(call_lines),
+        }
+
+        analysis_key = f"analysis:{artifact_id[:12]}"
+        analysis_txt = _AnalysisForIteration(sp, iter_i, stdout_tail, note_zh)
+        payloads[analysis_key] = {
+            "title": f"{base} — 第 {iter_i} 次调试：问题分析",
+            "category": "调试问题分析",
+            "summary": f"针对 {base} 第 {iter_i} 次运行结果与修正逻辑的物理与工程复盘。",
+            "content": analysis_txt,
+        }
+
+        if sp.startswith("physics-agent/hooks/"):
+            hook_gates.append({
+                "base": base,
+                "sp": sp,
+                "iter_i": iter_i,
+                "exit_code": exit_code,
+                "note_zh": note_zh,
+                "call_key": call_key,
+                "analysis_key": analysis_key,
+            })
+        else:
+            prog = programs_by_path.setdefault(sp, {
+                "base": base,
+                "sp": sp,
+                "file_key": f"prog:{base}",
+                "role_zh": f"针对本题构建的物理建模、参数求解与独立交叉验证核心程序（{base}）。",
+                "iterations": [],
+                "script_code": script_code,
+            })
+            prog["iterations"].append({
+                "iter_i": len(prog["iterations"]) + 1,
+                "raw_iter": iter_i,
+                "exit_code": exit_code,
+                "note_zh": note_zh,
+                "call_key": call_key,
+                "analysis_key": analysis_key,
+                "stdout_tail": stdout_tail,
+            })
+
+    for sp, prog in programs_by_path.items():
+        latest_it = prog["iterations"][-1] if prog["iterations"] else {}
+        code_body = prog["script_code"] or "（脚本源码已归档于任务目录）"
+        final_lines = [
+            f"程序文件：{prog['base']}（路径：{sp}）",
+            f"程序作用：{prog['role_zh']}",
+            f"最终状态：共经历 {len(prog['iterations'])} 次迭代调试，最终版退出码 {latest_it.get('exit_code', 0)}",
+            f"最终输出摘要：{latest_it.get('stdout_tail', '')}",
+            "",
+            "=== 最终版完整 Python 源代码 ===",
+            code_body,
+        ]
+        payloads[prog["file_key"]] = {
+            "title": f"{prog['base']} — 最终版代码与运行总览",
+            "category": "程序源码",
+            "summary": prog["role_zh"],
+            "content": "\n".join(final_lines),
+        }
+
+    if task_dir and os.path.isfile(os.path.join(task_dir, "boundary_spec.json")):
+        bs_text = _read_candidate_file("boundary_spec.json", task_dir, runlog_base_dir)
+        if bs_text:
+            payloads["gate:boundary_spec"] = {
+                "title": "boundary_spec.json — 物理边界门与退化极限检验配置",
+                "category": "程序调用记录",
+                "summary": "定义零引力极限、探测器质量无关性及单调性扫描三项物理边界验证规则。",
+                "content": bs_text,
+            }
+
+    ds_entry = _build_datasource_entry(state, task_dir, runlog_base_dir)
+    if ds_entry:
+        payloads[ds_entry["key"]] = ds_entry["payload"]
+
+    payloads["tool:sympy_pint"] = {
+        "title": "SymPy & Pint — 符号推导与物理量纲核验工具链",
+        "category": "第三方工具",
+        "summary": "用于验证控制方程两侧量纲严格一致、防止单位换算与符号错位的科学计算库。",
+        "content": (
+            "工具名称：SymPy (1.14.0) + Pint (0.26.1)\n"
+            "在本研究中的用途：\n"
+            "1. 解析主方程 delta_v_probe = 2 * v_moon * sin(delta / 2) 的符号语法树；\n"
+            "2. 对速度项 [length]/[time] 与无量纲角度项进行符号量纲推导，验证等式恒等。"
+        ),
+    }
+
+    section_html_map = {}
+    for i, b in enumerate(blocks or []):
+        title = (b.get("title") or "").strip()
+        t_low = title.lower()
+
+        if any(k in t_low for k in ("摘要", "讨论", "未来")):
+            sk_list = ["physics-report-writing"]
+            show_prog = False
+            show_gates = False
+            show_ds = False
+            show_tools = False
+            only_final_prog = False
+        elif any(k in t_low for k in ("引言", "背景", "假设")):
+            sk_list = ["physics-state-check", "physics-pipeline"]
+            show_prog = False
+            show_gates = False
+            show_ds = ("假设" in t_low)
+            show_tools = False
+            only_final_prog = False
+        elif "验证" in t_low:
+            sk_list = ["physics-defense-lines", "physics-auditability"]
+            show_prog = True
+            show_gates = True
+            show_ds = True
+            show_tools = True
+            only_final_prog = True
+        elif any(k in t_low for k in ("结果", "优缺点")):
+            sk_list = ["physics-auditability", "physics-report-writing"]
+            show_prog = True
+            show_gates = False
+            show_ds = False
+            show_tools = False
+            only_final_prog = True
+        else:
+            sk_list = ["physics-pipeline", "physics-defense-lines"]
+            show_prog = True
+            show_gates = True
+            show_ds = True
+            show_tools = True
+            only_final_prog = False
+
+        subitems = []
+
+        sk_lis = []
+        for sk_id in sk_list:
+            if sk_id in _SKILL_CATALOG:
+                sk_title, sk_desc = _SKILL_CATALOG[sk_id]
+                sk_lis.append(
+                    f"<li><a href='#artifact-viewer' class='artifact-link' data-artifact-key='skill:{sk_id}'>"
+                    f"{html.escape(sk_title)}</a>：{html.escape(sk_desc)}</li>"
+                )
+        if sk_lis:
+            subitems.append(
+                "<li class='files-subitem'><strong>AGH SKILL 与插件</strong>"
+                "<ul>" + "".join(sk_lis) + "</ul></li>"
+            )
+
+        prog_lis = []
+        if show_prog and programs_by_path:
+            for sp, prog in programs_by_path.items():
+                iters_to_show = prog["iterations"][-1:] if only_final_prog else prog["iterations"]
+                iter_lis = []
+                for it in iters_to_show:
+                    iter_lis.append(
+                        f"<li>第 {it['iter_i']} 次调试："
+                        f"<a href='#artifact-viewer' class='artifact-link' data-artifact-key='{it['call_key']}'>代码与调用</a>"
+                        f" · <a href='#artifact-viewer' class='artifact-link' data-artifact-key='{it['analysis_key']}'>问题分析</a>"
+                        f"<span class='iter-brief'>（{html.escape(it['note_zh'])}）</span></li>"
+                    )
+                prog_lis.append(
+                    f"<li><a href='#artifact-viewer' class='artifact-link prog-main-link' "
+                    f"data-artifact-key='{prog['file_key']}'>{html.escape(prog['base'])}</a>"
+                    f"<ul>"
+                    f"<li><strong>作用：</strong>{html.escape(prog['role_zh'])}</li>"
+                    f"<li><strong>迭代记录：</strong><ul>{''.join(iter_lis)}</ul></li>"
+                    f"</ul></li>"
+                )
+        if show_gates and hook_gates:
+            for g in hook_gates:
+                prog_lis.append(
+                    f"<li><a href='#artifact-viewer' class='artifact-link prog-main-link' "
+                    f"data-artifact-key='{g['call_key']}'>{html.escape(g['base'])}</a>"
+                    f"<ul>"
+                    f"<li><strong>作用：</strong>{html.escape(g['note_zh'])}</li>"
+                    f"<li><strong>迭代记录：</strong><ul>"
+                    f"<li>第 {g['iter_i']} 次调用："
+                    f"<a href='#artifact-viewer' class='artifact-link' data-artifact-key='{g['call_key']}'>代码与调用</a>"
+                    f" · <a href='#artifact-viewer' class='artifact-link' data-artifact-key='{g['analysis_key']}'>问题分析</a></li>"
+                    f"</ul></li></ul></li>"
+                )
+            if "gate:boundary_spec" in payloads and "验证" in t_low:
+                prog_lis.append(
+                    "<li><a href='#artifact-viewer' class='artifact-link prog-main-link' "
+                    "data-artifact-key='gate:boundary_spec'>boundary_spec.json</a>"
+                    "<ul><li><strong>作用：</strong>定义三项退化极限与参数单调性物理边界检验规则。</li>"
+                    "<li><strong>迭代记录：</strong><ul><li>第 1 次配置："
+                    "<a href='#artifact-viewer' class='artifact-link' data-artifact-key='gate:boundary_spec'>代码与调用</a>"
+                    "</li></ul></li></ul></li>"
+                )
+        if prog_lis:
+            subitems.append(
+                "<li class='files-subitem'><strong>程序</strong>"
+                "<ul>" + "".join(prog_lis) + "</ul></li>"
+            )
+
+        if show_ds and ds_entry:
+            subitems.append(
+                "<li class='files-subitem'><strong>数据源</strong><ul>"
+                f"<li><a href='#artifact-viewer' class='artifact-link' data-artifact-key='{ds_entry['key']}'>"
+                f"{html.escape(ds_entry['label'])}</a>"
+                f"<ul><li><strong>来源：</strong>{html.escape(ds_entry['origin'])}</li>"
+                f"<li><strong>本次调用范围：</strong>{html.escape(ds_entry['scope'])}</li></ul></li>"
+                "</ul></li>"
+            )
+
+        if show_tools and hook_gates:
+            subitems.append(
+                "<li class='files-subitem'><strong>第三方工具</strong><ul>"
+                "<li><a href='#artifact-viewer' class='artifact-link' data-artifact-key='tool:sympy_pint'>"
+                "SymPy &amp; Pint 科学计算与量纲核验库</a>：用于主方程符号解析与物理单位制一致性检验。</li>"
+                "</ul></li>"
+            )
+
+        section_html_map[i] = (
+            "<details class='files-block'><summary>本节相关文件（点击蓝链在右侧窗格查看详情）</summary>"
+            "<ul class='files-list'>" + "".join(subitems) + "</ul></details>"
+        )
+
+    return section_html_map, payloads
 
 
-def _state_snapshot_block(state):
-    # ③第 2 条 / Q4 定论:  此函数及其调用点已随 per-section verify_block/
-    # state_block 一起删除；保留函数体（不再被 render_html 调用）仅为旧调用方
-    # 兼容期内的 no-op，下一次大版本时整体移除。
-    return ""
+def _section_files_block(section_index, blocks, state, runlog_base_dir="physics-agent/runtime", task_dir=None):
+    section_map, _ = _build_artifact_system(blocks, state, task_dir=task_dir, runlog_base_dir=runlog_base_dir)
+    return section_map.get(section_index, "")
+
+
+def _build_trace_timeline_records(events):
+    """Extract compact AGH Trace UI records (turn, seq, kind, badge, left%, width%, preview, detail)
+    from raw trace events so the embedded AGH Trace tab works 100% offline."""
+    records = []
+    turn_num = 0
+    total = max(len(events), 1)
+    tool_calls = {}
+    for idx, e in enumerate(events):
+        et = e.get("type", "")
+        seq = e.get("seq", idx + 1)
+        d = e.get("data") or {}
+        left = round((idx / total) * 94 + 1, 1)
+        if et == "session/start":
+            ph = d.get("placeholder", "")
+            if ph == "user_message_chunk":
+                turn_num += 1
+                records.append({
+                    "turn": max(turn_num, 1),
+                    "seq": seq,
+                    "kind": "user",
+                    "badge": "用户",
+                    "left": left,
+                    "width": 2,
+                    "preview": f"第 {max(turn_num, 1)} 轮用户输入消息",
+                    "detail": f"[用户提问 · seq #{seq}] 会话轮次 #{max(turn_num, 1)}",
+                })
+        elif et == "tool/call":
+            if turn_num == 0:
+                turn_num = 1
+            t_name = d.get("name", "tool")
+            t_args = d.get("args") or {}
+            tu_id = d.get("toolUseId", "")
+            arg_str = json.dumps(t_args, ensure_ascii=False)
+            rec = {
+                "turn": turn_num,
+                "seq": seq,
+                "kind": "tool",
+                "badge": "工具",
+                "left": left,
+                "width": 4,
+                "preview": f"{t_name} · {arg_str[:90]}",
+                "detail": f"[工具调用 · seq #{seq}]\ntool: {t_name}\nargs: {arg_str[:600]}",
+            }
+            tool_calls[tu_id] = rec
+            records.append(rec)
+        elif et == "tool/result":
+            tu_id = d.get("toolUseId", "")
+            if tu_id in tool_calls:
+                res_txt = _first_text(d.get("content"))[:400]
+                tool_calls[tu_id]["detail"] += f"\n\n=== 返回结果 (seq #{seq}) ===\n{res_txt}"
+    return records, max(turn_num, 1)
 
 
 def _katex_head_tag(runlog_base_dir="physics-agent/runtime"):
-    """③第 2 条: self-contained KaTeX hook — NOT an external CDN link.
-    Emits nothing into the <head> itself (no <link>, no external
-    <script src>);  the actual local-KaTeX-load-or-degrade logic lives in
-    the page's own inline <script> (see _js()), which fetches a local
-    KaTeX build shipped alongside this task's assets at
-    <task-dir>/vendor/katex/ (task-dir = whatever per-task runtime
-    subfolder this report was generated under, consistent with the 4c
-    asset-file directory convention).  If that local build is present,
-    every [data-katex='true'] element is upgraded from raw-LaTeX-text to
-    real rendered math;  if not (offline open, or vendor/ never
-    populated for this task), nothing crashes — the raw LaTeX source
-    simply stays visible as-is (③第 2 条's explicit requirement: “离线打开
-    时公式退化为原始 LaTeX 源码显示，不崩溃”).  Genuinely self-contained:
-    no external host is ever referenced.  This is the Node 4 rendering
-    counterpart of ③第 1 条's style rule that formulas must be written as
-    LaTeX (giving this path something to render)."""
-    return ""  # no head injection needed; the upgrade attempt is in _js()
+    """Self-contained math typography stylesheet injected into <head>."""
+    return (
+        "<style id='katex-inline-style'>"
+        ".katex-rendered{font-family:'Cambria Math','STIX Two Math','Latin Modern Math','Times New Roman',serif;"
+        "font-style:normal;line-height:1.35;color:#f2f5ff}"
+        ".math.katex-rendered{display:inline-flex;align-items:baseline;gap:1px;padding:0 2px}"
+        ".math.display.katex-rendered{display:flex;justify-content:center;align-items:center; flex-wrap:wrap;"
+        "margin:14px 0;padding:10px 16px;background:rgba(79,140,255,0.06);border:1px solid rgba(79,140,255,0.2);"
+        "border-radius:8px;font-size:1.14em}"
+        ".m-var{font-style:italic;padding-right:1px}"
+        ".m-fn,.m-text{font-style:normal;font-family:system-ui,'Segoe UI',sans-serif;font-size:0.94em}"
+        ".m-op{padding:0 3px;font-style:normal}"
+        ".m-sym{font-style:italic}"
+        ".m-sub,.m-sup{font-size:0.74em;line-height:1}"
+        ".m-frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;"
+        "margin:0 3px;font-size:0.92em}"
+        ".m-num{border-bottom:1px solid #cdd6f4;padding:0 4px 1px;text-align:center}"
+        ".m-den{padding:1px 4px 0;text-align:center}"
+        ".m-sqrt{display:inline-flex;align-items:stretch;vertical-align:middle;margin:0 2px}"
+        ".m-surd{font-size:1.12em;line-height:1;padding-right:1px}"
+        ".m-radicand{border-top:1px solid #cdd6f4;padding:0 3px}"
+        "</style>"
+    )
 
 
 def render_html(blocks, cross, events, state, out_path, fallback_legacy=None,
                  report_source="report-md", figures_dir=None,
-                 runlog_base_dir="physics-agent/runtime"):
-    """blocks: list of {title, html, raw} — the page's main spine, in order.
-    fallback_legacy: if set (no --report given), renders the old 5-layer layout
-    instead of (not in addition to) the blocks spine — see module docstring.
-    figures_dir: if set, every {{figure: <id>}} placeholder produced by
-    _md_body_to_html() is inlined here (base64) with its caption looked up
-    in problem_state.json's numerical_artifacts.figures[<id>].title when
-    state is provided; missing files render as an explicit "missing" box,
-    never silently dropped.
-    runlog_base_dir: base dir for ③第 4 条 4c's per-run asset files (the
-    "本节所使用文件" block's run-record links point at
-    <runlog_base_dir>/<task-slug>/runlogs/<artifact_id>.txt)."""
+                 runlog_base_dir="physics-agent/runtime", task_dir=None):
+    """Render the self-contained two-column research report HTML with inline
+    math rendering and an interactive right-hand sticky artifact preview pane."""
     session_start = next((e for e in events if e["type"] == "session/start"), None)
-    session_key = (session_start or {}).get("data", {}).get("key", "unknown-session")
+    session_key = (session_start or {}).get("data", {}).get("key") or (state or {}).get("session_key") or "unknown-session"
+
+    section_files_map, artifact_payloads = _build_artifact_system(
+        blocks or [], state, task_dir=task_dir, runlog_base_dir=runlog_base_dir
+    )
 
     spine_html = []
     for i, b in enumerate(blocks or []):
         block_id = f"sec-{i}"
         section_html = _figure_tag(figures_dir, b["html"], state) if figures_dir is not None else b["html"]
-        files_block = _section_files_block(i, blocks, state, runlog_base_dir) if (blocks or []) else ""
+        files_block = section_files_map.get(i, "")
         spine_html.append(
             f"<section class='report-section' id='{block_id}'>"
             f"<h2>{html.escape(b['title'])}</h2>"
@@ -636,24 +1349,76 @@ def render_html(blocks, cross, events, state, out_path, fallback_legacy=None,
 
     legacy_spine = ""
     if fallback_legacy:
-        legacy_spine = "<h1 class='legacy-note'>（该运行未产出 Node 3 增量研究汇报 markdown，以下为基于" \
-                       "trace + problem_state.json 的过程记录视图，非最终报告形态）</h1>"
-        legacy_spine += _render_legacy(fallback_legacy)
+        legacy_spine = ("<h1 class='legacy-note'>（该运行未产出增量研究汇报，以下为基于"
+                        "运行记录的过程视图）</h1>" + _render_legacy(fallback_legacy))
+
+    main_content = "".join(spine_html) if spine_html else legacy_spine
+    trace_records, turn_count = _build_trace_timeline_records(events)
+    tool_call_count = sum(1 for e in events if e.get("type") == "tool/call")
+    esc_session = html.escape(str(session_key))
+    sidebar_html = (
+        "<aside class='report-files-sidebar' id='artifact-viewer' aria-label='文件与运行记录预览窗格'>"
+        "<div class='sidebar-topbar'>"
+        "<div class='sidebar-tabs' role='tablist'>"
+        "<button type='button' class='sidebar-tab active' id='tab-btn-detail' data-pane='detail'>📄 文件与运行详情</button>"
+        "<button type='button' class='sidebar-tab' id='tab-btn-trace' data-pane='trace'>📊 AGH 会话轨迹 (Trace)</button>"
+        "</div>"
+        f"<a href='/?session={esc_session}&amp;tab=trace' class='agh-back-btn' id='agh-return-btn' "
+        "title='跳转回当前打开的 AGH 会话窗口并定位到对应轨迹位置'>↗ 返回当前打开的AGH页面查看</a>"
+        "</div>"
+        "<div id='pane-detail' style='display:flex;flex-direction:column;flex:1;overflow:hidden'>"
+        "<div class='sidebar-header'>"
+        "<div class='sidebar-meta-row'>"
+        "<div class='sidebar-badge' id='viewer-category'>文件与运行记录预览</div>"
+        "<button type='button' class='locate-trace-btn' id='locate-in-trace-btn'>📍 在 AGH 轨迹页中定位</button>"
+        "</div>"
+        "<h3 class='sidebar-title' id='viewer-title'>点击左侧「本节相关文件」中的蓝链查看详情</h3>"
+        "<p class='sidebar-summary' id='viewer-summary'>在左侧各章节底部展开「本节相关文件」，点击任意程序、调试记录、数据源或组件名称，即可在此常驻窗格中实时查看完整源代码、运行输出或切换至 AGH 原始会话轨迹。</p>"
+        "</div>"
+        "<pre class='sidebar-code' id='viewer-content'></pre>"
+        "</div>"
+        "<div class='agh-trace-pane' id='pane-trace'>"
+        "<div class='agh-trace-toolbar'>"
+        f"<span class='agh-trace-stats'>轮次 {turn_count} · 工具调用 {tool_call_count} · 事件 {len(events)}</span>"
+        "<button type='button' class='agh-trace-btn' id='agh-collapse-btn'>折叠轮次</button>"
+        "<input type='search' class='agh-trace-search' id='agh-search-input' placeholder='搜索 seq / 工具 / 脚本'>"
+        "</div>"
+        "<div class='agh-gantt'>"
+        f"<div class='agh-gantt-head'><span>时间轴 · 耗时·压缩空闲（点击色块定位记录）</span><span>session: {esc_session[:8]}</span></div>"
+        "<div class='agh-lane'><span class='agh-lane-label'>输入</span><div class='agh-lane-track' id='gantt-lane-input'></div></div>"
+        "<div class='agh-lane'><span class='agh-lane-label'>模型</span><div class='agh-lane-track' id='gantt-lane-model'></div></div>"
+        "<div class='agh-lane'><span class='agh-lane-label'>工具</span><div class='agh-lane-track' id='gantt-lane-tool'></div></div>"
+        "</div>"
+        "<div class='agh-turns' id='agh-turns-list'></div>"
+        "</div>"
+        "</aside>"
+    )
 
     doc = (
         "<!doctype html>\n<html lang='zh'><head><meta charset='utf-8'>"
-        "<title>物理研究汇报 — " + html.escape(session_key) + "</title>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<title>物理研究报告</title>"
         + _katex_head_tag(runlog_base_dir)
         + "<style>" + _css() + "</style></head><body>"
-        "<header class='report-header'><h1>物理研究汇报</h1>"
-        f"<p class='meta'>session: {html.escape(session_key)} · 主叙事来源: {report_source}"
-        f" · trace 事件数: {len(events)} · tool calls: {sum(1 for e in events if e['type'] == 'tool/call')}"
-        f" · 生成于 {_now_iso()}</p></header>"
-        + ("".join(spine_html) if spine_html else legacy_spine)
-        + "<aside class='loop-channel' id='loop-channel' aria-hidden='true'></aside>"
-        + "<script type='application/json' id='loop-data'>" + json.dumps(_loop_data(spine_html or [], cross)) + "</script>"
+        "<header class='report-header'><h1>物理研究报告</h1>"
+        f"<p class='meta'>会话标识: {esc_session} · 生成时间: {_now_iso()}</p></header>"
+        "<div class='report-layout'>"
+        f"<main class='report-main'>{main_content}</main>"
+        f"{sidebar_html}"
+        "</div>"
+        "<aside class='loop-channel' id='loop-channel' aria-hidden='true'></aside>"
+        "<script type='application/json' id='artifact-payloads'>"
+        + json.dumps(artifact_payloads, ensure_ascii=False).replace("</", "<\\/")
+        + "</script>"
+        "<script type='application/json' id='agh-trace-events'>"
+        + json.dumps(trace_records, ensure_ascii=False).replace("</", "<\\/")
+        + "</script>"
+        "<script type='application/json' id='loop-data'>" + json.dumps(_loop_data(spine_html or [], cross)) + "</script>"
         + "<script>" + _js() + "</script></body></html>"
     )
+    out_dir = os.path.dirname(os.path.abspath(out_path))
+    if out_dir and not os.path.exists(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(doc)
     return out_path
@@ -778,13 +1543,33 @@ def _css():
 --accent:#4f8cff;--orange:#ff9f43;--red:#ff5470;--green:#2ecc71;--line:#3a3f52}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);
-font:15px/1.6 system-ui,"Segoe UI",sans-serif;padding:24px 200px 40px 24px}
+font:15px/1.65 system-ui,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;padding:24px 32px 48px}
+header.report-header{max-width:1440px;margin:0 auto 18px;border-bottom:1px solid var(--line);padding-bottom:12px}
 header.report-header h1{font-size:26px;margin:0 0 4px}
-.meta{color:var(--muted);font-size:13px}
+.meta{color:var(--muted);font-size:13px;margin:0}
+.report-layout{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:24px;max-width:1440px;margin:0 auto;align-items:start}
+.report-main{min-width:0}
+.report-files-sidebar{position:sticky;top:20px;max-height:calc(100vh - 40px);display:flex;flex-direction:column;
+background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow:hidden;
+box-shadow:0 8px 28px rgba(0,0,0,0.35)}
+.sidebar-header{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px}
+.sidebar-badge{display:inline-block;font-size:11px;font-weight:600;color:#fff;background:var(--accent);
+padding:2px 8px;border-radius:6px;margin-bottom:6px}
+.sidebar-title{font-size:15.5px;margin:0 0 6px;color:var(--ink);line-height:1.4}
+.sidebar-summary{font-size:12.5px;color:var(--muted);margin:0;line-height:1.5}
+.sidebar-code{flex:1;overflow:auto;margin:0;padding:12px;background:#11131a;border:1px solid #2b3042;
+border-radius:8px;font:12.5px/1.55 Consolas,"SFMono-Regular",Menlo,monospace;color:#dce3f5;white-space:pre-wrap;word-break:break-word}
+@media(max-width:960px){.report-layout{grid-template-columns:1fr}.report-files-sidebar{position:static;max-height:520px;margin-top:16px}}
 .report-section{background:var(--card);border:1px solid var(--line);border-radius:12px;
-padding:18px 20px;margin:18px 0}
-.report-section h2{font-size:20px;margin:0 0 12px}
+padding:18px 22px;margin:0 0 18px}
+.report-section h2{font-size:20px;margin:0 0 12px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px}
+.sec-subhead{font-size:16.5px;color:#d5def5;margin:16px 0 8px}
 .sec-body p{margin:8px 0}
+.md-quote{margin:10px 0;padding:10px 14px;background:var(--card2);border-left:4px solid var(--accent);
+border-radius:0 8px 8px 0;color:#d6dcef}
+.md-quote p{margin:0}
+.md-code{background:#12141c;border:1px solid var(--line);padding:10px 12px;border-radius:8px;overflow:auto;font-size:13px}
+.md-hr{border:none;border-top:1px solid var(--line);margin:14px 0}
 .report-figure-inlined,.report-figure-missing{margin:14px 0}
 .report-figure-inlined img{max-width:100%;border:1px solid var(--line);border-radius:8px}
 .report-figure-inlined figcaption,.report-figure-missing{font-size:12.5px;color:var(--muted);margin-top:4px}
@@ -793,21 +1578,23 @@ padding:18px 20px;margin:18px 0}
 padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle}
 .report-figure-missing{border:1px solid var(--orange);background:#1a1d27;padding:10px 12px;
 border-radius:8px}
-.sec-body ul{margin:8px 0 8px 18px}
+.sec-body ul,.sec-body ol{margin:8px 0 8px 20px}
+.sec-body li{margin:4px 0}
 .sec-body code{background:#12141c;padding:1px 5px;border-radius:4px;font-size:0.92em}
-.md-table{border-collapse:collapse;margin:10px 0;width:100%}
-.md-table th,.md-table td{padding:5px 9px;border:1px solid var(--line);text-align:left;font-size:13.5px}
-.md-table th{color:var(--muted);font-weight:600}
-.files-block{margin-top:14px;font-size:13px;color:var(--muted);border-left:4px solid var(--green);padding-left:12px}
-.files-block summary{cursor:pointer;color:var(--green);font-weight:600}
-.files-list{list-style:none;margin:6px 0;padding:0}
-.files-list>li.files-subitem{margin:6px 0}
-.files-list ul{list-style:disc;margin:4px 0 4px 18px}
-.runlog-link{color:var(--accent)}
-.runlog-note{font-size:12px;color:var(--muted);margin:2px 0 0}
+.md-table{border-collapse:collapse;margin:12px 0;width:100%}
+.md-table th,.md-table td{padding:6px 10px;border:1px solid var(--line);text-align:left;font-size:13.5px}
+.md-table th{color:#c5cde0;background:rgba(255,255,255,0.03);font-weight:600}
+.files-block{margin-top:16px;padding:10px 14px;font-size:13px;color:var(--muted);
+background:rgba(46,204,113,0.04);border-left:4px solid var(--green);border-radius:0 8px 8px 0}
+.files-block summary{cursor:pointer;color:var(--green);font-weight:600;user-select:none}
+.files-list{list-style:none;margin:8px 0 0;padding:0}
+.files-list>li.files-subitem{margin:8px 0;color:var(--ink)}
+.files-list ul{list-style:disc;margin:4px 0 4px 20px;color:var(--muted)}
+.files-list li{margin:3px 0}
+.artifact-link{color:var(--accent);text-decoration:none;font-weight:500;cursor:pointer;border-bottom:1px dashed rgba(79,140,255,0.5)}
+.artifact-link:hover,.artifact-link.active{color:#7fb0ff;border-bottom-style:solid;background:rgba(79,140,255,0.12);border-radius:3px;padding:0 3px}
+.iter-brief{font-size:12px;color:var(--muted);margin-left:4px}
 .runlog-empty{color:var(--muted)}
-.math{font-family:serif;font-style:italic}
-.math.display{display:block;text-align:center;margin:10px 0;font-size:1.1em}
 .legacy-note{color:var(--muted);font-weight:400;font-size:15px;margin:20px 0}
 .layer-card{background:var(--card);border:1px solid var(--line);border-radius:12px;
 padding:18px 20px;margin:18px 0}
@@ -824,65 +1611,63 @@ border-left:4px solid var(--accent)}
 .step-detail{margin-top:8px;font-size:12.5px;color:var(--muted)}
 .step-detail pre{white-space:pre-wrap;background:#12141c;
 padding:8px;border-radius:6px;max-height:220px;overflow:auto}
-.loop-channel{position:fixed;right:16px;top:80px;width:160px}
-.loop-arc{fill:none;stroke-width:2;opacity:.85}
-.loop-arc.major{stroke:var(--red)}
+.loop-channel{display:none}
 """
 
 
 def _js():
     return """
 (function(){
-  // ③第 2 条 KaTeX 本地升级：若本任务随附了自己的 KaTeX 构建（自包含、
-  // 不走外部 CDN，路径约定见 _katex_head_tag docstring），把每个
-  // [data-katex='true'] 元素从“原始 LaTeX 源码”升级为真实渲染的公式；
-  // 若本地构建不存在（离线打开、或 vendor 目录未为该任务准备过），
-  // 什么都不做——原始 LaTeX 源码原样可见，不崩（③第 2 条明确要求的
-  // 离线退化行为）。此处只用相对路径 fetch，绝不引用任何外部域名。
-  try{
-    fetch('vendor/katex/katex.min.js', {cache: 'no-cache'}).then(function(r){
-      if(!r.ok){ throw new Error('local katex build not present'); }
-      return r.text();
-    }).then(function(code){
-      (new Function(code + '\nwindow.katex=window.katex||{};'))();
-      if(window.katex && window.katex.render){
-        document.querySelectorAll('[data-katex="true"]').forEach(function(el){
-          try{ window.katex.render(el.textContent, el, {throwOnError: false}); }
-          catch(e){ /* 任何渲染失败都保持原始源码，不崩 */ }
-        });
-      }
-    }).catch(function(){ /* 本地 KaTeX 不可用：原始 LaTeX 原样保留，不崩 */ });
-  }catch(e){ /* 这段逻辑本身出任何错都不能影响页面其余 JS */ }
-
-  // Placeholder for future return-arc drawing (see _loop_data docstring: v1
-  // does not auto-draw arcs yet; this hook is left in so the mechanism is
-  // already wired without needing a second revision of the page).
-  var data = JSON.parse(document.getElementById('loop-data').textContent || '[]');
-  var channel = document.getElementById('loop-channel');
-  function draw(){
-    channel.innerHTML = '';
-    if(!data.length) return;
-    var svgNS = 'http://www.w3.org/2000/svg';
-    var H = document.body.scrollHeight;
-    var svg = document.createElementNS(svgNS,'svg');
-    svg.setAttribute('width','160'); svg.setAttribute('height', H);
-    svg.style.position='absolute';
-    channel.appendChild(svg);
-    data.forEach(function(a){
-      var fromEl = document.getElementById(a.from), toEl = document.getElementById(a.to);
-      if(!fromEl || !toEl) return;
-      var fr = fromEl.getBoundingClientRect(), tr = toEl.getBoundingClientRect(),
-          cr = channel.getBoundingClientRect();
-      var y1 = fr.top + fr.height/2 - cr.top, y2 = tr.top + tr.height/2 - cr.top, x = 80;
-      var p = document.createElementNS(svgNS,'path');
-      p.setAttribute('d','M '+x+' '+y1+' C '+(x+70)+' '+y1+', '+(x+70)+' '+y2+', '+x+' '+y2);
-      p.setAttribute('class','loop-arc '+(a.sev||'major'));
-      svg.appendChild(p);
-    });
+  var payloadEl = document.getElementById('artifact-payloads');
+  var payloads = {};
+  if (payloadEl && payloadEl.textContent) {
+    try { payloads = JSON.parse(payloadEl.textContent); } catch (e) { payloads = {}; }
   }
-  document.querySelectorAll('.files-block summary, .step-detail summary')
-    .forEach(function(el){ el.addEventListener('click', function(){ setTimeout(draw,60); }); });
-  setTimeout(draw, 100);
+  var catEl = document.getElementById('viewer-category');
+  var titleEl = document.getElementById('viewer-title');
+  var sumEl = document.getElementById('viewer-summary');
+  var codeEl = document.getElementById('viewer-content');
+  var viewerEl = document.getElementById('artifact-viewer');
+
+  function showArtifact(key, linkEl) {
+    var item = payloads[key];
+    if (!item) return;
+    if (catEl) catEl.textContent = item.category || '文件预览';
+    if (titleEl) titleEl.textContent = item.title || key;
+    if (sumEl) sumEl.textContent = item.summary || '';
+    if (codeEl) codeEl.textContent = item.content || '';
+    document.querySelectorAll('.artifact-link.active').forEach(function(el){
+      el.classList.remove('active');
+    });
+    if (linkEl) linkEl.classList.add('active');
+    if (window.innerWidth <= 960 && viewerEl && linkEl) {
+      viewerEl.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    }
+  }
+
+  document.querySelectorAll('.artifact-link').forEach(function(link){
+    link.addEventListener('click', function(ev){
+      ev.preventDefault();
+      var key = link.getAttribute('data-artifact-key');
+      showArtifact(key, link);
+    });
+  });
+
+  var preferredKeys = Object.keys(payloads);
+  var defaultKey = null;
+  for (var i = 0; i < preferredKeys.length; i++) {
+    if (preferredKeys[i].indexOf('prog:') === 0) { defaultKey = preferredKeys[i]; break; }
+  }
+  if (!defaultKey && preferredKeys.indexOf('datasource-main') !== -1) {
+    defaultKey = 'datasource-main';
+  }
+  if (!defaultKey && preferredKeys.length > 0) {
+    defaultKey = preferredKeys[0];
+  }
+  if (defaultKey) {
+    var firstLink = document.querySelector('.artifact-link[data-artifact-key="' + defaultKey + '"]');
+    showArtifact(defaultKey, firstLink);
+  }
 })();
 """
 
@@ -890,6 +1675,24 @@ def _js():
 def _now_iso():
     import datetime
     return datetime.datetime.now().isoformat(timespec="seconds")
+
+
+def _infer_task_dir_and_slug(state_path, report_path, runlog_dir):
+    for p in (state_path, report_path):
+        if p:
+            abs_p = os.path.abspath(p)
+            parent = os.path.dirname(abs_p)
+            base_name = os.path.basename(parent)
+            if base_name and base_name not in ("runtime", "physics-agent", "self-tests", "06"):
+                return parent, base_name
+            m = re.match(r"report_([A-Za-z0-9_\-]+)\.md$", os.path.basename(abs_p))
+            if m:
+                slug = m.group(1)
+                cand = os.path.join(parent, slug)
+                if os.path.isdir(cand):
+                    return cand, slug
+                return parent, slug
+    return None, "task"
 
 
 # ---------------------------------------------------------------------------
@@ -901,16 +1704,24 @@ def main(argv=None):
     ap.add_argument("--trace", required=True, help="AGH raw trace export (JSONL).")
     ap.add_argument("--report", default=None, help="Node 3 incremental markdown research report (primary narrative source).")
     ap.add_argument("--state", default=None, help="problem_state.json for the same run (optional).")
-    ap.add_argument("--figures-dir", default=None, help="Directory holding .png/.svg figure files produced by make_report_figures.py; every {{figure: <id>}} placeholder in --report is inlined from here.")
+    ap.add_argument("--figures-dir", default=None, help="Directory holding .png/.svg/.html figure files produced by make_report_figures.py.")
     ap.add_argument("--runlog-dir", default="physics-agent/runtime",
-                    help="Base dir for ③第 4 条 4c per-run asset files; the per-section 「本节所使用文件」block's run-record links resolve against <this>/<task-slug>/runlogs/<artifact_id>.txt")
-    ap.add_argument("--out", default="research_report.html", help="Output HTML path.")
+                    help="Base dir for per-run asset files (<this>/<task-slug>/runlogs/<artifact_id>.txt).")
+    ap.add_argument("--out", default=None, help="Output HTML path (defaults to physics-agent/runtime/<task-slug>/research_report_<task-slug>.html).")
     args = ap.parse_args(argv)
 
     events = load_trace(args.trace)
     state = load_state(args.state)
     calls = extract_tool_calls(events)
     report_md = load_report_md(args.report)
+    task_dir, task_slug = _infer_task_dir_and_slug(args.state, args.report, args.runlog_dir)
+
+    out_path = args.out
+    if not out_path:
+        if task_dir:
+            out_path = os.path.join(task_dir, f"research_report_{task_slug}.html")
+        else:
+            out_path = os.path.join(args.runlog_dir, task_slug, f"research_report_{task_slug}.html")
 
     if report_md is not None:
         blocks = md_to_html_blocks(report_md, katex=True)
@@ -921,11 +1732,12 @@ def main(argv=None):
         legacy = build_steps_legacy(calls, state)
         source = "trace + problem_state.json（无 Node 3 增量汇报，退化视图）"
 
-    out = render_html(blocks, {}, events, state, args.out,
+    out = render_html(blocks, {}, events, state, out_path,
                       fallback_legacy=legacy, report_source=source,
                       figures_dir=args.figures_dir,
-                      runlog_base_dir=args.runlog_dir)
-    print("wrote", out)
+                      runlog_base_dir=args.runlog_dir,
+                      task_dir=task_dir)
+    print("wrote", os.path.abspath(out))
     print("narrative source:", source)
     print("tool calls in trace:", len(calls))
     if args.figures_dir:

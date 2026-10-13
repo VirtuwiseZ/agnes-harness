@@ -200,8 +200,21 @@ def verify_chain(state_path: str) -> dict:
     return {"verdict": "PASS" if all_ok else "FAIL", "records": per_record}
 
 
-def main():
-    p = argparse.ArgumentParser(description="Append-only audit-log writer for problem_state.json")
+def main(argv=None):
+    argv = list(argv if argv is not None else sys.argv[1:])
+    # Tolerant CLI handling (Test 3 lesson): if caller passes --state or --source
+    # directly without typing the 'append' subcommand, insert 'append' automatically.
+    if argv and argv[0] not in ("append", "verify", "-h", "--help"):
+        if any(arg in ("--state", "--source", "--args-json") for arg in argv):
+            argv.insert(0, "append")
+
+    p = argparse.ArgumentParser(
+        description="Append-only audit-log writer for problem_state.json",
+        epilog="Examples:\n"
+               "  python audit_log.py append --state problem_state.json --source my_hook --args-json '{\"note\": \"中文说明\"}'\n"
+               "  python audit_log.py --state problem_state.json --source my_hook --args-json '{\"note\": \"中文说明\"}'\n"
+               "  python audit_log.py verify --state problem_state.json\n"
+    )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     a = sub.add_parser("append", help="append one audit record")
@@ -216,7 +229,7 @@ def main():
     v = sub.add_parser("verify", help="re-hash and verify the audit chain")
     v.add_argument("--state", required=True)
 
-    args = p.parse_args()
+    args = p.parse_args(argv)
 
     if args.cmd == "append":
         try:

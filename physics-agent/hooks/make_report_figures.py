@@ -148,6 +148,75 @@ def _count_nonpositive(vals):
     return n
 
 
+def _apply_scientific_axes_style(ax):
+    """Apply clean publication-grade styling (gridlines, despined top/right)."""
+    ax.grid(True, linestyle="--", linewidth=0.6, alpha=0.35, color="#888888")
+    ax.set_axisbelow(True)
+    for side in ("top", "right"):
+        if side in ax.spines:
+            ax.spines[side].set_visible(False)
+
+
+def _draw_thresholds(ax, fig_spec, all_x, all_y):
+    """Draw horizontal/vertical physical reference threshold lines and include
+    their values in all_x/all_y so axis limits never clip a threshold line."""
+    for th in fig_spec.get("thresholds") or []:
+        axis_name = th.get("axis", "y")
+        val = th.get("value")
+        if not isinstance(val, (int, float)) or not math.isfinite(val):
+            continue
+        color = th.get("color", "#d62728")
+        style = th.get("style", "--")
+        label = th.get("label") or f"{axis_name} = {val}"
+        if axis_name == "x":
+            ax.axvline(val, color=color, linestyle=style, linewidth=1.6, label=label, zorder=4)
+            all_x.append(val)
+        else:
+            ax.axhline(val, color=color, linestyle=style, linewidth=1.6, label=label, zorder=4)
+            all_y.append(val)
+
+
+def _check_degeneracy_and_scale(series, fig_id, y_scale, footnotes, allow_constant=False):
+    """Anti-Blank / Anti-Flat Gate (preventing Test 5 Run #1's 'near-blank curve' failure):
+    1. Rejects figures where ALL multi-point series are completely flat (zero variance),
+       unless allow_constant=True is explicitly set.
+    2. Footnotes when positive values span >50x on a linear axis with >75% of points
+       compressed into the bottom 10% of the range."""
+    if not series or allow_constant:
+        return
+    non_flat_count = 0
+    multi_point_count = 0
+    all_finite_y = []
+    for s in series:
+        pts = s.get("points") or {}
+        ys = [v for v in (pts.get("y") or []) if isinstance(v, (int, float)) and math.isfinite(v)]
+        all_finite_y.extend(ys)
+        if len(ys) >= 3:
+            multi_point_count += 1
+            y_span = max(ys) - min(ys)
+            y_scale_ref = max(abs(sum(ys) / len(ys)), 1.0)
+            if y_span > 1e-9 * y_scale_ref:
+                non_flat_count += 1
+    if multi_point_count > 0 and non_flat_count == 0:
+        raise FigureError(
+            f"figure '{fig_id}': all {multi_point_count} series have near-zero variance across the x-range "
+            f"(flat horizontal line). This repeats the Test 5 'near-blank curve' failure mode. "
+            f"Plot a physical quantity that genuinely varies with x, or declare constant reference bounds in 'thresholds'."
+        )
+    if y_scale == "linear" and len(all_finite_y) >= 6:
+        pos_y = [v for v in all_finite_y if v > 0]
+        if len(pos_y) == len(all_finite_y):
+            lo, hi = min(pos_y), max(pos_y)
+            if lo > 0 and (hi / lo) > 50.0:
+                threshold_10pct = lo + 0.10 * (hi - lo)
+                compressed_frac = sum(1 for v in pos_y if v <= threshold_10pct) / len(pos_y)
+                if compressed_frac >= 0.75:
+                    footnotes.append(
+                        f"提示：纵轴正值跨度达 {hi/lo:.1f} 倍且 {int(compressed_frac*100)}% 的数据点集中在低值区，"
+                        "若需观察低值区细节可设置 axes.y.scale='log'。"
+                    )
+
+
 def _draw_1d(fig_spec, fig_id):
     kind = fig_spec.get("kind", "curve")
     series = fig_spec.get("series") or []
@@ -253,10 +322,16 @@ def _draw_1d(fig_spec, fig_id):
         ax.plot([mk.get("x")], [mk.get("y")], marker="x", color="k", markersize=8,
                 label=mk.get("label") or f"({mk.get('x')}, {mk.get('y')})")
 
+    _check_degeneracy_and_scale(
+        series, fig_id, y_scale, footnotes, allow_constant=bool(fig_spec.get("allow_constant", False))
+    )
+
     # Axis limits: include every finite data point across all series; never
     # silently crop. (NaN/Inf points are skipped by matplotlib itself.)
     all_x = [v for s in series for v in (s.get("points") or {}).get("x", [])]
     all_y = [v for s in series for v in (s.get("points") or {}).get("y", [])]
+    _draw_thresholds(ax, fig_spec, all_x, all_y)
+    _apply_scientific_axes_style(ax)
     # A background-band-only figure (kind='interval_highlight' with no data
     # series) still needs an x-axis range — derive it from the highlight bands
     # themselves, not from (nonexistent) data points.
@@ -587,15 +662,78 @@ def _draw_heatmap(fig_spec, fig_id):
     return fig
 
 
+def _draw_bar(fig_spec, fig_id):
+    """kind='bar': grouped categorical comparison bar chart with value labels and thresholds."""
+    series = fig_spec.get("series") or []
+    categories = fig_spec.get("categories") or []
+    if not series:
+        raise FigureError(f"figure '{fig_id}': kind 'bar' requires at least one series.")
+    if not categories and series[0].get("points"):
+        categories = [str(x) for x in (series[0]["points"].get("x") or [])]
+    if not categories:
+        raise FigureError(f"figure '{fig_id}': kind 'bar' requires 'categories' (list of category names).")
+
+    import numpy as np
+    fig, ax = plt.subplots(figsize=(7.2, 4.6), dpi=150)
+    x_idx = np.arange(len(categories))
+    n_ser = len(series)
+    width = min(0.75 / max(n_ser, 1), 0.38)
+    palette = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"]
+    all_y = [0.0]
+
+    for i, s in enumerate(series):
+        vals = s.get("values")
+        if vals is None and s.get("points"):
+            vals = s["points"].get("y")
+        if not vals or len(vals) != len(categories):
+            raise FigureError(
+                f"figure '{fig_id}': bar series '{s.get('name')}' length does not match categories ({len(categories)})."
+            )
+        all_y.extend([v for v in vals if isinstance(v, (int, float)) and math.isfinite(v)])
+        offset = (i - (n_ser - 1) / 2.0) * width
+        bars = ax.bar(
+            x_idx + offset,
+            vals,
+            width=width * 0.92,
+            label=s.get("name") or f"系列 {i+1}",
+            color=s.get("color") or palette[i % len(palette)],
+            edgecolor="#1e293b",
+            linewidth=0.6,
+            zorder=3,
+        )
+        for rect, val in zip(bars, vals):
+            if isinstance(val, (int, float)) and math.isfinite(val):
+                ax.annotate(
+                    f"{val:.2f}" if abs(val) < 100 else f"{val:.1f}",
+                    xy=(rect.get_x() + rect.get_width() / 2.0, rect.get_height()),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    fontsize=8.5,
+                )
+
+    _draw_thresholds(ax, fig_spec, [], all_y)
+    _apply_scientific_axes_style(ax)
+    ax.set_xticks(x_idx)
+    ax.set_xticklabels([str(c) for c in categories])
+    axes = fig_spec.get("axes") or {}
+    ax.set_xlabel((axes.get("x") or {}).get("label") or "")
+    ax.set_ylabel((axes.get("y") or {}).get("label") or "")
+    if all_y:
+        lo, hi = min(all_y), max(all_y)
+        ax.set_ylim(min(0.0, lo * 1.1), hi * 1.16 if hi > 0 else 1.0)
+    title = fig_spec.get("title") or "（无标题）"
+    import textwrap
+    ax.set_title(textwrap.fill(title, width=38))
+    if n_ser > 1 or fig_spec.get("thresholds"):
+        ax.legend()
+    fig.tight_layout()
+    return fig
+
+
 def render_all(figures, out_dir, fmt):
-    """Draw every figure in `figures`, independently. A malformed figure raises
-    FigureError that is collected (not raised immediately) so one bad figure
-    cannot silently skip the rest of the batch — good figures in the same
-    `numerical_artifacts.figures` dict still get written; all errors are
-    reported together at the end and the caller decides (exit 1) whether the
-    overall run counts as successful. This is deliberate: "one typo in one
-    figure's y_err length" must not be the reason the other four, correct,
-    figures for the same task never get drawn at all."""
+    """Draw every figure in `figures`, independently."""
     os.makedirs(out_dir, exist_ok=True)
     written = []
     errors = []
@@ -614,6 +752,8 @@ def render_all(figures, out_dir, fmt):
                 fig = _draw_heatmap(spec, fig_id)
             elif kind == "boxplot":
                 fig = _draw_boxplot(spec, fig_id)
+            elif kind == "bar":
+                fig = _draw_bar(spec, fig_id)
             else:
                 fig = _draw_1d(spec, fig_id)
             out = os.path.join(out_dir, f"{fig_id}.{fmt}")
