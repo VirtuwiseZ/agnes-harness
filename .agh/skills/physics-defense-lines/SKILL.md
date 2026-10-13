@@ -1,6 +1,6 @@
 ﻿---
 name: physics-defense-lines
-description: 数值执行前必须跑完的三条确定性防线（量纲门/边界门/配额回滚），触发信号是要进入建模-数值求解-验证环节之前，确认这三道检查都实际跑过、不是手工代跑。
+description: '数值执行前必须跑完的三条确定性防线（量纲门/边界门/配额回滚），触发信号是要进入建模-数值求解-验证环节之前，确认这三道检查都实际跑过、不是手工代跑。'
 ---
 
 ### Three Deterministic Defense Lines (Do Not Bypass)

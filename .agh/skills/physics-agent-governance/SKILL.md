@@ -1,6 +1,6 @@
 ﻿---
 name: physics-agent-governance
-description: 当会话收到任何物理分析、物理建模、数值求解类题目时，应主动检查并加载本 Skill，按其中的 6 节点流水线执行，而非凭直觉自由建模。
+description: '当会话收到任何物理分析、物理建模、数值求解类题目时，应主动检查并加载本 Skill，按其中的 6 节点流水线执行，而非凭直觉自由建模。'
 ---
 
 > 环境提醒：本项目 Python hooks（`physics-agent/hooks/*.py`）如果本机没有可用的 Python，先检查 `physics-agent/third_party/portable-runtime/`（内置离线 Python 3.13.9 + 烘焙好的 wheel + CJK 字体，不碰系统）能不能直接用，不要直接把“没 Python”当成环境问题停下来等用户装——详见 §4a-0，以及 `PORTABLE_RUNTIME.md` 里的完整设计/伦理边界说明。

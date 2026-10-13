@@ -391,7 +391,12 @@ def _draw_1d(fig_spec, fig_id):
     else:
         ax.set_title("（无标题）")
     if any(s.get("name") for s in series) or fig_spec.get("highlights") or fig_spec.get("markers"):
-        ax.legend()
+        legend_pos = fig_spec.get("legend_position", "auto")
+        if legend_pos == "outside" or (legend_pos == "auto" and len(series) >= 3):
+            # Zero-occlusion rule: move legend to dedicated outside margin when >= 3 series
+            ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left", borderaxespad=0, frameon=True)
+        else:
+            ax.legend(loc=legend_pos if legend_pos != "auto" else "best")
     if n_nan_total or n_inf_total:
         footnotes.append(
             f"共 {n_nan_total} 个 NaN、{n_inf_total} 个 Inf 值（横跨所有系列）；"
@@ -594,6 +599,7 @@ def _draw_heatmap(fig_spec, fig_id):
     zlabel = (axes.get("z") or {}).get("label") or ""
 
     import numpy as np
+    import matplotlib.colors as mcolors
     arr = np.array([[v if isinstance(v, (int, float)) and math.isfinite(v) else np.nan for v in row] for row in vals], dtype=float)
 
     def _is_numeric(values):
@@ -602,8 +608,39 @@ def _draw_heatmap(fig_spec, fig_id):
     x_numeric = _is_numeric(xv)
     y_numeric = _is_numeric(yv)
 
-    fig, ax = plt.subplots(figsize=(7, 5), dpi=150)
+    fig, ax = plt.subplots(figsize=(7.4, 5.2), dpi=150)
     style = fig_spec.get("heatmap_style", "pcolormesh")
+
+    # Colormap and Normalization determination
+    explicit_cmap = fig_spec.get("cmap")
+    is_diverging = bool(fig_spec.get("diverging") or fig_spec.get("cmap_type") == "diverging")
+    finite_vals = arr[np.isfinite(arr)]
+    has_finite = len(finite_vals) > 0
+    vmin = float(np.min(finite_vals)) if has_finite else 0.0
+    vmax = float(np.max(finite_vals)) if has_finite else 1.0
+
+    if not explicit_cmap and (is_diverging or (vmin < -1e-6 and vmax > 1e-6)):
+        cmap = "coolwarm"
+        is_diverging = True
+    elif explicit_cmap:
+        cmap = explicit_cmap
+    else:
+        cmap = "viridis"
+
+    # Norm handling (LogNorm vs TwoSlopeNorm vs Linear)
+    z_scale = ((fig_spec.get("axes") or {}).get("z") or {}).get("scale", "linear")
+    req_log = fig_spec.get("norm") == "log" or z_scale == "log"
+    norm = None
+    if req_log and has_finite:
+        pos_vals = finite_vals[finite_vals > 0]
+        if len(pos_vals) == 0:
+            raise FigureError(
+                f"figure '{fig_id}': norm='log' requested for heatmap, but all values are <= 0. "
+                f"Logarithmic color scaling requires strictly positive data.")
+        log_vmin = float(np.min(pos_vals))
+        norm = mcolors.LogNorm(vmin=log_vmin, vmax=max(vmax, log_vmin * 10))
+    elif is_diverging and has_finite and vmin < 0 < vmax:
+        norm = mcolors.TwoSlopeNorm(vmin=vmin, vcenter=0.0, vmax=vmax)
 
     if x_numeric and y_numeric:
         X, Y = np.meshgrid(xv, yv)
@@ -612,16 +649,20 @@ def _draw_heatmap(fig_spec, fig_id):
         if y_scale == "log":
             ax.set_yscale("log")
         if style == "contourf":
-            cs = ax.contourf(X, Y, arr, levels=12, cmap="viridis")
+            levels = int(fig_spec.get("levels", 14))
+            cs = ax.contourf(X, Y, arr, levels=levels, cmap=cmap, norm=norm)
+            if fig_spec.get("contour_lines", True):
+                clines = ax.contour(X, Y, arr, levels=levels, colors="white", alpha=0.35, linewidths=0.7, norm=norm)
+                if fig_spec.get("contour_labels", True):
+                    try:
+                        ax.clabel(clines, inline=True, fontsize=7.5, fmt="%g")
+                    except Exception:
+                        pass
         else:
-            im = ax.pcolormesh(X, Y, arr, cmap="viridis")
+            im = ax.pcolormesh(X, Y, arr, cmap=cmap, norm=norm, shading="auto")
             cs = im
     else:
-        # Categorical axis (e.g. feature names, country names, lat/lon index
-        # labels): pcolormesh/meshgrid assume numeric coords and crash on
-        # string labels. Use imshow with the matrix directly, and put the
-        # category labels on the ticks. (Also handles the mixed case of one
-        # categorical + one numeric axis.)
+        # Categorical axis (e.g. feature names, country names, lat/lon index labels)
         if x_scale == "log" and not x_numeric:
             raise FigureError(
                 f"figure '{fig_id}': axes.x.scale='log' is not meaningful for a categorical "
@@ -637,15 +678,32 @@ def _draw_heatmap(fig_spec, fig_id):
                 f"figure '{fig_id}': kind 'heatmap' with heatmap_style='contourf' requires "
                 f"numeric x_values/y_values (contourf needs coordinates); got categorical "
                 f"labels. Use 'pcolormesh' style for categorical axes.")
-        im = ax.imshow(arr.T, cmap="viridis", origin="lower", aspect="auto")
+        im = ax.imshow(arr.T, cmap=cmap, norm=norm, origin="lower", aspect="auto")
         cs = im
         ax.set_xticks(range(len(xv)))
         ax.set_xticklabels([str(v) for v in xv], rotation=45, ha="right")
         ax.set_yticks(range(len(yv)))
         ax.set_yticklabels([str(v) for v in yv])
-        # imshow indexes rows top-to-bottom by default; origin='lower' flips it
-        # so that y_values[0] sits at the bottom, matching the numeric-axis
-        # convention used elsewhere in this script.
+
+        # Cell value annotation (annot=True)
+        if fig_spec.get("annot"):
+            annot_fmt = fig_spec.get("annot_fmt", ".2f")
+            cmap_obj = plt.get_cmap(cmap)
+            norm_obj = norm or mcolors.Normalize(vmin=vmin, vmax=vmax)
+            for j in range(len(yv)):
+                for i in range(len(xv)):
+                    val = arr[j][i]
+                    if not math.isfinite(val):
+                        continue
+                    try:
+                        t_str = f"{val:{annot_fmt}}"
+                    except Exception:
+                        t_str = str(val)
+                    # Compute perceived luminance for text contrast
+                    rgba = cmap_obj(norm_obj(val))
+                    lum = 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2]
+                    t_color = "#0f172a" if lum > 0.55 else "#f8fafc"
+                    ax.text(i, j, t_str, ha="center", va="center", color=t_color, fontsize=8, fontweight="500")
 
     cbar = fig.colorbar(cs, ax=ax)
     if zlabel:
@@ -727,7 +785,144 @@ def _draw_bar(fig_spec, fig_id):
     import textwrap
     ax.set_title(textwrap.fill(title, width=38))
     if n_ser > 1 or fig_spec.get("thresholds"):
-        ax.legend()
+        legend_pos = fig_spec.get("legend_position", "auto")
+        if legend_pos == "outside" or (legend_pos == "auto" and n_ser >= 3):
+            ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left", borderaxespad=0, frameon=True)
+        else:
+            ax.legend(loc=legend_pos if legend_pos != "auto" else "best")
+    fig.tight_layout()
+    return fig
+
+
+def _draw_3d_curve(fig_spec, fig_id):
+    """kind='3d_curve': 3D spatial trajectories (orbital mechanics, 3D ballistics, particle beams)."""
+    series = fig_spec.get("series") or []
+    if not series:
+        raise FigureError(f"figure '{fig_id}': kind '3d_curve' requires at least one series.")
+
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+    fig = plt.figure(figsize=(7.6, 5.8), dpi=150)
+    ax = fig.add_subplot(111, projection="3d")
+
+    axes = fig_spec.get("axes") or {}
+    xlabel = (axes.get("x") or {}).get("label") or "x"
+    ylabel = (axes.get("y") or {}).get("label") or "y"
+    zlabel = (axes.get("z") or {}).get("label") or "z"
+
+    all_z = []
+    palette = ["#38bdf8", "#10b981", "#ef4444", "#f59e0b", "#a855f7", "#ec4899"]
+    ground_proj = bool(fig_spec.get("ground_projection", False))
+
+    for idx, s in enumerate(series):
+        name = s.get("name") or f"轨迹 {idx+1}"
+        pts = s.get("points") or {}
+        x = pts.get("x") or []
+        y = pts.get("y") or []
+        z = pts.get("z") or []
+        if not x or not y or not z:
+            raise FigureError(f"figure '{fig_id}': series '{name}' in '3d_curve' requires non-empty x, y, and z.")
+        _require_same_len(name, x, y)
+        _require_same_len(name + ".z", x, z)
+
+        color = s.get("color") or palette[idx % len(palette)]
+        lw = float(s.get("linewidth") or 2.2)
+        ax.plot(x, y, z, label=name, color=color, linewidth=lw, zorder=4)
+
+        all_z.extend([val for val in z if isinstance(val, (int, float)) and math.isfinite(val)])
+
+    # Optional ground projection on z_min plane for 3D depth perception
+    if ground_proj and all_z:
+        z_floor = float(min(all_z))
+        for idx, s in enumerate(series):
+            pts = s.get("points") or {}
+            x = pts.get("x") or []
+            y = pts.get("y") or []
+            color = s.get("color") or palette[idx % len(palette)]
+            ax.plot(x, y, [z_floor] * len(x), color=color, alpha=0.25, linewidth=1.2, linestyle="--", zorder=2)
+
+    ax.set_xlabel(xlabel, labelpad=8)
+    ax.set_ylabel(ylabel, labelpad=8)
+    ax.set_zlabel(zlabel, labelpad=8)
+
+    # Configurable viewing angle (elev, azim)
+    view = fig_spec.get("view") or {}
+    elev = float(view.get("elev", 26.0))
+    azim = float(view.get("azim", -60.0))
+    ax.view_init(elev=elev, azim=azim)
+
+    title = fig_spec.get("title") or "（无标题）"
+    import textwrap
+    ax.set_title(textwrap.fill(title, width=38), pad=14)
+
+    # Zero-occlusion rule: external legend placement
+    if any(s.get("name") for s in series):
+        ax.legend(bbox_to_anchor=(1.04, 0.95), loc="upper left", borderaxespad=0, frameon=True)
+
+    fig.tight_layout()
+    return fig
+
+
+def _draw_3d_surface(fig_spec, fig_id):
+    """kind='3d_surface': 3D scalar potential surfaces, height fields, or energy landscapes z = f(x, y)."""
+    series = fig_spec.get("series") or []
+    grid = None
+    for s in series:
+        if s.get("grid"):
+            grid = s["grid"]
+            break
+    if not grid:
+        raise FigureError(f"figure '{fig_id}': kind '3d_surface' requires one series carrying a 'grid' field.")
+    xv = grid.get("x_values") or []
+    yv = grid.get("y_values") or []
+    vals = grid.get("values_2d") or []
+    if not xv or not yv or not vals:
+        raise FigureError(f"figure '{fig_id}': 3d_surface grid missing x_values/y_values/values_2d.")
+    if len(vals) != len(yv) or any(len(row) != len(xv) for row in vals):
+        raise FigureError(
+            f"figure '{fig_id}': 3d_surface values_2d must have {len(yv)} rows matching y_values "
+            f"and {len(xv)} columns matching x_values."
+        )
+
+    import numpy as np
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+    arr = np.array([[v if isinstance(v, (int, float)) and math.isfinite(v) else np.nan for v in row] for row in vals], dtype=float)
+
+    X, Y = np.meshgrid(xv, yv)
+    fig = plt.figure(figsize=(7.8, 5.8), dpi=150)
+    ax = fig.add_subplot(111, projection="3d")
+
+    axes = fig_spec.get("axes") or {}
+    xlabel = (axes.get("x") or {}).get("label") or "x"
+    ylabel = (axes.get("y") or {}).get("label") or "y"
+    zlabel = (axes.get("z") or {}).get("label") or "z"
+
+    cmap = fig_spec.get("cmap", "viridis")
+    surf = ax.plot_surface(X, Y, arr, cmap=cmap, edgecolor="none", alpha=0.88, antialiased=True)
+
+    # Optional bottom contour projection
+    if fig_spec.get("bottom_contour", True):
+        finite_vals = arr[np.isfinite(arr)]
+        if len(finite_vals) > 0:
+            z_offset = float(np.min(finite_vals))
+            ax.contour(X, Y, arr, zdir="z", offset=z_offset, cmap=cmap, alpha=0.45, linewidths=0.8)
+
+    ax.set_xlabel(xlabel, labelpad=8)
+    ax.set_ylabel(ylabel, labelpad=8)
+    ax.set_zlabel(zlabel, labelpad=8)
+
+    view = fig_spec.get("view") or {}
+    elev = float(view.get("elev", 30.0))
+    azim = float(view.get("azim", -55.0))
+    ax.view_init(elev=elev, azim=azim)
+
+    cbar = fig.colorbar(surf, ax=ax, shrink=0.65, aspect=14, pad=0.1)
+    if zlabel:
+        cbar.set_label(zlabel)
+
+    title = fig_spec.get("title") or "（无标题）"
+    import textwrap
+    ax.set_title(textwrap.fill(title, width=38), pad=14)
+
     fig.tight_layout()
     return fig
 
@@ -754,6 +949,10 @@ def render_all(figures, out_dir, fmt):
                 fig = _draw_boxplot(spec, fig_id)
             elif kind == "bar":
                 fig = _draw_bar(spec, fig_id)
+            elif kind == "3d_curve":
+                fig = _draw_3d_curve(spec, fig_id)
+            elif kind == "3d_surface":
+                fig = _draw_3d_surface(spec, fig_id)
             else:
                 fig = _draw_1d(spec, fig_id)
             out = os.path.join(out_dir, f"{fig_id}.{fmt}")

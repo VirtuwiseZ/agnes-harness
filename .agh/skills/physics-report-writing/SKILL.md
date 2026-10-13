@@ -1,6 +1,6 @@
 ---
 name: physics-report-writing
-description: 每个 pipeline 节点（Node 1/1.5/2a/2b）结束时都要增量追加一段写给用户的 markdown 汇报；Node 3 收尾阶段把所有增量段整合成完整研究汇报。触发信号是"该写/该更新这次分析的用户可见汇报了"，不是建模/求解本身。
+description: '每个 pipeline 节点（Node 1/1.5/2a/2b）结束时都要增量追加一段写给用户的 markdown 汇报；Node 3 收尾阶段把所有增量段整合成完整研究汇报。触发信号是“该写/该更新这次分析的用户可见汇报了”，不是建模/求解本身。'
 ---
 
 > **行文规范（10/13 升级为七条铁律）**：`physics-agent/knowledge/report_structure_guide.md` 现已确立完整的**七条行文风格约束**：

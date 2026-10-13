@@ -66,18 +66,35 @@ Nodes never rewrite fields owned by earlier nodes; they only append to
 
 ## Figures sub-schema (`numerical_artifacts.figures`, optional)
 
-Domain-neutral, problem-agnostic data blocks. The full schema (6 kinds:
-`curve`/`scatter`/`error_bar`/`interval_highlight`/`heatmap`/`boxplot`; `role`
-tag for theory/experiment/simulation/residual/fit; `highlights`/`markers`
-lists; `axes.x.scale`/`axes.y.scale` = `"linear"` (default) or `"log"`; a
-boxplot series is `{name: category, values: [y values]}` rather than the
-x/y-paired `points` shape used by the other kinds) and the
-"zero-judgment rendering layer" design (the figure script never decides
-whether a number is physically correct — that remains the job of the
-dimensional/boundary gates upstream) is specified in
-`dev-notes/self-tests/03/charting_generic_architecture.md` §2. `figures`
-may be empty or absent entirely — charting is an optional node (SKILL
-Node 2.7), not a required one.
+Domain-neutral, problem-agnostic data blocks. The full schema supports 9 static figure kinds plus 2 interactive on-demand kinds:
+
+### 1. 静态科学绘图种类（9 种，基于 Matplotlib）
+- **`curve`** / **`scatter`** / **`error_bar`** / **`interval_highlight`**：经典二维曲线、散点、带误差棒、置信区间高亮带；
+- **`boxplot`**：箱线图分布对比，系列为 `{name: category, values: [y values]}`；
+- **`bar`**：分组分类柱状图，支持类别横轴 `categories: [...]`，系列间自动水平偏移排列并附带数值标注；
+- **`heatmap`**：二维标量网格场或相关性矩阵。必须提供 `grid: {x_values: [...], y_values: [...], values_2d: [[...]]}`。
+  - `heatmap_style`: `"pcolormesh"`（平滑网格）或 `"contourf"`（等高线填充）；
+  - `cmap`: 可选色图（默认 `"viridis"`；对物理发散场推荐 `"coolwarm"` 或 `"RdBu_r"`）；
+  - `diverging`: bool（可选）。当为 true 或数据跨越零点时，自动应用以 0 为中心的 `TwoSlopeNorm(vcenter=0.0)`；
+  - `norm`: `"log"`（可选）。针对跨越数个数量级的正物理场应用 `LogNorm`；
+  - `annot`: bool（可选，针对分类/矩阵热图）。在每个单元格中心自动标注格式化数值，并根据底色明度自适应切换黑白高对比度文字；
+  - `annot_fmt`: 格式化字符串（如 `".2f"`、`".1f"`，缺省 `".2f"`）；
+  - `contour_lines` / `contour_labels`: bool（可选，缺省 true）。在 `contourf` 上自动叠加密度等高轮廓线并内联标注物理数值；
+- **`3d_curve`**：三维空间运动轨迹（如卫星绕星三维轨道、带自旋偏转外弹道、磁场洛伦兹螺旋线）。
+  - 每个 series 必须包含等长的三维坐标：`points: {x: [...], y: [...], z: [...]}`；
+  - `ground_projection`: bool（可选）。在 $z = z_{min}$ 底面自动投射半透明灰色投影虚线，大幅增强三维立体深度感；
+  - `view`: `{elev: float, azim: float}`（可选，缺省 `elev=26.0, azim=-60.0`），设置最佳三维立体透视俯仰与方位角；
+- **`3d_surface`**：三维势能曲面、波函数、高度场或二维参数能量景观 $z = f(x, y)$。
+  - 提供 `grid: {x_values: [...], y_values: [...], values_2d: [[...]]}`；
+  - `cmap`: 表面色图（缺省 `"viridis"`）；
+  - `bottom_contour`: bool（可选，缺省 true）。在底面最小高度处自动投射等高线切片轮廓；
+  - `view`: `{elev: float, azim: float}`（可选，缺省 `elev=30.0, azim=-55.0`）；
+
+### 2. 图例零遮挡铁律（Zero-Occlusion Legend Rule）
+- 在所有 2D 与 3D 图表中，**严禁图例框压盖数据曲线、数据散点或初始运动段**。
+- `legend_position`:
+  - `"outside"`：强制将图例移至画布右侧独立外挂边距（`bbox_to_anchor=(1.02, 1), loc='upper left'`）；
+  - `"auto"`（缺省）：当系列数量 $\ge 3$ 时，自动启用外挂式布局，彻底根除遮挡；系列较少时仅在空旷角落放置。
 
 ## Figures sub-schema, extension: `interactive` and `interactive_live` kinds (v2.2/v2.3, optional)
 

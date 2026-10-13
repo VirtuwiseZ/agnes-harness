@@ -1,6 +1,6 @@
 ---
 name: physics-auditability
-description: 每次写入 problem_state.json 或跑完任一 hook/外部调用后，必须做的写回校验、审计记录（audit_log.py）、运行资产文件（runlog.py）与可追溯性徽标——触发信号是"我刚写了一个 delta / 刚跑完一次脚本，该确认它真的落地并用中文留痕了"，不是建模/求解本身。
+description: '每次写入 problem_state.json 或跑完任一 hook/外部调用后，必须做的写回校验、审计记录（audit_log.py）、运行资产文件（runlog.py）与可追溯性徽标——触发信号是“我刚写了一个 delta / 刚跑完一次脚本，该确认它真的落地并用中文留痕了”，不是建模/求解本身。'
 ---
 
 ### Auditability & Context Management（可审计性与运行留痕铁律）

@@ -74,6 +74,14 @@ figcaption { font-size:12.5px; color:var(--muted); margin-top:10px; text-align:c
       对比 Baumgartner 39 km 实测基准、50 km 预警高度、55 km 安全临界高度与 70 km 危险高度的下降速度演化。
       灰色点划线为当地声速剖面 a(z)。可见所有高空跳伞均在 35–25 km 出现超音速峰值，进入 20 km 稠密大气后受强阻力迅速减速进入亚音速终端阶段。
     </p>
+    <!-- 外置 Flex 胶囊图例栏：彻底杜绝图例遮挡高空初始加速曲线 -->
+    <div class="legend-bar" style="display:flex; flex-wrap:wrap; gap:10px 18px; margin-bottom:14px; padding:10px 16px; background:#141721; border:1px solid #282f42; border-radius:8px; align-items:center;">
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3.5px; background:#10b981; border-radius:2px;"></span><strong>z₀ = 55 km</strong>（最大允许安全释放高度）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3px; background:#38bdf8; border-radius:2px;"></span><strong>z₀ = 39 km</strong>（Baumgartner 实测基准）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3px; background:#a855f7; border-radius:2px;"></span><strong>z₀ = 50 km</strong>（预警曲线）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3px; background:#ef4444; border-radius:2px;"></span><strong>z₀ = 70 km</strong>（危险超速、致命过载）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#94a3b8;"><span class="legend-line" style="width:20px; height:2px; background:#64748b; border-style:dashed;"></span>当地声速剖面 a(z)</span>
+    </div>
     <figure>
       <svg viewBox="0 0 960 440" xmlns="http://www.w3.org/2000/svg">
         <text x="480" y="28" text-anchor="middle" fill="#e2e8f0" font-size="14.5" font-weight="600">下降速度随高度演化曲线 v(z) 与当地声速剖面对比</text>
@@ -129,13 +137,6 @@ figcaption { font-size:12.5px; color:var(--muted); margin-top:10px; text-align:c
         <path d="M80,60 C230,100 700,160 845,215 C780,265 320,340 145,360 L145,380" fill="none" stroke="#ef4444" stroke-width="2.4"/>
         <circle cx="845" cy="215" r="4.5" fill="#ef4444"/>
         <text x="835" y="200" text-anchor="end" fill="#fca5a5" font-size="11">70 km (致命过载): 840 m/s</text>
-
-        <!-- 图例卡片 -->
-        <rect x="95" y="70" width="280" height="104" rx="6" fill="#0f121a" fill-opacity="0.88" stroke="#334155" stroke-width="1"/>
-        <line x1="110" y1="88" x2="135" y2="88" stroke="#10b981" stroke-width="3"/><text x="145" y="92" fill="#e2e8f0" font-size="11.5" font-weight="600">z₀ = 55 km（最大安全释放高度）</text>
-        <line x1="110" y1="110" x2="135" y2="110" stroke="#38bdf8" stroke-width="2.6"/><text x="145" y="114" fill="#e2e8f0" font-size="11.5">z₀ = 39 km（Baumgartner 真实跳伞）</text>
-        <line x1="110" y1="132" x2="135" y2="132" stroke="#a855f7" stroke-width="2.4"/><text x="145" y="136" fill="#e2e8f0" font-size="11.5">z₀ = 50 km 预警曲线</text>
-        <line x1="110" y1="154" x2="135" y2="154" stroke="#ef4444" stroke-width="2.4"/><text x="145" y="158" fill="#e2e8f0" font-size="11.5">z₀ = 70 km（危险超速、过载超标）</text>
       </svg>
       <figcaption>图 1：四种典型初始释放高度下的下降垂直速度剖面 v(z) 对比（实线为动力学轨迹，星号标明峰值速度点）</figcaption>
     </figure>

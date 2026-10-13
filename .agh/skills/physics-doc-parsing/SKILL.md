@@ -1,6 +1,6 @@
 ﻿---
 name: physics-doc-parsing
-description: 用户明确指向一个自己读不了的文档（PDF/扫描图/docx，"参考这个文件"类信号）时按此触发；不是每个物理任务都要读，问题本身难不构成触发条件，只有用户指向文件才触发。
+description: '用户明确指向一个自己读不了的文档（PDF/扫描图/docx，“参考这个文件”类信号）时按此触发；不是每个物理任务都要读，问题本身难不构成触发条件，只有用户指向文件才触发。'
 ---
 
 ### User-Specified Document Parsing (On-Demand, Not a Fixed Pipeline Step)

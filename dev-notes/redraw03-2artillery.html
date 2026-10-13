@@ -138,6 +138,13 @@ figcaption { font-size:12.5px; color:var(--muted); margin-top:10px; text-align:c
       四种仰角（30° 平射、40° 最优角、50° 高抛、60° 超高射）在相同初速优化下命中 1200 m 处同标高目标（500 m 海拔）的二维飞行轨迹。
       40° 轨迹弹道最高点仅约 260 m，受风阻总做功最小；60° 弹道顶点高达 510 m，受高空风场和重力做功影响急剧增大。
     </p>
+    <!-- 外置 Flex 胶囊图例栏：彻底杜绝图例遮挡 50° 与 60° 高抛弹道上升段 -->
+    <div class="legend-bar" style="display:flex; flex-wrap:wrap; gap:10px 18px; margin-bottom:14px; padding:10px 16px; background:#141721; border:1px solid #282f42; border-radius:8px; align-items:center;">
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3.5px; background:#10b981; border-radius:2px;"></span><strong>θ = 40.0°</strong>（能量最优弹道，顶点 260 m）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:2.5px; background:#38bdf8; border-radius:2px;"></span><strong>θ = 30°</strong>（低伸平射弹道，初速 149.2 m/s）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:2.5px; background:#f59e0b; border-radius:2px;"></span><strong>θ = 50°</strong>（高抛弹道，初速 146.8 m/s）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:2.5px; background:#a855f7; border-radius:2px;"></span><strong>θ = 60°</strong>（迫击大迎角弹道，顶点 510 m）</span>
+    </div>
     <figure>
       <svg viewBox="0 0 960 380" xmlns="http://www.w3.org/2000/svg">
         <text x="480" y="28" text-anchor="middle" fill="#e2e8f0" font-size="14.5" font-weight="600">各仰角最优初速弹道曲线 y(x)（目标距离 1200 m）</text>
@@ -179,13 +186,6 @@ figcaption { font-size:12.5px; color:var(--muted); margin-top:10px; text-align:c
         <path d="M80,320 Q450,10 836,320" fill="none" stroke="#f59e0b" stroke-width="2.2"/>
         <!-- 60° 弹道 (顶点 ~510 m -> y=116) -->
         <path d="M80,320 Q430,-80 836,320" fill="none" stroke="#a855f7" stroke-width="2.2"/>
-
-        <!-- 图例 -->
-        <rect x="95" y="70" width="230" height="96" rx="6" fill="#0f121a" fill-opacity="0.88" stroke="#334155" stroke-width="1"/>
-        <line x1="110" y1="88" x2="135" y2="88" stroke="#10b981" stroke-width="3"/><text x="145" y="92" fill="#e2e8f0" font-size="11" font-weight="600">θ = 40°（最优弹道，顶点 260m）</text>
-        <line x1="110" y1="110" x2="135" y2="110" stroke="#38bdf8" stroke-width="2.2"/><text x="145" y="114" fill="#e2e8f0" font-size="11">θ = 30°（低伸弹道，初速 149.2）</text>
-        <line x1="110" y1="132" x2="135" y2="132" stroke="#f59e0b" stroke-width="2.2"/><text x="145" y="136" fill="#e2e8f0" font-size="11">θ = 50°（高抛弹道，初速 146.8）</text>
-        <line x1="110" y1="154" x2="135" y2="154" stroke="#a855f7" stroke-width="2.2"/><text x="145" y="158" fill="#e2e8f0" font-size="11">θ = 60°（迫击弹道，顶点 510m）</text>
       </svg>
       <figcaption>图 2：不同仰角下弹道轨迹对比（40° 轨迹兼顾低风阻做功与足够飞行升力）</figcaption>
     </figure>

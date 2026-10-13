@@ -75,6 +75,14 @@ figcaption { font-size:12.5px; color:var(--muted); margin-top:10px; text-align:c
       横轴为无量纲近心点距离比 $r_p / R_{moon}$（从近星表面 1.0 倍扫描至 50 倍远距离）；纵轴为对数刻度偏转角 $\delta$（0.01° 至 100°）。
       对数坐标使得四颗卫星在近星强引力区的高偏转（Io 达 90°、Callisto 达 40°）与远距离递减行为清晰展开，彻底解决了线性轴下小数值挤压在 $y=0$ 变成“近乎空白”的缺陷。
     </p>
+    <!-- 外置 Flex 胶囊图例栏：统一风格并保持绘图区绝对开阔 -->
+    <div class="legend-bar" style="display:flex; flex-wrap:wrap; gap:10px 18px; margin-bottom:14px; padding:10px 16px; background:#141721; border:1px solid #282f42; border-radius:8px; align-items:center;">
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3.5px; background:#ef4444; border-radius:2px;"></span><strong>Io</strong>（木卫一，表面引力最强，最大偏转 90°）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3px; background:#3b82f6; border-radius:2px;"></span><strong>Europa</strong>（木卫二，最大偏转 63°）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3px; background:#10b981; border-radius:2px;"></span><strong>Ganymede</strong>（木卫三，最大偏转 44°）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3px; background:#f59e0b; border-radius:2px;"></span><strong>Callisto</strong>（木卫四，引力最弱，最大偏转 28°）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#7dd3fc;"><span class="legend-line" style="width:20px; height:2px; background:#38bdf8; border-style:dashed;"></span>工程极限偏转角: 90.0°</span>
+    </div>
     <figure>
       <svg viewBox="0 0 960 420" xmlns="http://www.w3.org/2000/svg">
         <text x="480" y="28" text-anchor="middle" fill="#e2e8f0" font-size="14.5" font-weight="600">双曲线散射偏转角 δ 随飞掠距离比 r_p / R_moon 衰减曲线（对数刻度）</text>
@@ -124,13 +132,6 @@ figcaption { font-size:12.5px; color:var(--muted); margin-top:10px; text-align:c
         <circle cx="80" cy="85" r="4" fill="#3b82f6"/><text x="95" y="85" fill="#93c5fd" font-size="10.5">Europa: 63°</text>
         <circle cx="80" cy="105" r="4" fill="#10b981"/><text x="95" y="105" fill="#6ee7b7" font-size="10.5">Ganymede: 44°</text>
         <circle cx="80" cy="130" r="4" fill="#f59e0b"/><text x="95" y="128" fill="#fcd34d" font-size="10.5">Callisto: 28°</text>
-
-        <!-- 图例 -->
-        <rect x="670" y="85" width="220" height="92" rx="6" fill="#0f121a" fill-opacity="0.88" stroke="#334155" stroke-width="1"/>
-        <line x1="685" y1="102" x2="710" y2="102" stroke="#ef4444" stroke-width="2.8"/><text x="718" y="106" fill="#e2e8f0" font-size="11">Io (木卫一，引力最强)</text>
-        <line x1="685" y1="124" x2="710" y2="124" stroke="#3b82f6" stroke-width="2.4"/><text x="718" y="128" fill="#e2e8f0" font-size="11">Europa (木卫二)</text>
-        <line x1="685" y1="146" x2="710" y2="146" stroke="#10b981" stroke-width="2.4"/><text x="718" y="150" fill="#e2e8f0" font-size="11">Ganymede (木卫三)</text>
-        <line x1="685" y1="168" x2="710" y2="168" stroke="#f59e0b" stroke-width="2.4"/><text x="718" y="172" fill="#e2e8f0" font-size="11">Callisto (木卫四，引力最弱)</text>
       </svg>
       <figcaption>图 1：四颗伽利略卫星飞掠偏转角对数衰减剖面（对数轴完全展开跨两个数量级数据，消除底边假空白）</figcaption>
     </figure>

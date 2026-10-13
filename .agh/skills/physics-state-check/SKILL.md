@@ -1,6 +1,6 @@
 ﻿---
 name: physics-state-check
-description: 每个物理分析/建模/数值求解任务的第一道检查，确认/创建本任务专属的 problem_state.json（含 session_key 记录规则）、判断该任务该从哪个已有阶段恢复还是全新开始。
+description: '每个物理分析/建模/数值求解任务的第一道检查，确认/创建本任务专属的 problem_state.json（含 session_key 记录规则）、判断该任务该从哪个已有阶段恢复还是全新开始。'
 ---
 
 ### State Check (Cross-Session Bootstrapping)
