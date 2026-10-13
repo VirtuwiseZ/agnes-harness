@@ -27,16 +27,22 @@
 
 ```
 physics-agent/runtime/
-  <task-slug>/                      # 例如 "space-diving-drag" 或 "atmosphere-density-profiling"
-    problem_state.json              # 该任务自己的增量 state（模板见
-                                    # physics-agent/runtime/problem_state_template.json）
-    task_params.json                # 该任务自己的参数（模板见
-                                    # physics-agent/runtime/task_params_template.json）
-    report.md                       # Node 3 增量研究汇报（markdown 原文）
-    runlogs/                        # ③第 4 条 4c：脚本运行资产文件目录
-      <artifact_id>.txt             # 一个文件 = 源码 + 完整 stdin/argv +
-                                    # 完整 stdout + 完整 stderr + 退出码，
-                                    # 不拆成两个文件（见 §2）
+  <task-slug>/                              # 例如 "jupiter-moon-gravity-assist-decel"
+    problem_state.json                      # 该任务自己的增量 state（模板见
+                                            # physics-agent/runtime/problem_state_template.json）
+    task_params.json                        # 该任务自己的参数（模板见
+                                            # physics-agent/runtime/task_params_template.json）
+    boundary_spec.json                      # 该任务的边界门规格（若生成）
+    <task_model>.py                         # 该任务现场编写的专用求解脚本（如 gravity_assist_model.py）
+    report.md                               # Node 3 增量研究汇报（亦兼容 report_<task-slug>.md，
+                                            # 但必须位于本 <task-slug>/ 子目录内，严禁放 runtime/ 根目录）
+    research_report_<task-slug>.html        # Node 4 生成的自包含 HTML 报告（必须位于本 <task-slug>/
+                                            # 子目录内，严禁放工作区根目录或 runtime/ 根目录）
+    trace_capture_converted_<id>.jsonl      # Node 4 自动导出的会话 trace（必须位于本 <task-slug>/ 子目录内）
+    figures/                                # Node 2.7 生成的静态/交互图表目录（若有）
+    runlogs/                                # ③第 4 条 4c：脚本运行资产文件目录
+      <artifact_id>.txt                     # 一个文件 = 中文说明 + 源码 + 完整 stdin/argv +
+                                            # 完整 stdout + 完整 stderr + 退出码（见 §2）
 ```
 
 - **`physics-agent/runtime/` 下现有两个文件是"模板"，不是任何具体任务的
@@ -68,10 +74,8 @@ physics-agent/runtime/
   等），**不需要**为这次调用额外写一份 `runlogs/` 资产文件（这些文件的
   "源码"已经在 git 里、路径固定、不需要"这次调用的现场快照"来定位）；
   只有"任务现场新建、用完即弃或跨题不通用"的脚本才触发 4c 的落盘动作。
-- 4d（`trace_visualizer.py` 的"本节所使用文件"块）里"运行记录"这个链接
-  直接指向上面这个相对路径（浏览器点开即纯文本，不需要 JS 懒加载机制，
-  跟 ③第 4 条 4d 的定论一致，此处只补充"路径本身长什么样"这一层，
-  不重复 4d 的 UI 渲染细节）。
+- 4d（`trace_visualizer.py` 的"本节相关文件"与右侧常驻预览窗格）：
+  为严格落实 `网页重新设计1011（开发者原文）.md` L18-33 的交互蓝图（"左边点文件蓝链，右边窗格实时显示最终版代码、调用运行记录或数据源内容"），并彻底规避浏览器在 `file://` 协议下打不开相对路径或被 CORS 拦截的问题，Node 4 生成 HTML 时会将 `<task-slug>/runlogs/<artifact_id>.txt`、任务脚本源码、数据源说明及子 Skill 说明**直接内联打包进单文件 HTML 的数据池（`artifact-payloads`）**。用户在报告左侧点击任意蓝链时，右侧常驻预览窗格实时渲染对应内容，不再采用跳转到外部纯文本路径的做法。
 
 ## 3. 检索端：外部文档解析（`document_read` 的两条实测确认，10/12）
 
