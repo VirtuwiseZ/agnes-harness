@@ -1,0 +1,19 @@
+# 脚本运行记录资产文件（artifact_id: 67983d60c5d88d5ae190e2c4f0d322cb20d381addfcdba55ee6e6202f6c5f9fb）
+脚本路径: physics-agent/runtime/jupiter-moon-gravity-assist-decel/gravity_assist_model.py
+调试轮次: 第 1 次调试
+退出码: 0
+作用说明: 第 1 次运行木星卫星引力弹弓减速模型：完成四颗伽利略卫星公转速度与单次飞掠最大减速量计算（木卫一 Io 达 24.51 km/s），但初版将入轨制动速度增量误写为 v_infinity - v_capture = -15.59 km/s，导致推进剂质量分数出现负值异常，随即进入第 2 次调试修正。
+
+=== 调用命令与输入参数 ===
+run_model(run_params) — 输入参数来自 task_params.json（G_J=1.2669e8 km^3/s^2, capture_radius=100000 km, Isp=350 s, v_infinity=20.0 km/s）
+
+=== 标准输出（stdout） ===
+best_moon=Io dv_probe=24.512km/s covers=0.0%; Tsiolkovsky dv_req=-15.594km/s frac_chem_full=-9284.0%
+
+=== 标准错误（stderr） ===
+（无错误输出）
+
+=== 调试问题分析 ===
+1. 异常现象：初次运行算得单次飞掠最大减速量 dv_probe = 24.512 km/s 物理量级合理，但入轨所需速度增量 dv_req = -15.594 km/s 为负，进而导致齐奥尔科夫斯基公式计算出的燃料质量分数出现非物理负值。
+2. 原因定位：初版代码第 62 行将制动所需消除的相对超速写成了 v_infinity - v_capture (20.00 - 35.59 = -15.59 km/s)，方向符号定义颠倒。
+3. 修正方案：将入轨制动所需速度增量修正为正值定义 delta_v_required = v_capture - v_infinity = +15.594 km/s，并在第 2 次调试中重新验证覆盖率与残余推进剂质量分数。
