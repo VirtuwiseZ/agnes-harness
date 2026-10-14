@@ -1624,6 +1624,16 @@ def render_html(blocks, cross, events, state, out_path, fallback_legacy=None,
         "<script type='application/json' id='loop-data'>" + json.dumps(_loop_data(spine_html or [], cross)) + "</script>"
         + "<script>" + _js() + "</script></body></html>"
     )
+    slug_to_replace = ""
+    if task_dir:
+        slug_to_replace = os.path.basename(os.path.abspath(task_dir))
+    elif out_path:
+        m_slug = re.search(r"research_report_([A-Za-z0-9_\-]+)\.html", os.path.basename(out_path))
+        if m_slug:
+            slug_to_replace = m_slug.group(1)
+    if slug_to_replace:
+        doc = doc.replace("<task-slug>", slug_to_replace)
+
     out_dir = os.path.dirname(os.path.abspath(out_path))
     if out_dir and not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
