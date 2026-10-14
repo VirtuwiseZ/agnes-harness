@@ -1,0 +1,51 @@
+{
+  "_note": "Boundary/degenerate-limit verification specification for historical artillery ballistics",
+  "model_module": "ballistics_model",
+  "primary_result": "impact_x",
+  "cases": [
+    {
+      "name": "baseline_flat_firing_1200m",
+      "params": {
+        "v0": 450.0,
+        "theta": 2.28,
+        "delta_y": 0.0,
+        "cd_scale": 1.0,
+        "u_wind": 0.0
+      },
+      "expectation": "bounded_by:1205.0"
+    },
+    {
+      "name": "vacuum_trajectory_limit_zero_drag",
+      "params": {
+        "v0": 450.0,
+        "theta": 1.666,
+        "delta_y": 0.0,
+        "cd_scale": 0.0,
+        "u_wind": 0.0
+      },
+      "expectation": "bounded_by:1205.0"
+    },
+    {
+      "name": "zero_velocity_degenerate_fall",
+      "params": {
+        "v0": 0.001,
+        "theta": 2.28,
+        "delta_y": 0.0,
+        "cd_scale": 1.0,
+        "u_wind": 0.0
+      },
+      "expectation": "zero"
+    }
+  ],
+  "sweep": {
+    "param": "theta",
+    "values": [0.5, 1.0, 1.5, 2.0, 2.28, 3.0, 4.0],
+    "order": "increase",
+    "base_params": {
+      "v0": 450.0,
+      "delta_y": 0.0,
+      "cd_scale": 1.0,
+      "u_wind": 0.0
+    }
+  }
+}

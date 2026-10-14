@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 440" width="100%" height="auto" style="background:#0f131f;border:1px solid #252d42;border-radius:10px;font-family:system-ui,-apple-system,sans-serif">
+  <!-- Title -->
+  <text x="410" y="28" text-anchor="middle" fill="#f1f5f9" font-size="14.5" font-weight="600">图 1：19世纪滑膛加农炮1200米射程平射与战术高抛弹道对比曲线族</text>
+  
+  <!-- Plot Border & Gridlines -->
+  <rect x="75" y="48" width="695" height="300" fill="#141a29" stroke="#2a344d" stroke-width="1.2"/>
+  <line x1="75" y1="108" x2="770" y2="108" stroke="#1f283d" stroke-dasharray="4,4"/>
+  <line x1="75" y1="168" x2="770" y2="168" stroke="#1f283d" stroke-dasharray="4,4"/>
+  <line x1="75" y1="228" x2="770" y2="228" stroke="#1f283d" stroke-dasharray="4,4"/>
+  <line x1="75" y1="288" x2="770" y2="288" stroke="#1f283d" stroke-dasharray="4,4"/>
+  <line x1="190" y1="48" x2="190" y2="348" stroke="#1f283d" stroke-dasharray="4,4"/>
+  <line x1="305" y1="48" x2="305" y2="348" stroke="#1f283d" stroke-dasharray="4,4"/>
+  <line x1="420" y1="48" x2="420" y2="348" stroke="#1f283d" stroke-dasharray="4,4"/>
+  <line x1="535" y1="48" x2="535" y2="348" stroke="#1f283d" stroke-dasharray="4,4"/>
+  <line x1="650" y1="48" x2="650" y2="348" stroke="#1f283d" stroke-dasharray="4,4"/>
+  <line x1="765" y1="48" x2="765" y2="348" stroke="#1f283d" stroke-dasharray="4,4"/>
+
+  <!-- Target Range Reference Line (1200m) -->
+  <line x1="650" y1="48" x2="650" y2="348" stroke="#ef4444" stroke-width="1.8" stroke-dasharray="6,4"/>
+  <text x="645" y="65" text-anchor="end" fill="#fca5a5" font-size="11" font-weight="600">额定目标射程 X = 1200 m</text>
+
+  <!-- Ground Reference (Y=0) -->
+  <line x1="75" y1="348" x2="770" y2="348" stroke="#64748b" stroke-width="1.5"/>
+
+  <!-- Y-Axis Labels (Altitude meters: 0 to 300m, scale: 1m = 1.0px) -->
+  <text x="68" y="352" text-anchor="end" fill="#94a3b8" font-size="11">0</text>
+  <text x="68" y="292" text-anchor="end" fill="#94a3b8" font-size="11">60</text>
+  <text x="68" y="232" text-anchor="end" fill="#94a3b8" font-size="11">120</text>
+  <text x="68" y="172" text-anchor="end" fill="#94a3b8" font-size="11">180</text>
+  <text x="68" y="112" text-anchor="end" fill="#94a3b8" font-size="11">240</text>
+  <text x="68" y="52" text-anchor="end" fill="#94a3b8" font-size="11">300</text>
+  <text x="22" y="198" text-anchor="middle" fill="#cbd5e1" font-size="12" transform="rotate(-90 22 198)">飞行高度 Y (m)</text>
+
+  <!-- X-Axis Labels (Range meters: 0 to 1400m, scale: 100m = 47.9px) -->
+  <!-- 0m=75, 200m=170.8, 400m=266.6, 600m=362.5, 800m=458.3, 1000m=554.1, 1200m=650.0, 1400m=745.8 -->
+  <text x="75" y="366" text-anchor="middle" fill="#94a3b8" font-size="11">0</text>
+  <text x="171" y="366" text-anchor="middle" fill="#94a3b8" font-size="11">200</text>
+  <text x="267" y="366" text-anchor="middle" fill="#94a3b8" font-size="11">400</text>
+  <text x="363" y="366" text-anchor="middle" fill="#94a3b8" font-size="11">600</text>
+  <text x="458" y="366" text-anchor="middle" fill="#94a3b8" font-size="11">800</text>
+  <text x="554" y="366" text-anchor="middle" fill="#94a3b8" font-size="11">1000</text>
+  <text x="650" y="366" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="700">1200</text>
+  <text x="746" y="366" text-anchor="middle" fill="#94a3b8" font-size="11">1400</text>
+  <text x="410" y="382" text-anchor="middle" fill="#cbd5e1" font-size="12">水平射程 X (m)</text>
+
+  <!-- Trajectory 3: Tactical High-Angle Mortar Trajectory (v0=142.3 m/s, theta=40.0 deg, peak=272.5m at X~600m) -->
+  <!-- Path from (75, 348) -> apex (370, 75.5) -> (650, 348) -->
+  <path d="M75,348 Q355,50 650,348" fill="none" stroke="#f59e0b" stroke-width="2.6"/>
+  <circle cx="362" cy="75" r="4" fill="#f59e0b"/>
+  <text x="370" y="70" fill="#fcd34d" font-size="11" font-weight="600">曲射顶点 272.5 m (t=14.85s)</text>
+
+  <!-- Trajectory 1: True Air-Resistance Flat Trajectory (v0=450 m/s, theta=2.28 deg, peak=16.9m at X~520m, hit X=1200m) -->
+  <!-- On 0-300m vertical scale, 16.9m is 16.9px above bottom (348 - 16.9 = 331.1) -->
+  <!-- Sub-plot magnification box in upper right for low-angle details -->
+  <rect x="75" y="348" width="575" height="1" fill="none"/>
+  <path d="M75,348 Q320,314 650,348" fill="none" stroke="#ef4444" stroke-width="2.8"/>
+  
+  <!-- Trajectory 2: Vacuum Parabola Baseline (v0=450 m/s, theta=1.67 deg, peak=8.7m at X=600m) -->
+  <path d="M75,348 Q362.5,330 650,348" fill="none" stroke="#38bdf8" stroke-width="2.0" stroke-dasharray="4,3"/>
+
+  <!-- Inset zoom-in callout for Flat Trajectories (showing 0-25m altitude clearly) -->
+  <g transform="translate(430, 110)">
+    <rect width="210" height="95" rx="6" fill="#182035" stroke="#3b82f6" stroke-width="1.2"/>
+    <text x="105" y="18" text-anchor="middle" fill="#93c5fd" font-size="11" font-weight="600">平射近地弹道局部放大 (0~20m)</text>
+    <line x1="15" y1="80" x2="195" y2="80" stroke="#475569" stroke-width="1"/>
+    <!-- Vacuum curve inside zoom -->
+    <path d="M15,80 Q105,45 195,80" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="3,3"/>
+    <text x="105" y="40" text-anchor="middle" fill="#7dd3fc" font-size="10">真空顶点 8.71 m (θ=1°40')</text>
+    <!-- Drag curve inside zoom -->
+    <path d="M15,80 Q95,12 195,80" fill="none" stroke="#ef4444" stroke-width="2.2"/>
+    <text x="95" y="11" text-anchor="middle" fill="#fca5a5" font-size="10" font-weight="600">阻力顶点 16.92 m (θ=2°17')</text>
+  </g>
+
+  <!-- Target Hit Marker -->
+  <circle cx="650" cy="348" r="5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="650" y="340" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="bold">目标</text>
+
+  <!-- Outside Flex Capsule Legend Bar (方案 B: 底部完全外置，零遮挡) -->
+  <g transform="translate(75, 400)">
+    <!-- Pill 1: Drag Flat -->
+    <rect x="0" y="0" width="185" height="26" rx="13" fill="#1e2638" stroke="#ef4444" stroke-width="1.2"/>
+    <line x1="12" y1="13" x2="30" y2="13" stroke="#ef4444" stroke-width="2.5"/>
+    <circle cx="21" cy="13" r="2.5" fill="#ef4444"/>
+    <text x="36" y="17" fill="#f1f5f9" font-size="10.5">平射真实弹道 (v0=450, θ=2°17')</text>
+
+    <!-- Pill 2: Vacuum Baseline -->
+    <rect x="195" y="0" width="170" height="26" rx="13" fill="#1e2638" stroke="#38bdf8" stroke-width="1.2"/>
+    <line x1="207" y1="13" x2="225" y2="13" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3,2"/>
+    <text x="231" y="17" fill="#f1f5f9" font-size="10.5">真空理论下界 (θ=1°40')</text>
+
+    <!-- Pill 3: Tactical High Mortar -->
+    <rect x="375" y="0" width="180" height="26" rx="13" fill="#1e2638" stroke="#f59e0b" stroke-width="1.2"/>
+    <line x1="387" y1="13" x2="405" y2="13" stroke="#f59e0b" stroke-width="2.5"/>
+    <circle cx="396" cy="13" r="2.5" fill="#f59e0b"/>
+    <text x="411" y="17" fill="#f1f5f9" font-size="10.5">战术曲射弹道 (v0=142, θ=40°)</text>
+
+    <!-- Pill 4: Target Threshold -->
+    <rect x="565" y="0" width="130" height="26" rx="13" fill="#1e2638" stroke="#ef4444" stroke-width="1.2"/>
+    <line x1="577" y1="13" x2="595" y2="13" stroke="#ef4444" stroke-width="1.8" stroke-dasharray="4,2"/>
+    <text x="601" y="17" fill="#f1f5f9" font-size="10.5">1200m 目标基准</text>
+  </g>
+</svg>

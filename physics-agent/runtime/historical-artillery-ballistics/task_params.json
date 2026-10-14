@@ -1,0 +1,61 @@
+{
+  "_note": "19th-century smoothbore cannon external ballistics task parameter specification",
+  "problem_id": "historical-artillery-ballistics",
+  "description": "A 150-200 year old smoothbore cannon firing an 11 cm diameter, 5 kg spherical iron cannonball with muzzle velocity up to 450 m/s across target ranges 1000 m to 1500 m with variable elevation and wind. Find firing angle and muzzle velocity for baseline 1200 m case, and provide a rapid field calculation method for an artillery officer without computers.",
+  "source_citation": "Standard 19th-century classical ballistics (Didion, Mayevski, Siacci, Bashforth)",
+  "primary_target_quantity": "Firing angle theta and muzzle velocity v0 for 1200 m nominal range; nomogram and perturbation coefficients for 1000-1500 m ranges with elevation differences and wind",
+  "safety_or_acceptance_constraints": {
+    "values": {
+      "nominal_range_m": 1200.0,
+      "range_span_m": [1000.0, 1500.0],
+      "max_muzzle_velocity_mps": 450.0,
+      "cannonball_mass_kg": 5.0,
+      "cannonball_diameter_m": 0.11,
+      "base_elevation_m": 500.0
+    },
+    "units": "m, m/s, kg, deg",
+    "rationale": "Historical physical parameters defined by problem prompt"
+  },
+  "named_parameters": {
+    "g": {
+      "value": 9.80665,
+      "units": "m/s^2",
+      "source": "Standard gravitational acceleration (CODATA / ISO)"
+    },
+    "projectile_mass": {
+      "value": 5.0,
+      "units": "kg",
+      "source": "Problem prompt"
+    },
+    "projectile_diameter": {
+      "value": 0.11,
+      "units": "m",
+      "source": "Problem prompt"
+    },
+    "projectile_area": {
+      "value": 0.0095033,
+      "units": "m^2",
+      "source": "Calculated: pi * (0.11/2)^2"
+    },
+    "air_density_500m": {
+      "value": 1.1673,
+      "units": "kg/m^3",
+      "source": "U.S. Standard Atmosphere 1976 at altitude 500 m MSL"
+    },
+    "speed_of_sound_500m": {
+      "value": 338.4,
+      "units": "m/s",
+      "source": "U.S. Standard Atmosphere 1976 at altitude 500 m MSL (T = 284.9 K)"
+    },
+    "subsonic_CD": {
+      "value": 0.47,
+      "units": "dimensionless",
+      "source": "Classical smooth sphere aerodynamic drag coefficient (Re ~ 10^5 - 10^6)"
+    },
+    "supersonic_CD_peak": {
+      "value": 0.72,
+      "units": "dimensionless",
+      "source": "Mayevski-Didion smooth sphere shockwave drag peak at M ~ 1.2 - 1.4"
+    }
+  }
+}

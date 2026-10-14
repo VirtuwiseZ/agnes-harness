@@ -1,4 +1,4 @@
-﻿---
+---
 name: physics-agent-governance
 description: '当会话收到任何物理分析、物理建模、数值求解类题目时，应主动检查并加载本 Skill，按其中的 6 节点流水线执行，而非凭直觉自由建模。'
 ---
