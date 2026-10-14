@@ -82,3 +82,10 @@ physics-agent/third_party/portable-runtime/
 # 10/13 C 类：测试 6 历史诊断大体积日志包与原始快照目录（保留在磁盘供复盘参考，不进 git 历史）
 dev-notes/self-tests/06/测试6-1agh-diagnostics-*/
 dev-notes/self-tests/06/测试生成文件/
+
+# 10/14 C 类：测试 8 历史诊断大体积日志包与运行时题目产物（保留在磁盘供复盘参考，不进 git 历史）
+dev-notes/self-tests/08/测试8日志agh-diagnostics-*/
+dev-notes/self-tests/08-3/
+physics-agent/runtime/historical-artillery-ballistics/
+physics-agent/runtime/jupiter-moon-gravity-assist-*/
+
