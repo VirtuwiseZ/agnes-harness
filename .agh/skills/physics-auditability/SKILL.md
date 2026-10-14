@@ -17,6 +17,7 @@ description: '每次写入 problem_state.json 或跑完任一 hook/外部调用�
      - 建模求解记录（Node 2b）：`note: "第 2 次运行木星卫星引力弹弓减速模型：修正入轨所需速度增量符号后重新求解，木卫一（Io）单次飞掠最大减速达 24.51 km/s，可完全覆盖 15.59 km/s 的入轨减速需求。"`
 4. **脚本执行 6 扩展键与 `runlogs/<artifact_id>.txt` 资产文件同步生成（4a + 4c + E6 单一真源）**：
    - 凡是执行脚本（`physics-agent/hooks/*.py` 或任务专属求解脚本如 `gravity_assist_model.py`），调用 `audit_log.append_record(..., extras={...})` 时必须附带 6 个扩展键：`script_path`、`stdin_or_argv`、`stdout_tail`、`stderr`、`exit_code`、`iteration_index`。
+   - **严禁单次覆盖抹杀调试演化过程**：严禁在完成多次调试后仅向 `audit_logs` 提交一条最终记录！每一次脚本执行（无论是初版尝试、中间报错排查、还是最终版调优）都必须按序追加审计记录，分别分配递增的 `iteration_index`（1, 2, 3...），并配以准确的中文物理说明，确保在最终报告和时序轨迹中完整呈现 AI 面对困难时的调试进化历程。
    - 若执行的是**本任务现场编写的求解/验证脚本**（非 `physics-agent/hooks/` 下的通用脚本），必须在拿到 `artifact_id` 后立即调用 `physics-agent/hooks/runlog.py` 的 `write_runlog()`，将**中文作用说明 + 完整脚本源码 + 完整命令行参数 + 完整 stdout/stderr + 退出码**写入 `physics-agent/runtime/<task-slug>/runlogs/<artifact_id>.txt`，确保 Node 4 右侧常驻预览窗格有完整、真实的中文资产可读。
 5. **数值结论可追溯徽标**：
    - 报告中的核心数值结论必须在 `problem_state.json` 的 `report.traceability` 中锚定到具体的 `artifact_id`。

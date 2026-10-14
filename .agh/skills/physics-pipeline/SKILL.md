@@ -34,6 +34,11 @@ description: '实际执行阶段的核心节点：任务规范（Node 1，含 in
 4. **Node 2b (Modeling, Execution & Verification)**: Execute the Dimensional Gate, fetch/parse the external data chosen in Node 1.5, run numerical integration — write a **fresh model module for this specific problem** (any ODE/numerical system you need; `physics-agent/hooks/ode_model.py` is only a reference example from the first project problem and is NOT required to be imported or adapted, even for another descent-type problem with different assumptions — see that file's docstring, which explicitly says to write a new module rather than patch the old one) — code stays source-agnostic: it receives a structured T(z)/ρ(z)-style array (or whatever structured array this problem's governing equation needs), not a named data source — and compare against the empirical baseline chosen in Node 1.5. **Independence rule**: the verification baseline must be an independent source from the modeling input data (do not validate a model against data pulled from the same source the model was built on, if independence is achievable); record whether this was achieved in `problem_state.json`'s `data_source_decision.verification_baseline.independent_of` field.
    - **`shell` 工具精确调用规范（Tool Invocation Invariant）**：调用 `shell` 工具执行任何 Python 脚本或命令行时，传参必须是顶层属性 `command: "..."`（纯字符串），**绝对禁止**包装为 `{"input": ...}` 嵌套结构；若需指定目录传入 `cwd`。正确格式示例：`shell(command="python path/to/model.py")`。
    - **严禁手搓 HTML 报告防降级铁律（Anti-Downgrade Invariant）**：最终交付的 HTML 报告**必须且只能由 `python physics-agent/hooks/trace_visualizer.py` 编译生成**！绝对禁止 Agent 试图绕过编译器、私自调用 `write` 工具去拼凑手写静态 HTML。手写 HTML 必然缺失真实会话甘特图、缺失毫秒级热跳转数据池、缺失数据驱动的无遮挡矢量图表，属于严重的偷懒降级违规行为。若编译脚本受阻，必须立即排查修复环境或按权限缺口协议上报，坚决杜绝交付未经编译验证的伪造报告！
+   - **权限被拒即刻熔断铁律（Stop-on-Rejection Invariant）**：执行数值求解脚本、生成图表或写入状态文件时，一旦任何工具调用（特别是 `shell` 命令行执行、`write`/`edit` 文件写入）返回审批被拒（`APPROVAL_REJECTED` / `user_rejected`）或超时未审批（`timeout`）：
+     1. **立即终止后续一切分析与推演**，绝对禁止假装未被拒绝而在思考窗中自顾自往下推演；
+     2. **绝对禁止手搓代跑与掩饰性绕过（No Workaround Improvisation）**：严禁在思考窗中尝试用手算、口算替代本应由真实 Python 脚本计算并落盘的数值结果，严禁捏造未执行步骤的输出；
+     3. **立即向用户报告受阻原因并请求授权**：必须在当前会话直接陈述受阻的具体工具名、命令行内容与所需权限，并等待人类用户明确指示（授权或跳过）后方可继续！
+
    - **理论推导与教学物理题的多样化独立验证范式（泛用性支持）**：
      - 对于标准理论推导、经典物理定律阐释或有明确标准解析解的问题，验证基准**不仅限于外部实测数据库比对**，更应充分采用理论物理学公认的四重独立验证范式：
        ① **极端物理极限与经典退化检验（Asymptotic Limits）**：例如波长 $\lambda \to 0$ 时自洽退化为几何光学直线投影极限，缝宽 $a \to \infty$ 退化为无衍射几何阴影，圆孔半径 $R \to \infty$ 角分辨率趋于 0；
@@ -47,6 +52,12 @@ description: '实际执行阶段的核心节点：任务规范（Node 1，含 in
    - **最简基线模型优先与渐进复杂度（Parsimonious Baseline & Progressive Complexity）**：
      - 建模的首要目标是尽快建立并跑通 **Version 0.1 最简可用模型（Baseline Model）**，使系统基本动力学跑通，观察定性行为并暴露真实瓶颈；
      - **复杂度引入的物理依据评估准则**：逐层增加复杂度（如计入非线性阻力、高阶引力摄动、热辐射损失），每增加一个修正项必须自问：“该因素是否显著改变化学/动力学结论？是否有充分的机理依据？增加的复杂度是否值得？”坚决反对脱离物理问题本身盲目堆砌高维算法或复杂偏微分方程。
+   - **数值求解多轮渐进迭代与留痕铁律（Multi-Iteration Refinement & Logging Invariant）**：
+     真实科研与工程仿真绝非“一次性盲猜成功”。在 Node 2b 开展数值计算与仿真时，模型**必须体现清晰的渐进式探索演化（至少完成 2~3 轮真实的迭代留痕）**：
+     ① **第 1 轮（基线/简化模型探索）**：首先建立并运行 Version 0.1 最简基线模型（如理想真空抛物线、无摄动二体开普勒轨道或几何光学直线传播），调用 `audit_log.py` 记录首轮输出（`iteration_index=1`，说明基线表现与初始理论偏差）；
+     ② **第 2 轮（物理修正或算法调优）**：引入真实非线性物理机制（如跨音速气动阻力、天体摄动引力、多波长连续谱色散积分）或修正数值步长截断，二次执行求解，调用 `audit_log.py` 记录（`iteration_index=2`，说明修正项带来的物理变化与收敛改善）；
+     ③ **第 3 轮（目标打靶/参数扫描与最终收敛）**：针对题干约束完成打靶寻优或全域参数敏感性扫描，调用 `audit_log.py` 记录最终版计算（`iteration_index=3`，验证收敛通过）。
+     **严禁“只记录最终版而掩盖前面探索过程”**！每一次运行都必须调用 `audit_log.py` 分别记录对应的 `iteration_index` 与中文说明，使最终报告能完整展现智能体“发现偏差 ➔ 物理分析 ➔ 算法迭代 ➔ 最终收敛”的真实科研探索过程。
    - **超越孤立数值——发掘物理研究深度的五大维度（Dimensions of Scientific Depth）**：
      研究结论绝不能止步于“算出一个单一数字”，而应结合问题场景，主动发掘系统背后的深层物理规律：
      ① **参数敏感性与趋势扫描（Parameter Sweep & Sensitivity）**：扫描关键输入参数的变化区间，揭示输出响应对主导参数的依赖规律；

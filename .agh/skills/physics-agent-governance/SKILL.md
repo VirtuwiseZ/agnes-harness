@@ -45,8 +45,12 @@ Before executing any physics modeling or numerical computation task, you MUST en
 ### 3. Auditability & Context Management
 指针：完整规则见 skill `physics-auditability`（`.agh/skills/physics-auditability/SKILL.md`）。触发信号 = 每次写入 `problem_state.json` 或跑完任一 hook/外部调用后，确认写回确实落地、审计记录已留、可追溯徽标已加。
 
-### 4. Permission Shortfall — Stop-and-Escalate Rule
-指针：完整规则（含 §4 Kind 1/Kind 2 区分 + §4a 环境依赖缺口、§4a-0 便携运行时快路径、§4a-0a 安装前烟囱测试）见 skill `physics-permission-shortfall`（`.agh/skills/physics-permission-shortfall/SKILL.md`）。触发信号 = 某一步的写盘/跑 hook/渲染动作因权限被拒，或脚本报依赖缺失（ModuleNotFoundError 等），在停下来之前必读。
+### 4. Permission Shortfall — Immediate-Tripwire & Stop-and-Escalate Rule (权限被拒即刻熔断铁律)
+- **即刻熔断铁律（Immediate-Tripwire Invariant）**：无论处于任何流水线节点，一旦任何工具调用（特别是 `shell` 命令行执行、`write`/`edit` 文件写入）返回审批被拒（`APPROVAL_REJECTED` / `user_rejected` / `policy_denied`）或超时未审批（`timeout`）：
+  1. **绝对禁止继续思考或自顾自往下推演**！Agent 必须立即终止后续的一切推导、计算与伪汇报；
+  2. **绝对禁止手搓代跑与掩饰性绕过（No Workaround Improvisation）**：严禁在思考窗中尝试以“手算”、“理论估算”替代本应由真实 Python 脚本执行的数值积分、科学绘图或刚性门禁，严禁假装该步骤已在纸面上完成；
+  3. **立即向用户报告阻断原因并请求授权**：必须在当前步直接向用户陈述受阻的具体工具名、命令行内容与所需权限，并等待人类用户明确指示（授权或跳过）后方可继续！
+- 完整细则与模板区分（Kind 1 明确拒绝 vs Kind 2 超时未答复的标准化求助模板、§4a 环境依赖缺口、§4a-0 便携运行时快路径）：详见 skill `physics-permission-shortfall`（`.agh/skills/physics-permission-shortfall/SKILL.md`）。
 
 ### 5. Reference-Answer Containment Rule (Protocol-Level Isolation)
 
