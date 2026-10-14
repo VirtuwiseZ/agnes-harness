@@ -16,7 +16,7 @@ import type {
   SessionImpl,
   SlotOperation,
 } from './session.js'
-import { toolArgumentError } from './tool-args.js'
+import { toolArgumentError, unwrapToolArgs } from './tool-args.js'
 import { approveAndExecute, refuse } from './tools.js'
 
 /** The six names a `{ replace: name }` Operation may stand in for. Closed, not a bare string. */
@@ -63,6 +63,7 @@ export async function invokeTool(
   const toolUseId = s.d.ids.toolUseId(ordinal)
   const def = t.snapshot.byName.get(name)
   if (!def) throw Object.assign(new Error(`unknown tool ${name}`), { code: 'TOOL_NOT_FOUND' })
+  args = unwrapToolArgs(def.parameters, args)
   const argumentError = toolArgumentError(def.parameters, args)
   if (argumentError)
     throw Object.assign(new Error(argumentError), {
