@@ -33,3 +33,8 @@ description: '每个 pipeline 节点（Node 1/1.5/2a/2b）结束时都要增量�
        5. **第 8 章 讨论与未来方向**：探讨前沿物理延伸或工程启示（如超分辨率显微技术对阿贝极限的突破、空间自适应光学系统的工程价值）。
 
    - **写完必跑确定性 Lint 自检（B1 + E2）**：Node 3 报告写完或任何修改后，在进入 Node 4 渲染前及 Node 4 渲染后，必须对照 `report_structure_guide.md` 的"第 7 条典型反例与正例改写对照表"并运行 `python physics-agent/hooks/report_quality_check.py` 扫描 Markdown 与 HTML；若命中任何元导语、自我标榜或内部字段名，必须立即改写直至检查全部通过。
+   - **交付载体与会话窗输出纪律（Delivery Medium & Chat Silence Invariant）**：
+     - 学术报告正文（含八章完整结构、LaTeX 数学公式推导、数据表格及高清矢量图表）的**唯一交付载体是经过 Node 4 编译验证的离线 HTML 报告**；
+     - **绝对禁止**将报告正文、推导细节、数值摘要或裸露的 LaTeX 公式直接输出至会话窗中（会话窗缺乏公式排版引擎，观感极差且与离线报告高度冗余）；
+     - 最终在会话窗中交付时，严格执行 `physics-agent-governance` 的 C1 两段式协议：**第一句直接给出 HTML 报告文件的绝对路径**，紧接着直接粘贴 `physics-agent/knowledge/delivery_template.md` 中的【本项目高可靠性物理研究架构设计说明】，**随后立即结束输出，严禁添加任何后续探讨诱导或自问自答**。
+
