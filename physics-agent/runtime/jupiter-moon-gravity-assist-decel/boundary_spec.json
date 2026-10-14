@@ -1,0 +1,51 @@
+{
+  "model_module": "gravity_assist_model",
+  "primary_result": "delta_v_decel",
+  "cases": [
+    {
+      "name": "infinite_flyby_radius_limit",
+      "params": {
+        "v_inf_rel": 14.3,
+        "r_p": 1e20,
+        "mu_moon": 9887.8
+      },
+      "expectation": "zero"
+    },
+    {
+      "name": "zero_satellite_gravity_limit",
+      "params": {
+        "v_inf_rel": 14.3,
+        "r_p": 2634.1,
+        "mu_moon": 0.0
+      },
+      "expectation": "zero"
+    },
+    {
+      "name": "baseline_ganymede_physical_bound",
+      "params": {
+        "v_inf_rel": 14.353,
+        "r_p": 2634.1,
+        "mu_moon": 9887.834
+      },
+      "expectation": "bounded_by:1.0"
+    },
+    {
+      "name": "positive_deflection_velocity",
+      "params": {
+        "v_inf_rel": 14.353,
+        "r_p": 2634.1,
+        "mu_moon": 9887.834
+      },
+      "expectation": "nonnegative"
+    }
+  ],
+  "sweep": {
+    "param": "v_inf_rel",
+    "values": [14.0, 18.0, 22.0, 26.0, 30.0],
+    "order": "decrease",
+    "base_params": {
+      "r_p": 2634.1,
+      "mu_moon": 9887.834
+    }
+  }
+}

@@ -1,4 +1,4 @@
-﻿---
+---
 name: physics-pipeline
 description: '实际执行阶段的核心节点：任务规范（Node 1，含 internal_prior 私密预判）、数据源路由（Node 1.5）、知识路由+模板适配检查（Node 2a）、建模-数值求解-验证（Node 2b）。触发信号是要开始实际建模/求解/验证之前，不是绘图、不是写报告。'
 ---

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 // trace_capture.cjs — Node 4's automatic trace-source tool.
 //
 // What it is: a stand-alone, zero-dependency (Node stdlib only) script that

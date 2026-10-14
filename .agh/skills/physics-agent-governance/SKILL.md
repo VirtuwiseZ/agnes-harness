@@ -1,4 +1,4 @@
-﻿---
+---
 name: physics-agent-governance
 description: '当会话收到任何物理分析、物理建模、数值求解类题目时，应主动检查并加载本 Skill，按其中的 6 节点流水线执行，而非凭直觉自由建模。'
 ---
@@ -29,10 +29,16 @@ Before executing any physics modeling or numerical computation task, you MUST en
      1. `python physics-agent/hooks/skill_bom_check.py`（验证 `.agh/skills/*/SKILL.md` 全部无 UTF-8 BOM）；
      2. `python physics-agent/hooks/report_quality_check.py --report physics-agent/runtime/<task-slug>/report.md --html physics-agent/runtime/<task-slug>/research_report_<task-slug>.html --state physics-agent/runtime/<task-slug>/problem_state.json`（验证无未渲染 Markdown/LaTeX 语法、无死链、无英文说明、无行内元导语/自我标榜/开发黑话、右侧预览数据池完整）。
      **只要上述任一检查未通过，严禁向用户输出最终交付回复，必须立即针对报错项返工修改并重新运行检验，循环往复直至全部检查 0 报错通过。**
-   - **确定性交付回复规范（C1 铁律）**：通过全部交付前检验后，向用户输出的最终回复**必须包含**：
-     1. 单独一行的 **HTML 报告文件绝对路径**（如 `E:\agnes-harness\physics-agent\runtime\<task-slug>\research_report_<task-slug>.html`），方便用户一键复制；
-     2. 一句明确的使用指导：`"您可以直接复制上述绝对路径到浏览器地址栏打开，或在文件管理器中双击该 HTML 文件离线查看完整报告（含数学公式排版与右侧代码/运行记录/数据源预览窗格）。"`
-     缺任一项即视为未完成交付。
+   - **确定性交付回复规范（C1 铁律与首句开门见山原则）**：通过全部交付前质量检验（`report_quality_check.py`）后，智能体在会话窗中向用户输出的最终回复**必须严格遵循两段式标准模板（详见 `physics-agent/knowledge/delivery_template.md`）**：
+     1. **绝对首句（第一行）**：直接输出经过检验的 HTML 报告绝对路径与查阅指引（明确告知用户针对问题的具体回答、推导与图表请打开本文件查阅）：
+        `本研究已完成全流程物理建模、数值求解与刚性质量防御验证。针对该课题的完整推导、数值求解细节、交互式科学图表及全流程审计记录，请在浏览器中打开查阅学术报告：`
+        `<HTML报告的绝对路径>`
+     2. **会话窗零题目内容铁律（Zero-Content Invariant）**：**绝对禁止**在会话窗中输出任何跟具体题目有关的内容（包括公式推导、数据结论摘要、未渲染的 LaTeX、表格等），所有正文分析必须 100% 收敛于离线 HTML 报告中，避免无排版环境下的劣质观感与内容冗余；
+     3. **直接引用预设的项目可靠性设计介绍**：紧接着第一句之后，直接完整复制粘贴 `physics-agent/knowledge/delivery_template.md` 中的【本项目高可靠性物理研究架构设计说明】（系统介绍单源真理状态机、三级资产分级、四重刚性防御门禁与全离线出版引擎），向用户展示本项目为了保证 AI 物理分析可靠性所设计的确定性研究流程。此段为固定预设文本，严禁 AI 即兴自由发挥；
+     4. **结题即静默铁律（End-of-Turn Silence & Anti-Looping Invariant）**：
+        - 粘贴完可靠性设计介绍后，本轮会话任务**立即宣告终结，禁止输出任何无关内容**；
+        - **绝对禁止**在文末主动输出“如果您后续希望进一步探讨……”、“随时可以就以下几个方向展开……”等开放式寒暄或后续诱导；
+        - **绝对禁止**在没有新用户真实输入的情况下自言自语、自问自答，或误将模型自身上一轮的输出当成用户的追问而向自己答谢/拍自己马屁。
    - **User confirmation pause (optional, plain text only)**: 如需询问用户是否生成网页报告，仅可在普通回复末尾附一句纯文本提示，严禁使用模态弹窗或审批阻塞请求；默认推荐直接生成并通过检验后按上述 C1 规范交付路径。
 
 ### 3. Auditability & Context Management

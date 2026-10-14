@@ -1,0 +1,61 @@
+{
+  "_note": "Task-specific numeric hypothesis table for jupiter-moon-gravity-assist-decel",
+  "description": "评估 20 km/s 入射速度下利用木星卫星引力助推减速的可行性与理论减速上限",
+  "problem_id": "jupiter-moon-gravity-assist-decel",
+  "source_citation": "NASA JPL Planetary and Satellite Physical Parameters / Celestial Mechanics Standard Ephemeris",
+  "primary_target_quantity": "单次/多次飞掠卫星的最大减速量 Δv_max (km/s) 与相对于入轨捕获需求的节省比例",
+  "safety_or_acceptance_constraints": {
+    "values": {
+      "min_flyby_radius_Io": 1821.6,
+      "min_flyby_radius_Europa": 1560.8,
+      "min_flyby_radius_Ganymede": 2634.1,
+      "min_flyby_radius_Callisto": 2410.3
+    },
+    "units": "km",
+    "rationale": "航天器最近飞掠距离不得低于卫星物理半径，否则将导致地表撞击"
+  },
+  "named_parameters": {
+    "mu_Jupiter": {
+      "value": 126686534.0,
+      "units": "km^3 / s^2",
+      "source": "NASA JPL standard gravitational parameter for Jupiter"
+    },
+    "v_inf_arrival": {
+      "value": 20.0,
+      "units": "km / s",
+      "source": "题干给定探测器抵近木星系统时的双曲过剩速度"
+    },
+    "moons": {
+      "Io": {
+        "semi_major_axis_km": 421700.0,
+        "mu_km3_s2": 5959.9,
+        "radius_km": 1821.6,
+        "orbital_speed_km_s": 17.33
+      },
+      "Europa": {
+        "semi_major_axis_km": 670900.0,
+        "mu_km3_s2": 3202.7,
+        "radius_km": 1560.8,
+        "orbital_speed_km_s": 13.74
+      },
+      "Ganymede": {
+        "semi_major_axis_km": 1070400.0,
+        "mu_km3_s2": 9887.8,
+        "radius_km": 2634.1,
+        "orbital_speed_km_s": 10.88
+      },
+      "Callisto": {
+        "semi_major_axis_km": 1882700.0,
+        "mu_km3_s2": 7179.3,
+        "radius_km": 2410.3,
+        "orbital_speed_km_s": 8.20
+      }
+    }
+  },
+  "candidate_verification_baseline": {
+    "name": "双体弹性飞掠解析偏转几何上限与齐奥尔科夫斯基推进剂方程",
+    "expected_value": "单次飞掠最大减速量 <= 0.5 km/s；表面奥伯斯特捕获最小制动需求 3.27 km/s；卫星高度直接捕获需求 7.1~11.5 km/s",
+    "units": "km / s",
+    "citation_or_source": "Analytical Two-Body Scattering Limits & Vis-Viva Equation"
+  }
+}
