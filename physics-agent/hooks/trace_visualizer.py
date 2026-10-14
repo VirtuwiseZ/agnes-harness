@@ -1022,6 +1022,8 @@ def _build_artifact_system(blocks, state, task_dir=None, runlog_base_dir="physic
             "category": "程序调用记录",
             "summary": note_zh,
             "content": "\n".join(call_lines),
+            "script": base,
+            "iteration": iter_i,
         }
 
         analysis_key = f"analysis:{artifact_id[:12]}"
@@ -1031,6 +1033,8 @@ def _build_artifact_system(blocks, state, task_dir=None, runlog_base_dir="physic
             "category": "调试问题分析",
             "summary": f"针对 {base} 第 {iter_i} 次运行结果与修正逻辑的物理与工程复盘。",
             "content": analysis_txt,
+            "script": base,
+            "iteration": iter_i,
         }
 
         if sp.startswith("physics-agent/hooks/"):
@@ -1079,6 +1083,7 @@ def _build_artifact_system(blocks, state, task_dir=None, runlog_base_dir="physic
             "category": "程序源码",
             "summary": prog["role_zh"],
             "content": "\n".join(final_lines),
+            "script": prog["base"],
         }
 
     if task_dir and os.path.isfile(os.path.join(task_dir, "boundary_spec.json")):
@@ -1110,11 +1115,11 @@ def _build_artifact_system(blocks, state, task_dir=None, runlog_base_dir="physic
     payloads["skill:physics-report-charting"] = {
         "title": "physics-report-charting（科学绘图与可视化技能）",
         "category": "AGH SKILL 与插件",
-        "summary": "出版级科学绘图规范：图例零遮挡铁律、科研级热图对齐、三维曲面/空间轨迹及 Plotly 离线自包含交互渲染。",
+        "summary": "规范科学绘图准则：图例外置防遮挡、数据曲线清晰对齐、空间轨迹及 Plotly 离线交互可视化。",
         "content": (
             "【技能名称】physics-report-charting\n"
             "【核心约束】\n"
-            "1. 图例零遮挡铁律：禁止任何图例框压盖物理曲线、峰值点、上升沿与标注文字；强制采用图表外侧 Flex 胶囊图例条（方案 B）。\n"
+            "1. 图例零遮挡准则：禁止任何图例框压盖物理曲线、峰值点、上升沿与标注文字；强制采用图表外侧 Flex 胶囊图例条（方案 B）。\n"
             "2. 纯矢量与自包含渲染：静态图优先输出高对比度 SVG 矢量图，交互图输出离线无 CDN 依赖的 Plotly.js。\n"
             "3. 色彩可区分性：保证暗黑/明亮双主题下具备足够对比度，杜绝彩虹色伪彩带。"
         ),
@@ -1123,7 +1128,7 @@ def _build_artifact_system(blocks, state, task_dir=None, runlog_base_dir="physic
     payloads["prog:make_report_figures.py"] = {
         "title": "make_report_figures.py（图表生成核心引擎）",
         "category": "程序与脚本",
-        "summary": "依据状态机 figures 规格生成出版级科学图表，执行图例零遮挡铁律，产出矢量物理图表。",
+        "summary": "依据状态机 figures 规格生成规范物理图表，采用外置图例条防止遮挡曲线，产出矢量物理图表。",
         "content": (
             "脚本路径：physics-agent/hooks/make_report_figures.py\n"
             "职责：零裁决科学图表生成引擎，自动解析 problem_state.json 中的 numerical_artifacts.figures。\n"
@@ -1336,7 +1341,7 @@ def _build_artifact_system(blocks, state, task_dir=None, runlog_base_dir="physic
                 prog_lis.append(
                     "<li><a href='#artifact-viewer' class='artifact-link prog-main-link' "
                     "data-artifact-key='prog:make_report_figures.py'>make_report_figures.py</a>"
-                    "<ul><li><strong>作用：</strong>依据状态机 figures 规格生成出版级科学图表，执行图例零遮挡铁律（外置 Flex 胶囊图例条方案 B）。</li>"
+                    "<ul><li><strong>作用：</strong>依据状态机 figures 规格生成规范物理图表，采用外置图例条防止遮挡曲线（外置 Flex 胶囊图例条方案）。</li>"
                     "<li><strong>迭代记录：</strong><ul><li>第 1 次绘制："
                     "<a href='#artifact-viewer' class='artifact-link' data-artifact-key='prog:make_report_figures.py'>代码与调用</a>"
                     "<span class='iter-brief'>（SVG 矢量矢量输出，图例零遮挡规范校验通过。）</span>"
@@ -1579,6 +1584,7 @@ def render_html(blocks, cross, events, state, out_path, fallback_legacy=None,
         "<div class='sidebar-badge' id='viewer-category'>文件与运行记录预览</div>"
         "<button type='button' class='locate-trace-btn' id='locate-in-trace-btn'>📍 在 AGH 轨迹页中定位</button>"
         "</div>"
+        "<div id='detail-toast' class='agh-trace-toast' style='display:none;margin-top:8px;font-size:0.82rem;padding:6px 12px;background:rgba(255,170,0,0.12);border:1px solid rgba(255,170,0,0.35);color:#ffcc66;border-radius:6px;align-items:center;gap:6px;'></div>"
         "<h3 class='sidebar-title' id='viewer-title'>点击左侧「本节相关文件」中的蓝链查看详情</h3>"
         "<p class='sidebar-summary' id='viewer-summary'>在左侧各章节底部展开「本节相关文件」，点击任意程序、调试记录、数据源或组件名称，即可在此常驻窗格中实时查看完整源代码、运行输出或切换至 AGH 原始会话轨迹。</p>"
         "</div>"
@@ -1624,6 +1630,16 @@ def render_html(blocks, cross, events, state, out_path, fallback_legacy=None,
         "<script type='application/json' id='loop-data'>" + json.dumps(_loop_data(spine_html or [], cross)) + "</script>"
         + "<script>" + _js() + "</script></body></html>"
     )
+    slug_to_replace = ""
+    if task_dir:
+        slug_to_replace = os.path.basename(os.path.abspath(task_dir))
+    elif out_path:
+        m_slug = re.search(r"research_report_([A-Za-z0-9_\-]+)\.html", os.path.basename(out_path))
+        if m_slug:
+            slug_to_replace = m_slug.group(1)
+    if slug_to_replace:
+        doc = doc.replace("<task-slug>", slug_to_replace)
+
     out_dir = os.path.dirname(os.path.abspath(out_path))
     if out_dir and not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
@@ -1896,20 +1912,88 @@ def _js():
   var paneDetail = document.getElementById('pane-detail');
   var paneTrace = document.getElementById('pane-trace');
 
-  var currentSeq = 1;
+  var currentSeq = null;
   var KEY_TO_SEQ = {};
-  // Automatically discover sequence numbers from payloads or trace events
+
+  // 1. Initial seeds from payloads if already defined
   Object.keys(payloads).forEach(function(k){
     var item = payloads[k];
     if (item && item.seq) { KEY_TO_SEQ[k] = item.seq; }
   });
+
+  // 2. Discover script executions, tool calls, and file operations from traceEvents
+  var scriptCalls = {}; // scriptName -> [seq1, seq2, ...]
+  var skillKeys = [
+    'physics-agent-orchestrator', 'physics-agent-governance', 'physics-state-check',
+    'physics-pipeline', 'physics-defense-lines', 'physics-auditability',
+    'physics-report-charting', 'physics-report-writing', 'physics-doc-parsing',
+    'physics-permission-shortfall'
+  ];
+
   traceEvents.forEach(function(ev){
-    if (ev.preview && ev.seq) {
-      if (ev.preview.indexOf('make_report_figures') !== -1) KEY_TO_SEQ['prog:make_report_figures.py'] = ev.seq;
-      if (ev.preview.indexOf('report_quality_check') !== -1) KEY_TO_SEQ['prog:report_quality_check.py'] = ev.seq;
-      if (ev.preview.indexOf('dimensional_gate') !== -1) KEY_TO_SEQ['prog:dimensional_check.py'] = ev.seq;
-      if (ev.preview.indexOf('boundary_gate') !== -1) KEY_TO_SEQ['prog:boundary_check.py'] = ev.seq;
-      if (ev.preview.indexOf('audit_log') !== -1) KEY_TO_SEQ['prog:audit_log.py'] = ev.seq;
+    if (!ev.seq) return;
+    var seq = ev.seq;
+    var fullText = ((ev.preview || '') + ' ' + (ev.detail || '')).toLowerCase();
+
+    // Match skill reads: e.g. skill_read {"name": "physics-pipeline"} or mentions in tool args
+    skillKeys.forEach(function(skId){
+      if (fullText.indexOf(skId) !== -1) {
+        if (!KEY_TO_SEQ['skill:' + skId]) KEY_TO_SEQ['skill:' + skId] = seq;
+      }
+    });
+
+    // Match core state files and reports
+    if (fullText.indexOf('problem_state') !== -1) {
+      KEY_TO_SEQ['file:problem_state_json'] = seq;
+    }
+    if (fullText.indexOf('report.md') !== -1 || fullText.indexOf('report_') !== -1) {
+      KEY_TO_SEQ['file:report_md'] = seq;
+    }
+    if (fullText.indexOf('boundary_spec') !== -1 || fullText.indexOf('boundary_gate') !== -1) {
+      KEY_TO_SEQ['gate:boundary_spec'] = seq;
+    }
+    if (fullText.indexOf('dimensional_gate') !== -1 || fullText.indexOf('dimensional_check') !== -1) {
+      KEY_TO_SEQ['prog:dimensional_check.py'] = seq;
+      if (!KEY_TO_SEQ['tool:sympy_pint']) KEY_TO_SEQ['tool:sympy_pint'] = seq;
+    }
+    if (fullText.indexOf('audit_log') !== -1) {
+      KEY_TO_SEQ['prog:audit_log.py'] = seq;
+    }
+    if (fullText.indexOf('make_report_figures') !== -1) {
+      KEY_TO_SEQ['prog:make_report_figures.py'] = seq;
+    }
+    if (fullText.indexOf('report_quality_check') !== -1) {
+      KEY_TO_SEQ['prog:report_quality_check.py'] = seq;
+    }
+    if (fullText.indexOf('trace_visualizer') !== -1) {
+      KEY_TO_SEQ['prog:trace_visualizer.py'] = seq;
+    }
+    if (fullText.indexOf('rework') !== -1) {
+      KEY_TO_SEQ['doc:rework_history'] = seq;
+    }
+
+    // Dynamically match ANY python script mentioned in tool call (e.g. python xxx.py, write xxx.py)
+    var pyMatches = fullText.match(/[a-z0-9_\-]+\.py/g);
+    if (pyMatches) {
+      pyMatches.forEach(function(pyFile){
+        var progKey = 'prog:' + pyFile;
+        if (!KEY_TO_SEQ[progKey]) KEY_TO_SEQ[progKey] = seq;
+        if (!scriptCalls[pyFile]) scriptCalls[pyFile] = [];
+        scriptCalls[pyFile].push(seq);
+      });
+    }
+  });
+
+  // 3. Map iteration call keys (run:xxx / call:xxx) and analysis keys (analysis:xxx)
+  Object.keys(payloads).forEach(function(k){
+    var item = payloads[k];
+    if (!item || KEY_TO_SEQ[k]) return;
+    var scriptName = item.script;
+    if (scriptName && scriptCalls[scriptName] && scriptCalls[scriptName].length) {
+      var iterIdx = (item.iteration || 1) - 1;
+      var calls = scriptCalls[scriptName];
+      var mappedSeq = (iterIdx < calls.length) ? calls[iterIdx] : calls[calls.length - 1];
+      KEY_TO_SEQ[k] = mappedSeq;
     }
   });
 
@@ -1930,13 +2014,38 @@ def _js():
   if (tabDetailBtn) tabDetailBtn.addEventListener('click', function(){ switchPane('detail'); });
   if (tabTraceBtn) tabTraceBtn.addEventListener('click', function(){
     switchPane('trace');
-    highlightTraceSeq(currentSeq, false);
+    if (currentSeq) highlightTraceSeq(currentSeq, false);
   });
 
+  var detailToastEl = document.getElementById('detail-toast');
+  function showDetailToast(msg) {
+    if (!detailToastEl) return;
+    detailToastEl.textContent = msg;
+    detailToastEl.style.display = 'flex';
+    clearTimeout(window.__detailToastTimer);
+    window.__detailToastTimer = setTimeout(function(){
+      detailToastEl.style.display = 'none';
+    }, 3200);
+  }
+
   function updateReturnLink(seq) {
-    currentSeq = seq;
-    if (locateBtn) locateBtn.textContent = '📍 在 AGH 轨迹页中定位 (seq #' + seq + ')';
-    if (returnBtn && returnBtn.href) {
+    currentSeq = seq || null;
+    if (locateBtn) {
+      if (seq) {
+        locateBtn.classList.remove('no-trace');
+        locateBtn.style.opacity = '1';
+        locateBtn.style.cursor = 'pointer';
+        locateBtn.textContent = '📍 在 AGH 轨迹页中定位 (seq #' + seq + ')';
+        locateBtn.title = '切换至 AGH 轨迹页并在时间线中高亮定位 seq #' + seq;
+      } else {
+        locateBtn.classList.add('no-trace');
+        locateBtn.style.opacity = '0.8';
+        locateBtn.style.cursor = 'pointer';
+        locateBtn.textContent = '📍 本项无对应轨迹 (点击说明)';
+        locateBtn.title = '该项属于静态技能规范或外部数据源，无特定会话执行轨迹。点击查看提示。';
+      }
+    }
+    if (returnBtn && returnBtn.href && seq) {
       returnBtn.href = returnBtn.href.replace(/#seq-\\d+|$/, '#seq-' + seq);
     }
   }
@@ -2073,12 +2182,12 @@ def _js():
       targetRow.classList.add('highlight-flash');
       setTimeout(function(){ targetRow.classList.remove('highlight-flash'); }, 2000);
 
-      // On-screen Hot Jump Toast feedback
+      // On-screen Toast feedback
       var toastEl = document.getElementById('agh-trace-toast');
       if (toastEl) {
         var prevEl = targetRow.querySelector('.agh-preview');
         var snippet = prevEl ? prevEl.textContent.slice(0, 36) : '';
-        toastEl.textContent = '⚡ 已热定位至轨迹 seq #' + seq + (snippet ? ' · ' + snippet : '');
+        toastEl.textContent = '📍 已定位至轨迹 seq #' + seq + (snippet ? ' · ' + snippet : '');
         toastEl.style.display = 'flex';
         clearTimeout(window.__traceToastTimer);
         window.__traceToastTimer = setTimeout(function(){
@@ -2097,8 +2206,12 @@ def _js():
 
   if (locateBtn) {
     locateBtn.addEventListener('click', function(){
-      switchPane('trace');
-      highlightTraceSeq(currentSeq, true);
+      if (currentSeq) {
+        switchPane('trace');
+        highlightTraceSeq(currentSeq, true);
+      } else {
+        showDetailToast('ℹ️ 本文件属于静态技能规范或外部数据源，无特定会话执行轨迹。');
+      }
     });
   }
 
@@ -2131,7 +2244,7 @@ def _js():
     if (titleEl) titleEl.textContent = item.title || key;
     if (sumEl) sumEl.textContent = item.summary || '';
     if (codeEl) codeEl.textContent = item.content || '';
-    var targetSeq = KEY_TO_SEQ[key] || 1;
+    var targetSeq = KEY_TO_SEQ[key] || null;
     updateReturnLink(targetSeq);
     document.querySelectorAll('.artifact-link.active').forEach(function(el){
       el.classList.remove('active');
@@ -2140,7 +2253,9 @@ def _js():
 
     // Hot jump in trace view if user is currently staying on the trace tab
     if (paneTrace && paneTrace.classList.contains('active')) {
-      highlightTraceSeq(targetSeq, true);
+      if (targetSeq) {
+        highlightTraceSeq(targetSeq, true);
+      }
     }
 
     if (window.innerWidth <= 960 && viewerEl && linkEl) {
