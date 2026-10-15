@@ -81,3 +81,40 @@
 - [ ] 5. 是否已清理 B 类废弃文件、并将 C 类文件配置入 `.gitignore`？
 - [ ] 6. 本批次提交的文件是否属于同一逻辑职责（分批暂存，不一锅端）？
 - [ ] 7. **【最核心铁律】是否确认未执行 `git push`（仅本地 commit）？**
+- [ ] 8. `git add` 路径是否为纯 ASCII 或安全英文通配符（严禁脚本内含中文路径字面量，防范 CP936 乱码）？
+- [ ] 9. 多行 Commit Message 是否采用 `git commit -F` 外置文本（严禁直接在 PowerShell 中写 Here-String）？
+
+---
+
+## 五、Windows PowerShell 5.1 环境下提交自动化防坑铁律（防乱码与防崩溃）
+
+在 Windows 平台使用默认 PowerShell 5.1（代码页通常为 CP936 / GBK）执行自动化暂存与提交时，极易因字符集转码缺陷引发连续报错。所有自动化脚本必须严格遵守以下三道防错铁律：
+
+### 1. 铁律一：暂存路径严禁硬编码中文字符串（纯 ASCII + 通配符原则）
+- **高发灾难**：在 `.ps1` 脚本中若直接写入包含中文字符的路径或通配符（如 `git add "*启动测试环境*"` 或 `git add "dev-notes/.../test8-全功能要求...md"`），PowerShell 5.1 会将其转码为乱码（Mojibake，如 `*鍚姩娴嬭瘯鐜*` 或 `test8-鍏ㄥ姛...md`），导致 Git 抛出致命错误：  
+  `fatal: pathspec '...' did not match any files`。
+- **强制约束**：脚本中的 `git add` 路径参数**绝对禁止出现任何中文字符串字面量**！必须全部采用**纯英文字符、后缀通配符或纯英文前缀通配符**进行匹配。
+- **典型正反例对照表**：
+  | 错误写法（必报 Mojibake 找不到文件） | 正确合规写法（100% 纯 ASCII 安全匹配） | 匹配目标 |
+  | :--- | :--- | :--- |
+  | `git add "*启动测试环境*"` | `git add *.bat` | 根目录下唯一的批处理启动脚本 |
+  | `git add "dev-notes/.../test8-全功能...md"` | `git add dev-notes/self-tests/08/test8-*.md` | 测试 8 开发审计核验日志 |
+  | `git add "dev-notes/competition/黑客松...md"` | `git add dev-notes/competition/*.md` | 六篇黑客松参赛与路演材料 |
+  | `git add "dev-notes/self-tests/06/测试...html"` | `git add dev-notes/self-tests/06/research_report_*.html` | 历史测试生成报告归档 |
+
+### 2. 铁律二：多行提交信息强制采用 `git commit -F <file>` 外置 UTF-8 文本
+- **高发灾难**：在 PowerShell 中直接内嵌 `@"..."@`（Here-String）极易因多字节字符截断换行符、转义闭合引号失败而触发 `TerminatorExpectedAtEndOfString` 语法解析崩溃；
+- **强制约束**：
+  1. 严禁在脚本中拼接包含中文的多行提交字符串；
+  2. 必须由开发工具预先将标准中文 Message 写入独立的 UTF-8 文本文件（如 `dev-notes/commit_msg_batch1.txt`）；
+  3. 脚本中统一使用纯 ASCII 命令调用：`git commit -F "dev-notes\commit_msg_batch1.txt"`；
+  4. 提交完成后立即通过 `Remove-Item` 清理该临时文本；
+  5. 必须仔细核对文件名拼写，杜绝 `commit_net_msg_...` 笔误导致 Git 向 stderr 报错。
+
+### 3. 铁律三：防范原生命令 stderr 触发 PowerShell `$ErrorActionPreference = 'Stop'` 意外终止
+- **高发灾难**：在脚本声明了 `$ErrorActionPreference = 'Stop'` 时，Git 的任何非致命 stderr 输出（包括找不到测试文件时的警告）都会被 PowerShell 判定为致命的 `NativeCommandError` 并立刻强行中断脚本执行；
+- **强制约束**：
+  1. 在调用 `git commit -F` 前，必须使用 `if (Test-Path $msgFile)` 先行确认提交说明文件存在；
+  2. 对于已提交过的批次，使用 `if (Test-Path ...)` 优雅识别并跳过，禁止盲目重复执行抛错；
+  3. 确保传递给 `git add` 的路径在磁盘上真实存在，杜绝空通配符报警。
+

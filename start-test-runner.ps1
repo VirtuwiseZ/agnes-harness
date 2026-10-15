@@ -1,4 +1,7 @@
 # start-test-runner.ps1 - Automated setup and launcher for AGH port 4180
+param(
+    [switch]$Rebuild = $false
+)
 $ErrorActionPreference = 'Stop'
 $repoDir = "E:\agnes-harness"
 $testDir = "E:\agh-test"
@@ -76,24 +79,29 @@ if (Test-Path $testHome) {
     Write-Host " -> Stale cache removed." -ForegroundColor Green
 }
 
-# Step 4: Stop any old daemon first to release Windows native DLL file locks (.node)
-Write-Host "`n[4/6] Stopping old daemon to unlock native modules..." -ForegroundColor Yellow
+# Step 4: Stop any old test daemon first (Port 4180 / $testHome ONLY - NEVER touch Port 4177!)
+Write-Host "`n[4/6] Stopping old test daemon (port 4180 only)..." -ForegroundColor Yellow
 try {
     $env:AGH_HOME = $testHome
     node "$repoDir\packages\cli\dist\local\agnes.mjs" daemon stop 2>$null
 } catch {}
-try {
-    $env:AGH_HOME = ""
-    node "$repoDir\packages\cli\dist\local\agnes.mjs" daemon stop 2>$null
-} catch {}
 # Clean any leftover build-lock directories from prior interrupted builds
 Remove-Item -Path "$repoDir\packages\cli\dist\local.build-lock" -Recurse -Force -ErrorAction SilentlyContinue
-Write-Host " -> Daemon stopped and build locks cleared." -ForegroundColor Green
+Write-Host " -> Test daemon stopped (primary port 4177 preserved untouched)." -ForegroundColor Green
 
-# Step 5: Rebuild local CLI bundle with latest core patches (unwrapToolArgs & verifier scope fix)
-Write-Host "`n[5/6] Rebuilding local bundle with core parameter unwrapping patches..." -ForegroundColor Yellow
-pnpm --filter @agnes/cli run build:local
-Write-Host " -> Bundle compiled successfully." -ForegroundColor Green
+# Step 5: Check local CLI bundle readiness (Rebuild only if requested or missing)
+Write-Host "`n[5/6] Checking local CLI bundle readiness..." -ForegroundColor Yellow
+$bundlePath = "$repoDir\packages\cli\dist\local\agnes.mjs"
+if ($Rebuild -or (-not (Test-Path $bundlePath))) {
+    Write-Host " -> Compiling local bundle via pnpm build:local..." -ForegroundColor Yellow
+    pnpm --filter @agnes/cli run build:local
+    if ($LASTEXITCODE -ne 0) {
+        throw "Build failed with exit code $LASTEXITCODE"
+    }
+    Write-Host " -> Bundle compiled successfully." -ForegroundColor Green
+} else {
+    Write-Host " -> Bundle ready (rebuild skipped; pass -Rebuild to force recompile)." -ForegroundColor Green
+}
 
 # Step 6: Start isolated Web service on port 4180
 Write-Host "`n[6/6] Launching AGH Web Service on port 4180..." -ForegroundColor Yellow
