@@ -4,7 +4,7 @@
 
 #define MyAppName "AI 物理科研工作站"
 #define MyAppEnglishName "Physics Research Agent"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "0.1.0"
 #define MyAppPublisher "AI Physics Research Team"
 #define MyAppURL "https://github.com/VirtuwiseZ/agnes-harness"
 #define MyAppExeName "一键启动.bat"
