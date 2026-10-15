@@ -1,0 +1,33 @@
+{
+  "numerical_artifacts": {
+    "figures": {
+      "boxplot_emptycat_expected_fail": {
+        "id": "boxplot_emptycat_expected_fail",
+        "kind": "boxplot",
+        "title": "某个类别取值为空，预期直接报错（而不是画 2 个类别的图假装没事）",
+        "axes": {
+          "x": {
+            "label": "条件"
+          },
+          "y": {
+            "label": "值"
+          }
+        },
+        "series": [
+          {
+            "name": "A",
+            "values": [
+              1.0,
+              2.0,
+              3.0
+            ]
+          },
+          {
+            "name": "B",
+            "values": []
+          }
+        ]
+      }
+    }
+  }
+}

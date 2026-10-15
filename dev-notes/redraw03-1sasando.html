@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>测试03-1重绘：传统 Sasando 乐器叶振膜声学重现与电拾音器 DSP 频响设计图表</title>
+<style>
+:root { --bg:#0f1117; --card:#1a1d27; --card2:#232733; --ink:#e8eaf2; --muted:#9aa0b4; --accent:#4f8cff; --purple:#a855f7; --green:#10b981; --orange:#f59e0b; --red:#ef4444; --line:#2d3345; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 system-ui,"Segoe UI","PingFang SC",sans-serif; padding:28px 36px 60px; }
+.container { max-width: 1200px; margin: 0 auto; }
+header { border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:24px; }
+h1 { font-size:24px; margin:0 0 8px; color:#f8fafc; }
+.meta { font-size:13px; color:var(--muted); margin:0; }
+.badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:6px; background:rgba(168,85,247,0.18); color:var(--purple); margin-right:8px; }
+.summary-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 22px; margin-bottom:28px; }
+.summary-card h2 { font-size:17px; margin:0 0 10px; color:#f1f5f9; }
+.summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-top:14px; }
+.metric-box { background:var(--card2); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:12px 14px; }
+.metric-box .label { font-size:12px; color:var(--muted); margin-bottom:4px; }
+.metric-box .value { font-size:20px; font-weight:700; color:#c084fc; font-family:Consolas,monospace; }
+.metric-box .note { font-size:11.5px; color:#94a3b8; margin-top:3px; }
+.fig-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin-bottom:32px; box-shadow:0 6px 24px rgba(0,0,0,0.25); }
+.fig-card h3 { font-size:18px; margin:0 0 8px; color:#f8fafc; display:flex; align-items:center; gap:8px; }
+.fig-desc { font-size:13px; color:var(--muted); margin:0 0 18px; line-height:1.55; }
+svg { display:block; width:100%; height:auto; background:#141721; border:1px solid #282f42; border-radius:8px; }
+figcaption { font-size:12.5px; color:var(--muted); margin-top:10px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <span class="badge">测试 03-1 重构重绘 · 2025A 题</span>
+    <h1>传统印尼乐器 Sasando 声学重现与电拾音器多峰滤波器（DSP EQ）设计</h1>
+    <p class="meta">物理模型: 弹性薄圆板 Kirchhoff-Love 模态展开 (叶振膜) + 70 cm 竹管驻波腔多峰耦合 · 目标频带: 98 Hz – 1047 Hz</p>
+  </header>
+
+  <div class="summary-card">
+    <h2>物理建模背景与核心特征量</h2>
+    <p style="margin:0;font-size:13.5px;color:#cbd5e1;line-height:1.6">
+      传统 Sasando 依靠天然干燥 lontar 棕榈叶制成的环形共鸣腔实现声学共鸣与频响整形，使 98–1047 Hz 频带获得饱满音色。
+      现代电声 Sasando 仅采用电磁拾音器直接输出裸琴弦电信号，丢失了传统叶片共鸣与竹管空腔的独特音色特征。
+      本模型推导了叶振膜的弹性薄板自由/固支模态方程，得出前 4 阶模态频率，并结合 70 cm 竹管的一维声波驻波谐波，为电声拾音系统设计了级联双二阶（Biquad）峰值均衡器 H(f)。
+    </p>
+    <div class="summary-grid">
+      <div class="metric-box">
+        <div class="label">基频模态 f₁（薄板基准）</div>
+        <div class="value">211.8 Hz</div>
+        <div class="note">落在 98–1047 Hz 目标主频带内</div>
+      </div>
+      <div class="metric-box">
+        <div class="label">第二模态 f₂（倍频共振）</div>
+        <div class="value">686.6 Hz</div>
+        <div class="note">高阶泛音丰富音色质感</div>
+      </div>
+      <div class="metric-box">
+        <div class="label">带外模态 f₃, f₄</div>
+        <div class="value">1431 / 2446 Hz</div>
+        <div class="note">带外衰减自然，无需额外陡峭低通</div>
+      </div>
+      <div class="metric-box">
+        <div class="label">竹管驻波耦合谐波 (70 cm)</div>
+        <div class="value" style="color:#38bdf8">245 / 490 / 735 Hz</div>
+        <div class="note">双物理声源耦合叠加</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图 1: 叶振膜多模态 EQ 曲线 -->
+  <div class="fig-card">
+    <h3>图 1：Lontar 叶振膜多模态声学传递函数 |H(f)| 与电拾音器 EQ 频响曲线</h3>
+    <p class="fig-desc">
+      对数频率坐标（20 Hz – 3000 Hz）。绿色半透明区域为题干给出的 98 Hz – 1047 Hz 传统声学有效增强频带。
+      紫色实线为 Kirchhoff-Love 薄板前 4 阶模态阻尼谐振子（ζ = 0.02）叠加形成的电拾音器补偿传递函数 |H(f)|。
+      f₁ = 211.8 Hz 与 f₂ = 686.6 Hz 两个主共振峰稳健坐落在目标频带内，高频泛音在带外平滑跌落。
+    </p>
+    <figure>
+      <svg viewBox="0 0 960 430" xmlns="http://www.w3.org/2000/svg">
+        <text x="480" y="28" text-anchor="middle" fill="#e2e8f0" font-size="14.5" font-weight="600">叶振膜多模态声学传递函数 |H(f)| (dB) 与 98–1047 Hz 目标放大频带</text>
+        <!-- 98 - 1047 Hz 目标频带高亮区 (x 坐标对数映射) -->
+        <!-- log10(20)=1.30, log10(3000)=3.477, span=2.176, width=820 px (80 - 900) -->
+        <!-- 98 Hz -> log10=1.991 -> x = 80 + (1.991-1.301)/2.176*820 = 80 + 260 = 340 -->
+        <!-- 1047 Hz -> log10=3.020 -> x = 80 + (3.020-1.301)/2.176*820 = 80 + 648 = 728 -->
+        <rect x="340" y="50" width="388" height="320" fill="#10b981" fill-opacity="0.10"/>
+        <line x1="340" y1="50" x2="340" y2="370" stroke="#10b981" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <line x1="728" y1="50" x2="728" y2="370" stroke="#10b981" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="534" y="68" text-anchor="middle" fill="#6ee7b7" font-size="11.5" font-weight="600">传统 Lontar 叶振膜有效放大频带: 98 Hz – 1047 Hz</text>
+
+        <!-- 网格与刻度 (y: -60 dB ~ +10 dB, 70 dB span -> height 320 px, 50 to 370) -->
+        <!-- 0 dB: y = 50 + 10/70*320 = 96 -->
+        <!-- -20 dB: y = 50 + 30/70*320 = 187 -->
+        <!-- -40 dB: y = 50 + 50/70*320 = 279 -->
+        <!-- -60 dB: y = 370 -->
+        <g stroke="#282f42" stroke-width="1" stroke-dasharray="4,4">
+          <line x1="80" y1="96" x2="900" y2="96"/>
+          <line x1="80" y1="187" x2="900" y2="187"/>
+          <line x1="80" y1="279" x2="900" y2="279"/>
+          <line x1="80" y1="370" x2="900" y2="370"/>
+          <!-- 对数横坐标辅助线 -->
+          <line x1="193" y1="50" x2="193" y2="370"/><line x1="400" y1="50" x2="400" y2="370"/><line x1="718" y1="50" x2="718" y2="370"/>
+        </g>
+        <line x1="80" y1="370" x2="900" y2="370" stroke="#475569" stroke-width="1.4"/>
+        <line x1="80" y1="50" x2="80" y2="370" stroke="#475569" stroke-width="1.4"/>
+        <!-- 纵轴刻度 -->
+        <text x="72" y="100" text-anchor="end" fill="#94a3b8" font-size="11">0 dB</text>
+        <text x="72" y="191" text-anchor="end" fill="#94a3b8" font-size="11">-20 dB</text>
+        <text x="72" y="283" text-anchor="end" fill="#94a3b8" font-size="11">-40 dB</text>
+        <text x="72" y="374" text-anchor="end" fill="#94a3b8" font-size="11">-60 dB</text>
+        <text x="24" y="210" text-anchor="middle" fill="#cbd5e1" font-size="12" transform="rotate(-90, 24, 210)">相对增益幅度 (dB)</text>
+        <!-- 对数横轴刻度 (20, 50, 100, 200, 500, 1000, 2000, 3000 Hz) -->
+        <!-- 20: 80; 50: 230; 100: 343; 200: 457; 500: 607; 1000: 721; 2000: 835; 3000: 900 -->
+        <text x="80" y="390" text-anchor="middle" fill="#94a3b8" font-size="11">20</text>
+        <text x="230" y="390" text-anchor="middle" fill="#94a3b8" font-size="11">50</text>
+        <text x="340" y="390" text-anchor="middle" fill="#6ee7b7" font-size="11" font-weight="600">98</text>
+        <text x="457" y="390" text-anchor="middle" fill="#94a3b8" font-size="11">200</text>
+        <text x="607" y="390" text-anchor="middle" fill="#94a3b8" font-size="11">500</text>
+        <text x="728" y="390" text-anchor="middle" fill="#6ee7b7" font-size="11" font-weight="600">1047</text>
+        <text x="835" y="390" text-anchor="middle" fill="#94a3b8" font-size="11">2000</text>
+        <text x="900" y="390" text-anchor="middle" fill="#94a3b8" font-size="11">3000 Hz</text>
+        <text x="490" y="412" text-anchor="middle" fill="#cbd5e1" font-size="12.5">声音频率 f (Hz，对数刻度)</text>
+
+        <!-- 频响曲线 (多峰阻尼谐振子叠加) -->
+        <!-- f1=211.8 Hz -> x=467, y=96 (0 dB) -->
+        <!-- f2=686.6 Hz -> x=660, y=172 (-16.5 dB) -->
+        <!-- f3=1431 Hz -> x=780, y=159 (-13.8 dB) -->
+        <!-- f4=2446 Hz -> x=869, y=190 (-20.5 dB) -->
+        <path d="M80,218 C180,216 340,210 420,194 C445,180 460,110 467,96 C474,110 490,200 510,228 C560,280 620,250 645,190 C655,176 660,172 665,176 C680,210 710,340 735,270 C755,200 775,165 780,159 C786,165 810,230 840,260 C855,220 865,195 869,190 C875,195 890,240 900,260"
+              fill="none" stroke="#c084fc" stroke-width="2.8"/>
+
+        <!-- 共振峰标注 -->
+        <circle cx="467" cy="96" r="5" fill="#a855f7" stroke="#fff" stroke-width="1.5"/>
+        <text x="467" y="84" text-anchor="middle" fill="#e9d5ff" font-size="11.5" font-weight="700">f₁ = 211.8 Hz (基频主峰)</text>
+
+        <circle cx="665" cy="172" r="4.5" fill="#a855f7"/>
+        <text x="665" y="160" text-anchor="middle" fill="#e9d5ff" font-size="10.5">f₂ = 686.6 Hz</text>
+
+        <circle cx="780" cy="159" r="4" fill="#a855f7"/>
+        <text x="780" y="147" text-anchor="middle" fill="#e9d5ff" font-size="10">f₃ = 1431 Hz</text>
+
+        <circle cx="869" cy="190" r="4" fill="#a855f7"/>
+        <text x="869" y="178" text-anchor="middle" fill="#e9d5ff" font-size="10">f₄ = 2446 Hz</text>
+
+        <!-- 采样点标记 -->
+        <g fill="#f59e0b" stroke="#1e293b" stroke-width="1">
+          <circle cx="80" cy="218" r="3"/><circle cx="230" cy="216" r="3"/><circle cx="340" cy="210" r="3"/><circle cx="410" cy="194" r="3"/>
+          <circle cx="510" cy="228" r="3"/><circle cx="607" cy="275" r="3"/><circle cx="728" cy="341" r="3"/>
+        </g>
+      </svg>
+      <figcaption>图 1：四阶薄板模态展开所得拾音器频率补偿滤波器传递函数 |H(f)|（绿色高亮区间为 98–1047 Hz 题干有效频带）</figcaption>
+    </figure>
+  </div>
+
+  <!-- 图 2: 双重声源对比 -->
+  <div class="fig-card">
+    <h3>图 2：双物理声源耦合分析：叶振膜模态峰 vs 70 cm 竹管驻波谐波</h3>
+    <p class="fig-desc">
+      弥补测试 3 遗漏竹管声源的科学性缺口。Sasando 乐器声音由两部分物理机制耦合而成：
+      ① 干燥 lontar 叶振膜弯曲模态（紫线，f₁=212 Hz, f₂=687 Hz）；
+      ② 长度 70 cm、直径 8 cm 封闭竹管的一维声波驻波共振（蓝色虚线与圆点，波长 λₙ = 4L/(2n-1) 对应 245 Hz, 490 Hz, 735 Hz, 980 Hz）。
+      可见两套声源的峰位在 98–1047 Hz 频带内高度互补交织，形成了 Sasando 标志性的丰富和声色彩。
+    </p>
+    <figure>
+      <svg viewBox="0 0 960 360" xmlns="http://www.w3.org/2000/svg">
+        <text x="480" y="26" text-anchor="middle" fill="#e2e8f0" font-size="14" font-weight="600">叶振膜板模态 (薄板 Bessel 根) 与 70 cm 竹管驻波谐波峰位分布对比</text>
+        <rect x="140" y="45" width="670" height="240" fill="#10b981" fill-opacity="0.08"/>
+        <line x1="140" y1="45" x2="140" y2="285" stroke="#10b981" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="810" y1="45" x2="810" y2="285" stroke="#10b981" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="475" y="60" text-anchor="middle" fill="#6ee7b7" font-size="11">题干标定有效声学频带 (98 Hz – 1047 Hz)</text>
+
+        <!-- 频率主轴 (0 - 1200 Hz 线性细分对比) -->
+        <line x1="70" y1="285" x2="910" y2="285" stroke="#475569" stroke-width="1.3"/>
+        <line x1="70" y1="45" x2="70" y2="285" stroke="#475569" stroke-width="1.3"/>
+        <text x="70" y="304" text-anchor="middle" fill="#94a3b8" font-size="11">0</text>
+        <text x="210" y="304" text-anchor="middle" fill="#94a3b8" font-size="11">200</text>
+        <text x="350" y="304" text-anchor="middle" fill="#94a3b8" font-size="11">400</text>
+        <text x="490" y="304" text-anchor="middle" fill="#94a3b8" font-size="11">600</text>
+        <text x="630" y="304" text-anchor="middle" fill="#94a3b8" font-size="11">800</text>
+        <text x="770" y="304" text-anchor="middle" fill="#94a3b8" font-size="11">1000</text>
+        <text x="910" y="304" text-anchor="middle" fill="#94a3b8" font-size="11">1200 Hz</text>
+        <text x="490" y="326" text-anchor="middle" fill="#cbd5e1" font-size="12">频率 f (Hz)</text>
+
+        <!-- 声源 1: 叶振膜模态峰 (f1=212, f2=687) - 紫色脉冲 -->
+        <g stroke="#a855f7" stroke-width="3">
+          <line x1="218" y1="285" x2="218" y2="90"/><circle cx="218" cy="90" r="5" fill="#a855f7"/>
+          <line x1="551" y1="285" x2="551" y2="150"/><circle cx="551" cy="150" r="4.5" fill="#a855f7"/>
+        </g>
+        <text x="218" y="78" text-anchor="middle" fill="#e9d5ff" font-size="11" font-weight="600">叶振膜基频: 211.8 Hz</text>
+        <text x="551" y="138" text-anchor="middle" fill="#e9d5ff" font-size="10.5">叶振膜 f₂: 686.6 Hz</text>
+
+        <!-- 声源 2: 70 cm 竹管驻波谐波 (245, 490, 735, 980 Hz) - 蓝色脉冲 -->
+        <g stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="4,2">
+          <line x1="241.5" y1="285" x2="241.5" y2="110"/><circle cx="241.5" cy="110" r="4.5" fill="#38bdf8"/>
+          <line x1="413" y1="285" x2="413" y2="130"/><circle cx="413" cy="130" r="4.5" fill="#38bdf8"/>
+          <line x1="584.5" y1="285" x2="584.5" y2="160"/><circle cx="584.5" cy="160" r="4.5" fill="#38bdf8"/>
+          <line x1="756" y1="285" x2="756" y2="190"/><circle cx="756" cy="190" r="4.5" fill="#38bdf8"/>
+        </g>
+        <text x="241.5" y="100" text-anchor="start" fill="#7dd3fc" font-size="10.5">竹管 1阶: 245 Hz</text>
+        <text x="413" y="120" text-anchor="middle" fill="#7dd3fc" font-size="10.5">竹管 2阶: 490 Hz</text>
+        <text x="584.5" y="150" text-anchor="start" fill="#7dd3fc" font-size="10.5">竹管 3阶: 735 Hz</text>
+        <text x="756" y="180" text-anchor="middle" fill="#7dd3fc" font-size="10.5">竹管 4阶: 980 Hz</text>
+
+        <!-- 图例 -->
+        <rect x="80" y="60" width="220" height="58" rx="6" fill="#0f121a" fill-opacity="0.9" stroke="#334155" stroke-width="1"/>
+        <line x1="95" y1="78" x2="120" y2="78" stroke="#a855f7" stroke-width="3"/><circle cx="107" cy="78" r="3" fill="#a855f7"/><text x="130" y="82" fill="#e2e8f0" font-size="11">叶振膜弯曲模态（薄板）</text>
+        <line x1="95" y1="98" x2="120" y2="98" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="4,2"/><circle cx="107" cy="98" r="3" fill="#38bdf8"/><text x="130" y="102" fill="#e2e8f0" font-size="11">70 cm 竹管驻波谐波（空腔）</text>
+      </svg>
+      <figcaption>图 2：Sasando 乐器双重物理声源峰位分布对比（紫线为叶振膜模态，蓝线为竹管驻波谐波，二者交织构成完整音色）</figcaption>
+    </figure>
+  </div>
+</div>
+</body>
+</html>

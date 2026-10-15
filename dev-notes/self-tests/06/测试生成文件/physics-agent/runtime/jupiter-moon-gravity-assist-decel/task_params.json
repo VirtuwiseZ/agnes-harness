@@ -1,0 +1,18 @@
+{
+  "_note": "Structured orbital-constants array for the Jupiter gravity-assist model (Node 2b input). The model code consumes ONLY this structured dict - source-agnostic, no ephemeris values hardcoded in the solver. Provenance: Node 1.5 Level 2 published planetary constants (Jupiter G=M_J*G; Galilean-moon a, M, P from standard ephemeris; G_J, M_J, R_J are textbook constants). All values in km / kg / s units as labeled.",
+  "G_J_km3_s2": 1.2669e8,
+  "M_J_kg": 1.898e27,
+  "R_J_km": 71492,
+  "capture_radius_km": 100000,
+  "capture_radius_note": "a few R_J target; representative of a mid-range Jupiter capture orbit. The delta_v_required is sensitive to this; we use 100000 km (~1.4 R_J) as a representative value.",
+  "Isp_s": 350,
+  "Isp_note": "Representative chemical upper-limit Isp for a high-performance monoprop/hydrazine-class engine (300-450 s band). 350 s is the mid-band. This feeds the Tsiolkovsky residual-chemical-burn fraction.",
+  "g0_m_s2": 9.81,
+  "v_infinity_rel_J_kms": 20.0,
+  "moons": [
+    {"name": "Io",       "a_km": 421700,  "M_kg": 8.93e22,  "P_days": 1.769},
+    {"name": "Europa",   "a_km": 671034,  "M_kg": 4.80e23,  "P_days": 3.551},
+    {"name": "Ganymede", "a_km": 1070412, "M_kg": 1.48e24,  "P_days": 7.155},
+    {"name": "Callisto", "a_km": 1882709, "M_kg": 8.21e23,  "P_days": 16.69}
+  ]
+}

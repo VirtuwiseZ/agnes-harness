@@ -1,0 +1,48 @@
+{
+  "numerical_artifacts": {
+    "figures": {
+      "heatmap_catlog_expected_fail": {
+        "id": "heatmap_catlog_expected_fail",
+        "kind": "heatmap",
+        "title": "类别轴+log，预期直接报错",
+        "axes": {
+          "x": {
+            "scale": "log",
+            "label": "国家"
+          },
+          "y": {
+            "label": "年份"
+          }
+        },
+        "heatmap_style": "pcolormesh",
+        "series": [
+          {
+            "grid": {
+              "x_values": [
+                "CN",
+                "US",
+                "IN"
+              ],
+              "y_values": [
+                "2020",
+                "2021"
+              ],
+              "values_2d": [
+                [
+                  1,
+                  2,
+                  3
+                ],
+                [
+                  4,
+                  5,
+                  6
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

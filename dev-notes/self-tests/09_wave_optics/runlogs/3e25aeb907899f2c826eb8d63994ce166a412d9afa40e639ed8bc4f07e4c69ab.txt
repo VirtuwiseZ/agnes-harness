@@ -1,0 +1,264 @@
+# script_path: physics-agent/runtime/wave-optics-diffraction-resolution/optics_diffraction_model.py
+# stdin_or_argv: python optics_diffraction_model.py --mode multi_dispersion_quadrature
+# exit_code: 0
+# iteration_index: 2
+# artifact_id: 3e25aeb907899f2c826eb8d63994ce166a412d9afa40e639ed8bc4f07e4c69ab
+
+# ---- source ----
+"""
+optics_diffraction_model.py
+===========================
+Wave Optics Modeling and Simulation Engine for:
+1. Fraunhofer Single-Slit Diffraction and Multi-Wavelength White Light Dispersion.
+2. Circular Aperture Airy Disk and Rayleigh Criterion Resolution Limit (Bessel J1 zeros).
+3. Orbital Naked-Eye Observation of Ground Features (ISS Orbit vs. Great Wall).
+4. Abbe Diffraction Limit for Optical Microscopy under Oil Immersion (NA=1.4).
+"""
+
+import numpy as np
+import scipy.special as sp
+import scipy.integrate as integrate
+
+def run_model(params: dict) -> dict:
+    """
+    Standard interface for boundary_gate.py.
+    Accepts physical parameters and computes primary resolution and diffraction metrics.
+    """
+    # 1. Single slit parameters
+    a = float(params.get("slit_width", 50e-6)) # slit width [m]
+    lam = float(params.get("wavelength", 550e-9)) # wavelength [m]
+    
+    # 2. Circular aperture / Eye parameters
+    D = float(params.get("aperture_diameter", 2.5e-3)) # pupil / aperture diameter [m]
+    h = float(params.get("orbit_altitude", 300e3)) # orbit altitude [m]
+    
+    # 3. Microscope parameters
+    NA = float(params.get("NA", 1.4)) # numerical aperture
+    
+    # Compute metrics
+    # Slit angular half-width to first minimum
+    theta_slit = lam / a if a > 0 else 0.0
+    
+    # Airy disk angular half-width: 1.21966989 * lam / D
+    # First non-trivial zero of J1 is v1 ≈ 3.83170597 => theta_airy = 3.83170597 / pi * lam / D
+    theta_airy = (3.8317059702075123 / np.pi) * (lam / D) if D > 0 else 0.0
+    
+    # Ground linear resolution at altitude h
+    delta_x_ground = h * theta_airy
+    
+    # Abbe resolution limit: d_min = lam / (2 * NA)
+    d_abbe = lam / (2.0 * NA) if NA > 0 else float("inf")
+    
+    # Rayleigh resolution limit for microscope: d_rayleigh = 0.61 * lam / NA
+    d_rayleigh = 0.60983494 * lam / NA if NA > 0 else float("inf")
+    
+    return {
+        "theta_slit": float(theta_slit),
+        "theta_airy": float(theta_airy),
+        "delta_x_ground": float(delta_x_ground),
+        "d_abbe": float(d_abbe),
+        "d_rayleigh": float(d_rayleigh)
+    }
+
+def single_slit_intensity(theta, a, lam, I0=1.0):
+    """
+    Analytical Fraunhofer single-slit diffraction intensity.
+    beta = (pi * a / lam) * sin(theta)
+    I(theta) = I0 * (sin(beta) / beta)^2
+    """
+    beta = (np.pi * a / lam) * np.sin(theta)
+    # Handle beta -> 0 limit using np.sinc (Note: np.sinc(x) is sin(pi*x)/(pi*x))
+    # beta / pi = (a / lam) * sin(theta)
+    val = np.sinc(beta / np.pi)
+    return I0 * (val ** 2)
+
+def single_slit_quadrature(theta, a, lam, I0=1.0, N_points=500):
+    r"""
+    Direct numerical quadrature of Huygens-Fresnel wave secondary sources across slit.
+    E(theta) = \int_{-a/2}^{a/2} exp(i * k * y * sin(theta)) dy
+    """
+    k = 2.0 * np.pi / lam
+    y = np.linspace(-a / 2.0, a / 2.0, N_points)
+    dy = y[1] - y[0]
+    sin_t = np.sin(theta)
+    # Phase factor for each element
+    phase = np.exp(1j * k * np.outer(sin_t, y))
+    E = np.sum(phase, axis=1) * dy
+    # Normalize by E at theta=0
+    E0 = a
+    I = np.abs(E / E0) ** 2
+    return I0 * I
+
+def circular_aperture_intensity(theta, D, lam, I0=1.0):
+    """
+    Airy pattern intensity distribution for circular aperture:
+    v = (pi * D / lam) * sin(theta)
+    I(theta) = I0 * [2 * J1(v) / v]^2
+    """
+    v = (np.pi * D / lam) * np.sin(theta)
+    res = np.ones_like(v)
+    nonzero = np.abs(v) > 1e-12
+    v_nz = v[nonzero]
+    j1_vals = sp.jv(1, v_nz)
+    res[nonzero] = (2.0 * j1_vals / v_nz) ** 2
+    return I0 * res
+
+def rayleigh_two_point_profile(theta, D, lam, sep_angle, I0=1.0):
+    """
+    Total intensity distribution of two incoherent Airy point sources separated by sep_angle.
+    I_tot(theta) = I(theta - sep_angle/2) + I(theta + sep_angle/2)
+    """
+    I1 = circular_aperture_intensity(theta - sep_angle / 2.0, D, lam, I0)
+    I2 = circular_aperture_intensity(theta + sep_angle / 2.0, D, lam, I0)
+    return I1 + I2
+
+def compute_all_metrics():
+    """
+    Execute comprehensive multi-problem calculations and return structured results.
+    """
+    # 1. Slit diffraction calculations
+    a_demo = 50e-6 # 50 um
+    wavelengths = {
+        "blue": 450e-9,
+        "green": 532e-9,
+        "red": 633e-9,
+        "center": 550e-9
+    }
+    
+    slit_results = {}
+    for color, wl in wavelengths.items():
+        theta_1st_min = wl / a_demo # rad
+        delta_theta_0 = 2.0 * wl / a_demo # rad
+        slit_results[color] = {
+            "wavelength_nm": wl * 1e9,
+            "theta_1st_min_rad": float(theta_1st_min),
+            "theta_1st_min_deg": float(np.degrees(theta_1st_min)),
+            "central_width_rad": float(delta_theta_0),
+            "central_width_deg": float(np.degrees(delta_theta_0)),
+            "higher_order_width_rad": float(theta_1st_min)
+        }
+    
+    # 2. Bessel function zeros and Airy radius
+    bessel_zeros = sp.jn_zeros(1, 3) # First 3 zeros of J1(v)
+    v1 = float(bessel_zeros[0]) # ≈ 3.83170597
+    v2 = float(bessel_zeros[1]) # ≈ 7.01558667
+    v3 = float(bessel_zeros[2]) # ≈ 10.17346813
+    
+    airy_coeff = v1 / np.pi # ≈ 1.21966989
+    
+    # Rayleigh dip calculation:
+    # At theta = 0 (midpoint between two sources separated by sep = theta_airy):
+    # Each source has v = (pi * D / lam) * (sep / 2) = v1 / 2 ≈ 1.91585
+    v_mid = v1 / 2.0
+    j1_mid = sp.jv(1, v_mid)
+    I_single_mid = (2.0 * j1_mid / v_mid) ** 2
+    I_tot_mid = 2.0 * I_single_mid
+    # Peak intensity of one source alone is 1.0 (at peak, second source adds a small tail):
+    v_peak2 = v1
+    j1_peak2 = sp.jv(1, v_peak2)
+    # Since J1(v1) = 0, the second source contributes exactly 0 at the peak of the first source!
+    I_peak_tot = 1.0 + 0.0 # Exactly 1.0!
+    dip_ratio = float(I_tot_mid / I_peak_tot) # Theoretical Rayleigh dip ratio
+    
+    # 3. Human eye & orbit calculation
+    D_eye = 2.5e-3 # 2.5 mm
+    lam_eye = 550e-9 # 550 nm
+    theta_eye_rad = float(airy_coeff * (lam_eye / D_eye)) # ≈ 2.68327e-4 rad
+    theta_eye_arcmin = float(np.degrees(theta_eye_rad) * 60.0) # ≈ 0.9224 arcmin ≈ 1'
+    
+    altitudes_km = np.linspace(200, 400, 21)
+    ground_res_m = [float(h_km * 1e3 * theta_eye_rad) for h_km in altitudes_km]
+    
+    orbit_samples = {
+        "h_200km": {"h_km": 200.0, "delta_x_m": float(200e3 * theta_eye_rad)},
+        "h_300km": {"h_km": 300.0, "delta_x_m": float(300e3 * theta_eye_rad)},
+        "h_400km": {"h_km": 400.0, "delta_x_m": float(400e3 * theta_eye_rad)}
+    }
+    
+    # Great wall dimensions comparison
+    great_wall_min_w = 5.0 # m
+    great_wall_max_w = 8.0 # m
+    ratio_200km_min = orbit_samples["h_200km"]["delta_x_m"] / great_wall_max_w # ~53.7 / 8 ≈ 6.7
+    ratio_200km_max = orbit_samples["h_200km"]["delta_x_m"] / great_wall_min_w # ~53.7 / 5 ≈ 10.7
+    ratio_400km_min = orbit_samples["h_400km"]["delta_x_m"] / great_wall_max_w # ~107.4 / 8 ≈ 13.4
+    ratio_400km_max = orbit_samples["h_400km"]["delta_x_m"] / great_wall_min_w # ~107.4 / 5 ≈ 21.5
+    
+    # 4. Optical microscope Abbe limit
+    NA_oil = 1.4
+    microscope_res = {
+        "violet_400nm": {
+            "lambda_nm": 400.0,
+            "d_abbe_nm": float(400.0 / (2.0 * NA_oil)), # 142.86 nm
+            "d_rayleigh_nm": float(0.60983494 * 400.0 / NA_oil) # 174.24 nm
+        },
+        "blue_450nm": {
+            "lambda_nm": 450.0,
+            "d_abbe_nm": float(450.0 / (2.0 * NA_oil)), # 160.71 nm
+            "d_rayleigh_nm": float(0.60983494 * 450.0 / NA_oil) # 196.02 nm
+        },
+        "green_532nm": {
+            "lambda_nm": 532.0,
+            "d_abbe_nm": float(532.0 / (2.0 * NA_oil)), # 190.00 nm
+            "d_rayleigh_nm": float(0.60983494 * 532.0 / NA_oil) # 231.74 nm
+        },
+        "center_550nm": {
+            "lambda_nm": 550.0,
+            "d_abbe_nm": float(550.0 / (2.0 * NA_oil)), # 196.43 nm
+            "d_rayleigh_nm": float(0.60983494 * 550.0 / NA_oil) # 239.58 nm
+        },
+        "red_633nm": {
+            "lambda_nm": 633.0,
+            "d_abbe_nm": float(633.0 / (2.0 * NA_oil)), # 226.07 nm
+            "d_rayleigh_nm": float(0.60983494 * 633.0 / NA_oil) # 275.73 nm
+        }
+    }
+    
+    return {
+        "slit_results": slit_results,
+        "bessel": {
+            "v1": v1,
+            "v2": v2,
+            "v3": v3,
+            "airy_coeff": airy_coeff,
+            "rayleigh_dip_ratio": dip_ratio
+        },
+        "eye_and_orbit": {
+            "D_eye_m": D_eye,
+            "lambda_eye_m": lam_eye,
+            "theta_eye_rad": theta_eye_rad,
+            "theta_eye_arcmin": theta_eye_arcmin,
+            "orbit_samples": orbit_samples,
+            "altitudes_km": altitudes_km.tolist(),
+            "ground_res_m": ground_res_m,
+            "ratio_ranges": {
+                "ratio_200km": [float(ratio_200km_min), float(ratio_200km_max)],
+                "ratio_400km": [float(ratio_400km_min), float(ratio_400km_max)]
+            }
+        },
+        "microscope": microscope_res
+    }
+
+if __name__ == "__main__":
+    res = compute_all_metrics()
+    print("=== Wave Optics Computation Complete ===")
+    print(f"Bessel J1 first zero v1: {res['bessel']['v1']:.8f}")
+    print(f"Airy disk coefficient: {res['bessel']['airy_coeff']:.8f}")
+    print(f"Rayleigh saddle dip ratio: {res['bessel']['rayleigh_dip_ratio']:.4f}")
+    print(f"Human eye angular resolution: {res['eye_and_orbit']['theta_eye_rad']:.4e} rad ({res['eye_and_orbit']['theta_eye_arcmin']:.3f} arcmin)")
+    print(f"Orbit 200 km ground resolution: {res['eye_and_orbit']['orbit_samples']['h_200km']['delta_x_m']:.2f} m")
+    print(f"Orbit 400 km ground resolution: {res['eye_and_orbit']['orbit_samples']['h_400km']['delta_x_m']:.2f} m")
+    print(f"Abbe limit at 550nm (NA=1.4): {res['microscope']['center_550nm']['d_abbe_nm']:.2f} nm")
+
+
+# ---- stdout ----
+Iteration 2 Dispersion & Verification Summary:
+  Analytical vs Numerical Quadrature Max Residual: 2.0030e-03
+  Bessel J1 Roots: v1=3.83170597, v2=7.01558667, v3=10.17346814
+  Airy Disk Coefficient (v1/pi): 1.21966989
+  Rayleigh Criterion Saddle Dip Ratio: 73.503% (theoretical drop to 73.46%)
+  Blue (450nm) 1st Min Angle: 0.5157 deg
+  Red (633nm) 1st Min Angle: 0.7254 deg
+  Dispersion Ratio (Red / Blue angular width): 1.407
+
+
+# ---- stderr ----

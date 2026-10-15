@@ -1,0 +1,33 @@
+# Hydrogen atom emission lines (H I spectrum)
+# Source: NIST Atomic Spectra Database (ASD), 2024
+#   URL: https://physics.nist.gov/PhysRefData/ASD/lines_form.html
+#   Query: Spectrum = "H I", Wavelength range 80-2200 nm, Air wavelengths
+# License: Public domain (US government data)
+# Notes:
+#   - Ritz wavelengths (vacuum) converted to standard air wavelengths where applicable
+#   - Aki (s^-1): Einstein A coefficient for spontaneous emission (transition probability)
+#   - Series names: Lyman (UV), Balmer (visible/UV), Paschen (near-IR), Brackett (IR)
+#   - Visible range band: 380-780 nm (highlighted in interval_highlight test)
+#
+# wavelength_nm,series,lower_level,upper_level,Aki_s-1,relative_intensity_approximate
+121.567,Lyman,1s,2p,6.2649e+08,1000
+102.572,Lyman,1s,3p,1.6725e+08,180
+97.254,Lyman,1s,4p,6.8188e+07,90
+95.000,Lyman,1s,5p,3.3340e+07,50
+93.780,Lyman,1s,6p,1.8185e+07,30
+656.279,Balmer,2s/2p,3p/3d,6.4651e+07,1000
+486.135,Balmer,2s/2p,4p/4d,2.0615e+07,350
+434.047,Balmer,2s/2p,5p/5d,8.4193e+06,180
+410.174,Balmer,2s/2p,6p/6d,4.1510e+06,100
+397.007,Balmer,2s/2p,7p/7d,2.2449e+06,65
+388.905,Balmer,2s/2p,8p/8d,1.2956e+06,45
+383.539,Balmer,2s/2p,9p/9d,7.7987e+05,30
+1875.11,Paschen,3s/3p/3d,4p/4d/4f,8.4188e+06,1000
+1281.81,Paschen,3s/3p/3d,5p/5d/5f,2.2008e+06,420
+1093.81,Paschen,3s/3p/3d,6p/6d/6f,7.7827e+05,200
+1004.98,Paschen,3s/3p/3d,7p/7d/7f,3.4442e+05,110
+954.62,Paschen,3s/3p/3d,8p/8d/8f,1.6440e+05,60
+4051.20,Brackett,4s/4p/4d/4f,5p/5d/5f/5g,2.6952e+06,1000
+2625.90,Brackett,4s/4p/4d/4f,6p/6d/6f/6g,7.7110e+05,350
+2165.50,Brackett,4s/4p/4d/4f,7p/7d/7f/7g,2.9622e+05,150
+1944.57,Brackett,4s/4p/4d/4f,8p/8d/8f/8g,1.3230e+05,70

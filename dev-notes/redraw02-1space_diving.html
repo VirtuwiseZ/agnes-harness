@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>测试02重绘：极限高空跳伞（Space Diving）动力学与安全释放高度分析图表</title>
+<style>
+:root { --bg:#0f1117; --card:#1a1d27; --card2:#232733; --ink:#e8eaf2; --muted:#9aa0b4; --accent:#4f8cff; --red:#ef4444; --green:#10b981; --orange:#f59e0b; --line:#2d3345; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 system-ui,"Segoe UI","PingFang SC",sans-serif; padding:28px 36px 60px; }
+.container { max-width: 1200px; margin: 0 auto; }
+header { border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:24px; }
+h1 { font-size:24px; margin:0 0 8px; color:#f8fafc; }
+.meta { font-size:13px; color:var(--muted); margin:0; }
+.badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:6px; background:rgba(79,140,255,0.18); color:var(--accent); margin-right:8px; }
+.summary-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 22px; margin-bottom:28px; }
+.summary-card h2 { font-size:17px; margin:0 0 10px; color:#f1f5f9; }
+.summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-top:14px; }
+.metric-box { background:var(--card2); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:12px 14px; }
+.metric-box .label { font-size:12px; color:var(--muted); margin-bottom:4px; }
+.metric-box .value { font-size:20px; font-weight:700; color:#38bdf8; font-family:Consolas,monospace; }
+.metric-box .note { font-size:11.5px; color:#94a3b8; margin-top:3px; }
+.fig-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin-bottom:32px; box-shadow:0 6px 24px rgba(0,0,0,0.25); }
+.fig-card h3 { font-size:18px; margin:0 0 8px; color:#f8fafc; display:flex; align-items:center; gap:8px; }
+.fig-desc { font-size:13px; color:var(--muted); margin:0 0 18px; line-height:1.55; }
+svg { display:block; width:100%; height:auto; background:#141721; border:1px solid #282f42; border-radius:8px; }
+figcaption { font-size:12.5px; color:var(--muted); margin-top:10px; text-align:center; }
+.legend-pill { display:inline-flex; align-items:center; gap:6px; margin-right:16px; font-size:12px; }
+.legend-line { width:18px; height:3px; display:inline-block; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <span class="badge">测试 02 重构重绘 · 科研级图表</span>
+    <h1>极限高空跳伞（Space Diving）动力学仿真与安全释放高度分析</h1>
+    <p class="meta">数据源: NRLMSIS 0–150 km 经验大气模型 (151 点网格) · 物理模型: 分段跨音速阻力 1D 变密度垂直下降 ODE (190 kg 总质量)</p>
+  </header>
+
+  <div class="summary-card">
+    <h2>物理背景与核心数值结论</h2>
+    <p style="margin:0;font-size:13.5px;color:#cbd5e1;line-height:1.6">
+      分析 190 kg 跳伞者从地球极高空释放并安全返回地表的动力学约束。在稀薄大气高空，跳伞者因几乎无空气阻力而剧烈加速至超音速（Mach &gt; 1.5–2.5）；
+      当下潜至 30–20 km 稠密大气层时，空气阻力急剧上升导致强烈减速并产生显著过载。人体持续耐受加速度上限取 5.0 g（5 秒），瞬态冲击上限为 10.0 g（0.1 秒）。
+    </p>
+    <div class="summary-grid">
+      <div class="metric-box">
+        <div class="label">最大安全释放高度 (z₀_max)</div>
+        <div class="value" style="color:#10b981">55.0 km</div>
+        <div class="note">对应峰值持续过载 4.95 g ≤ 5.0 g</div>
+      </div>
+      <div class="metric-box">
+        <div class="label">Baumgartner 真实跳伞 (39 km)</div>
+        <div class="value">0.99 g</div>
+        <div class="note">峰值速度 377 m/s (Mach 1.25)</div>
+      </div>
+      <div class="metric-box">
+        <div class="label">60 km 释放过载 (超标危险)</div>
+        <div class="value" style="color:#f59e0b">7.3 g</div>
+        <div class="note">超标 46%，超出持续耐受极限</div>
+      </div>
+      <div class="metric-box">
+        <div class="label">70 km 释放过载 (致命冲击)</div>
+        <div class="value" style="color:#ef4444">12.8 g</div>
+        <div class="note">超过 10.0 g 瞬态冲击极限</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图 1: 速度与高度剖面 -->
+  <div class="fig-card">
+    <h3>图 1：不同初始释放高度下的下降速度与马赫数剖面 v(z)</h3>
+    <p class="fig-desc">
+      对比 Baumgartner 39 km 实测基准、50 km 预警高度、55 km 安全临界高度与 70 km 危险高度的下降速度演化。
+      灰色点划线为当地声速剖面 a(z)。可见所有高空跳伞均在 35–25 km 出现超音速峰值，进入 20 km 稠密大气后受强阻力迅速减速进入亚音速终端阶段。
+    </p>
+    <!-- 外置 Flex 胶囊图例栏：彻底杜绝图例遮挡高空初始加速曲线 -->
+    <div class="legend-bar" style="display:flex; flex-wrap:wrap; gap:10px 18px; margin-bottom:14px; padding:10px 16px; background:#141721; border:1px solid #282f42; border-radius:8px; align-items:center;">
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3.5px; background:#10b981; border-radius:2px;"></span><strong>z₀ = 55 km</strong>（最大允许安全释放高度）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3px; background:#38bdf8; border-radius:2px;"></span><strong>z₀ = 39 km</strong>（Baumgartner 实测基准）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3px; background:#a855f7; border-radius:2px;"></span><strong>z₀ = 50 km</strong>（预警曲线）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0;"><span class="legend-line" style="width:20px; height:3px; background:#ef4444; border-radius:2px;"></span><strong>z₀ = 70 km</strong>（危险超速、致命过载）</span>
+      <span class="legend-pill" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:#94a3b8;"><span class="legend-line" style="width:20px; height:2px; background:#64748b; border-style:dashed;"></span>当地声速剖面 a(z)</span>
+    </div>
+    <figure>
+      <svg viewBox="0 0 960 440" xmlns="http://www.w3.org/2000/svg">
+        <text x="480" y="28" text-anchor="middle" fill="#e2e8f0" font-size="14.5" font-weight="600">下降速度随高度演化曲线 v(z) 与当地声速剖面对比</text>
+        <!-- 网格与轴线 -->
+        <g stroke="#282f42" stroke-width="1" stroke-dasharray="4,4">
+          <line x1="80" y1="60" x2="900" y2="60"/>
+          <line x1="80" y1="130" x2="900" y2="130"/>
+          <line x1="80" y1="200" x2="900" y2="200"/>
+          <line x1="80" y1="270" x2="900" y2="270"/>
+          <line x1="80" y1="340" x2="900" y2="340"/>
+          <line x1="80" y1="380" x2="900" y2="380"/>
+        </g>
+        <line x1="80" y1="380" x2="900" y2="380" stroke="#475569" stroke-width="1.4"/>
+        <line x1="80" y1="50" x2="80" y2="380" stroke="#475569" stroke-width="1.4"/>
+        <!-- 纵轴高度刻度 (0 - 80 km) -->
+        <text x="70" y="384" text-anchor="end" fill="#94a3b8" font-size="11">0 km</text>
+        <text x="70" y="344" text-anchor="end" fill="#94a3b8" font-size="11">10 km</text>
+        <text x="70" y="274" text-anchor="end" fill="#94a3b8" font-size="11">25 km</text>
+        <text x="70" y="204" text-anchor="end" fill="#94a3b8" font-size="11">40 km</text>
+        <text x="70" y="134" text-anchor="end" fill="#94a3b8" font-size="11">55 km</text>
+        <text x="70" y="64" text-anchor="end" fill="#94a3b8" font-size="11">70 km</text>
+        <text x="26" y="215" text-anchor="middle" fill="#cbd5e1" font-size="12" transform="rotate(-90, 26, 215)">当前下降高度 z (km)</text>
+        <!-- 横轴速度刻度 (0 - 900 m/s) -->
+        <text x="80" y="400" text-anchor="middle" fill="#94a3b8" font-size="11">0</text>
+        <text x="216" y="400" text-anchor="middle" fill="#94a3b8" font-size="11">150</text>
+        <text x="353" y="400" text-anchor="middle" fill="#94a3b8" font-size="11">300 (Mach ~0.9)</text>
+        <text x="490" y="400" text-anchor="middle" fill="#94a3b8" font-size="11">450</text>
+        <text x="626" y="400" text-anchor="middle" fill="#94a3b8" font-size="11">600 (Mach ~2.0)</text>
+        <text x="763" y="400" text-anchor="middle" fill="#94a3b8" font-size="11">750</text>
+        <text x="900" y="400" text-anchor="middle" fill="#94a3b8" font-size="11">900 m/s</text>
+        <text x="490" y="422" text-anchor="middle" fill="#cbd5e1" font-size="12.5">下降垂直速度 v (m/s)</text>
+
+        <!-- 当地声速线 a_sound(z) (约 295 - 340 m/s 随高度轻微起伏) -->
+        <path d="M380,380 C365,340 350,290 355,270 C360,250 380,220 380,200 C370,160 360,110 375,60" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="6,4"/>
+        <text x="390" y="225" fill="#94a3b8" font-size="10.5">当地声速 a(z)</text>
+
+        <!-- 39 km 基准曲线 (Baumgartner, 峰值 377 m/s @ 27 km) -->
+        <!-- 起点 (0, 39km -> 80, 208) -->
+        <path d="M80,208 C140,230 350,250 423,260 C420,290 280,340 145,360 L145,380" fill="none" stroke="#38bdf8" stroke-width="2.6"/>
+        <circle cx="423" cy="260" r="4.5" fill="#38bdf8"/>
+        <text x="435" y="258" fill="#38bdf8" font-size="11" font-weight="600">39 km 基准: 377 m/s (Mach 1.25)</text>
+
+        <!-- 50 km 曲线 (峰值 510 m/s @ 31 km) -->
+        <path d="M80,154 C160,180 440,210 545,238 C530,270 300,340 145,360 L145,380" fill="none" stroke="#a855f7" stroke-width="2.4"/>
+        <circle cx="545" cy="238" r="4" fill="#a855f7"/>
+
+        <!-- 55 km 安全临界高度曲线 (峰值 585 m/s @ 33 km -> x = 80 + 585*820/900 = 613, y = 380 - 33*4.57 = 229) -->
+        <path d="M80,130 C180,160 510,195 613,229 C590,265 310,340 145,360 L145,380" fill="none" stroke="#10b981" stroke-width="3"/>
+        <circle cx="613" cy="229" r="5" fill="#10b981"/>
+        <text x="625" y="226" fill="#6ee7b7" font-size="11.5" font-weight="700">★ 55 km (安全上限): 585 m/s (Mach 1.95)</text>
+
+        <!-- 70 km 危险高度曲线 (峰值 840 m/s @ 36 km -> x = 845, y = 215) -->
+        <path d="M80,60 C230,100 700,160 845,215 C780,265 320,340 145,360 L145,380" fill="none" stroke="#ef4444" stroke-width="2.4"/>
+        <circle cx="845" cy="215" r="4.5" fill="#ef4444"/>
+        <text x="835" y="200" text-anchor="end" fill="#fca5a5" font-size="11">70 km (致命过载): 840 m/s</text>
+      </svg>
+      <figcaption>图 1：四种典型初始释放高度下的下降垂直速度剖面 v(z) 对比（实线为动力学轨迹，星号标明峰值速度点）</figcaption>
+    </figure>
+  </div>
+
+  <!-- 图 2: 峰值减速过载扫描与安全门禁 -->
+  <div class="fig-card">
+    <h3>图 2：峰值减速过载随释放高度扫描曲线 a_max(z₀) 与生理安全阈值线</h3>
+    <p class="fig-desc">
+      初始释放高度自 20 km 扫描至 80 km。红色水平虚线为 5.0 g 持续生理耐受极限（核心设计准则），橙色虚线为 10.0 g 短时冲击极限。
+      绿色垂直点划线标明 55.0 km 为临界安全高度点（4.95 g ≤ 5.0 g），超过 55 km 后减速峰值随高度呈陡峭非线性激增。
+    </p>
+    <figure>
+      <svg viewBox="0 0 960 420" xmlns="http://www.w3.org/2000/svg">
+        <text x="480" y="28" text-anchor="middle" fill="#e2e8f0" font-size="14.5" font-weight="600">峰值减速过载扫描曲线 a_max(z₀) 与持续/冲击耐受阈值</text>
+        <!-- 网格 -->
+        <g stroke="#282f42" stroke-width="1" stroke-dasharray="4,4">
+          <line x1="80" y1="60" x2="900" y2="60"/>
+          <line x1="80" y1="120" x2="900" y2="120"/>
+          <line x1="80" y1="180" x2="900" y2="180"/>
+          <line x1="80" y1="240" x2="900" y2="240"/>
+          <line x1="80" y1="300" x2="900" y2="300"/>
+          <line x1="80" y1="360" x2="900" y2="360"/>
+        </g>
+        <line x1="80" y1="360" x2="900" y2="360" stroke="#475569" stroke-width="1.4"/>
+        <line x1="80" y1="50" x2="80" y2="360" stroke="#475569" stroke-width="1.4"/>
+        <!-- 纵轴过载刻度 (0 - 15 g) -->
+        <text x="70" y="364" text-anchor="end" fill="#94a3b8" font-size="11">0 g</text>
+        <text x="70" y="304" text-anchor="end" fill="#94a3b8" font-size="11">2.5 g</text>
+        <text x="70" y="244" text-anchor="end" fill="#94a3b8" font-size="11">5.0 g</text>
+        <text x="70" y="184" text-anchor="end" fill="#94a3b8" font-size="11">7.5 g</text>
+        <text x="70" y="124" text-anchor="end" fill="#94a3b8" font-size="11">10.0 g</text>
+        <text x="70" y="64" text-anchor="end" fill="#94a3b8" font-size="11">12.5 g</text>
+        <text x="24" y="200" text-anchor="middle" fill="#cbd5e1" font-size="12" transform="rotate(-90, 24, 200)">峰值减速过载 a_max (g)</text>
+        <!-- 横轴释放高度 (20 - 80 km) -->
+        <text x="80" y="380" text-anchor="middle" fill="#94a3b8" font-size="11">20 km</text>
+        <text x="216" y="380" text-anchor="middle" fill="#94a3b8" font-size="11">30 km</text>
+        <text x="353" y="380" text-anchor="middle" fill="#94a3b8" font-size="11">40 km</text>
+        <text x="490" y="380" text-anchor="middle" fill="#94a3b8" font-size="11">50 km</text>
+        <text x="558" y="380" text-anchor="middle" fill="#6ee7b7" font-size="11" font-weight="700">55 km</text>
+        <text x="626" y="380" text-anchor="middle" fill="#94a3b8" font-size="11">60 km</text>
+        <text x="763" y="380" text-anchor="middle" fill="#94a3b8" font-size="11">70 km</text>
+        <text x="900" y="380" text-anchor="middle" fill="#94a3b8" font-size="11">80 km</text>
+        <text x="490" y="404" text-anchor="middle" fill="#cbd5e1" font-size="12.5">初始释放高度 z₀ (km)</text>
+
+        <!-- 5.0 g 持续过载红线 -->
+        <line x1="80" y1="240" x2="900" y2="240" stroke="#ef4444" stroke-width="2" stroke-dasharray="6,4"/>
+        <text x="895" y="233" text-anchor="end" fill="#fca5a5" font-size="11.5" font-weight="700">持续耐受安全红线: 5.0 g</text>
+
+        <!-- 10.0 g 瞬态冲击上限 -->
+        <line x1="80" y1="120" x2="900" y2="120" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="5,4"/>
+        <text x="895" y="113" text-anchor="end" fill="#fcd34d" font-size="11">短时冲击耐受上限: 10.0 g (0.1 s)</text>
+
+        <!-- 55 km 临界垂直虚线 (x = 558) -->
+        <line x1="558" y1="50" x2="558" y2="360" stroke="#10b981" stroke-width="1.8" stroke-dasharray="4,3"/>
+        <text x="564" y="65" fill="#6ee7b7" font-size="11" font-weight="700">z₀ = 55 km (安全设计上限)</text>
+
+        <!-- 扫描曲线 (20km:0.3g, 30km:0.6g, 39km:0.99g, 45km:1.8g, 50km:3.2g, 55km:4.95g, 60km:7.3g, 70km:12.8g, 75km:16.1g) -->
+        <path d="M80,352 Q216,346 340,336 T490,283 T558,241 T626,185 T763,53 T831,10" fill="none" stroke="#38bdf8" stroke-width="3"/>
+
+        <!-- 关键数据点圆点 -->
+        <circle cx="340" cy="336" r="4" fill="#38bdf8"/><text x="345" y="330" fill="#93c5fd" font-size="10.5">39 km: 0.99 g</text>
+        <circle cx="490" cy="283" r="4" fill="#38bdf8"/><text x="495" y="278" fill="#93c5fd" font-size="10.5">50 km: 3.2 g</text>
+        <circle cx="558" cy="241" r="6" fill="#10b981" stroke="#fff" stroke-width="1.5"/>
+        <text x="568" y="248" fill="#6ee7b7" font-size="12" font-weight="700">临界点: (55 km, 4.95 g)</text>
+        <circle cx="626" cy="185" r="4.5" fill="#f59e0b"/><text x="635" y="180" fill="#fcd34d" font-size="10.5">60 km: 7.3 g (超标)</text>
+        <circle cx="763" cy="53" r="4.5" fill="#ef4444"/><text x="770" y="50" fill="#fca5a5" font-size="10.5">70 km: 12.8 g (致死)</text>
+
+        <!-- 安全区与超标区标记 -->
+        <rect x="100" y="255" width="130" height="26" rx="4" fill="#10b981" fill-opacity="0.18" stroke="#10b981" stroke-width="1"/>
+        <text x="165" y="272" text-anchor="middle" fill="#6ee7b7" font-size="11" font-weight="600">✓ 允许安全释放区</text>
+        <rect x="660" y="135" width="130" height="26" rx="4" fill="#ef4444" fill-opacity="0.18" stroke="#ef4444" stroke-width="1"/>
+        <text x="725" y="152" text-anchor="middle" fill="#fca5a5" font-size="11" font-weight="600">✕ 严重过载超标区</text>
+      </svg>
+      <figcaption>图 2：不同释放高度下的峰值减速加速度扫描曲线（绿色标记为 55 km 最大允许安全释放上限）</figcaption>
+    </figure>
+  </div>
+</div>
+</body>
+</html>
