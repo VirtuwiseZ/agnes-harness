@@ -1,260 +1,169 @@
-# Agnes Harness
-
-English | [简体中文](README.zh-CN.md)
-
-<p align="center">
-  <img src="docs/assets/readme/banner.png" alt="Agnes Harness, a pluggable agent harness for Forward Deployed Engineering. LLM is the brain, Jev is the cerebellum, Harness is the memory, MHS is the body." width="100%" />
-</p>
+# AI 物理科研工作站 (Physics Research Agent)
 
 <div align="center">
 
-### Built for trust. Made for the real world.
+**基于 Agnes Harness 框架的确定性物理分析与科学计算辅助智能体系统**
 
-**Bring AI into real workflows. Turn each deployment into capabilities you can reuse.**
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
+[![Node.js Version](https://img.shields.io/badge/Node.js-%E2%89%A524.10-green.svg)](https://nodejs.org/)
+[![Python Version](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Status](https://img.shields.io/badge/Status-Open--Source%20Release-orange.svg)]()
 
-<img src="https://img.shields.io/badge/status-developer%20preview%20(pre--alpha)-f59e0b" alt="Status: developer preview (pre-alpha)" />
-<img src="https://img.shields.io/badge/license-Apache--2.0-2F4F4F" alt="License: Apache-2.0" />
-<img src="https://img.shields.io/badge/node-%E2%89%A5%2024.10-339933" alt="Node.js 24.10 or later" />
-<img src="https://img.shields.io/badge/local%20checks-macOS-3b8fff" alt="Recorded local checks: macOS" />
-
-[Quickstart](docs/guide/quickstart.md) · [Architecture](#architecture) · [Try the examples](docs/guide/demo.md) · [Build a plugin](docs/develop/plugins.md) · [Documentation](docs/README.md) · [MHS and devices](docs/guide/mhs.md)
-
-Developer preview (pre-alpha) · [Source build](#run-from-source) · [Apache-2.0](LICENSE)
+[快速安装与启动](docs/INSTALL_GUIDE.md) · [演示案例指引](docs/DEMO_WALKTHROUGH.md) · [系统架构设计](docs/ARCHITECTURE.md) · [核心资产模块](physics-agent/README.md)
 
 </div>
 
-<p align="center">
-  <img src="docs/assets/readme/trailer.webp" alt="Animated introduction: the brain (LLM), the cerebellum (Jev), the memory (Harness) and the body (MHS, connecting devices through AgnesHub) come together as Agnes Harness, one execution foundation for enterprise FDE delivery and physical-world MHS integration" width="100%" />
-</p>
+---
 
-<p align="center">
-  <b>LLM is the brain. Jev is the cerebellum. Harness is the memory. MHS is the body.</b><br />
-  <sub>One foundation for enterprise FDE delivery and physical-world MHS integration. <a href="#architecture">See the architecture</a></sub>
-</p>
+## 一、 项目定位与解决的核心问题
 
-Taking AI into a real deployment is rarely about the model alone. It is about the customer's systems, the people who approve the work, and the details that differ at every site. Agnes Harness (AGH) connects models, tools, task state, and business interfaces: **put the differences into plugins, let the harness run and record the work, and carry what you validated into the next deployment.**
+大语言模型在直接处理严谨的物理建模与科学计算时，普遍存在以下困难：
+- **容易出现算术与积分错误**：基于统计概率预测文本的大模型，在直接口算物理量、求解微分方程或进行多步数值代入时极易产生数值偏差；
+- **缺乏物理量纲约束**：模型难以自发校验公式中物理单位的一致性，容易生成量纲不守恒的非物理公式；
+- **计算过程缺乏证据支撑**：单次对话生成的结论属于不可穿透的黑盒，无法自证数据是否来源于真实代码运行；
+- **异常情况下容易强行编造**：当调用工具遇到报错或参数不合理时，传统对话模型倾向于掩饰错误并编造看似合理的虚假答案。
 
-<p align="center">
-  <img src="docs/assets/readme/hero.gif" alt="AGH working in a real project: the agent reads the refund rules and order data, asks for approval before running a command, verifies the result, returns a checkable table, and records every step in the Trace view" width="100%" />
-</p>
+针对上述瓶颈，**AI 物理科研工作站**基于 Agnes Harness 框架，确立了**“分工明确、外部代码实际运算、多重物理检查、全流程时序留痕”**的解决思路：
+1. **分工原则**：大模型仅负责理解物理题意、推导控制方程逻辑并编写求解程序，具体的数值积分与代数计算全部交由外部独立 Python 解释器实际运行，坚决杜绝大模型直接口算物理量；
+2. **多重物理检查**：在输出结论前，通过程序自动执行符号量纲齐次性检验、极端物理退化极限检验以及独立理论公式交叉验算，确保结论符合物理常理；
+3. **全流程可穿透审计**：底座底层自动记录每一次工具调用的输入、输出、耗时与时间戳，生成不可篡改的时序账本，并交付支持点击热跳转查验代码日志的离线双栏学术报告。
 
-<p align="center"><sub>Read the code, ask before running a command, verify, answer, and record every step.</sub></p>
+---
 
-<details>
-<summary><kbd>Contents</kbd></summary>
+## 二、 核心功能与特性
 
-- [What AGH is, and what it is not](#what-agh-is-and-what-it-is-not)
-- [Architecture: brain, cerebellum, memory and body](#architecture)
-- [What AGH does for a deployment team](#what-agh-does-for-a-deployment-team)
-- [Demo videos and reproduction](#demo-videos-and-reproduction)
-- [Public benchmark](#public-benchmark)
-- [Who it is for](#who-it-is-for)
-- [Start from an example](#start-from-an-example)
-- [Run from source](#run-from-source)
-- [Current status](#current-status)
-- [FAQ](#faq)
-- [Follow AGH and bring your use case](#follow-agh-and-bring-your-use-case)
-- [License](#license)
+### 1. 模块化解耦技能体系
+遵循平台零侵入规范，将物理科研全流程解耦为 1 个路由器技能与 9 个专业子技能（位于 `.agh/skills/`）。路由器依据当前解题阶段分步按需引导模型加载对应规则，有效避免将过长提示词一次性注入导致大模型注意力分散。
 
-</details>
+### 2. 外部代码真实求解与科学矢量图表生成
+模型依据物理定律推导演算后，在任务专属隔离目录中现场编写独立的 Python 求解程序；经人类确认审批后由本地解释器实际运算。求解完成后自动调用科学绘图工具生成高精度矢量图表，采用外置胶囊图例条设计，确保数据曲线 100% 完整可见、零遮挡。
 
-## What AGH is, and what it is not
+### 3. 确定性物理防线与自动化质检
+- **符号量纲核验门（`dimensional_gate.py`）**：调用 SymPy 解析方程语法树，利用 Pint 物理单位库严格检验等式两侧基本量纲是否配平；
+- **物理边界门禁（`boundary_gate.py`）**：自动化测试零引力极限（减速归零）、无穷远飞掠极限（扰动归零）、质量无关性极限及全域参数单调性扫描，杜绝除零发散与虚假伪收敛；
+- **出厂质量门禁（`report_quality_check.py`）**：交付前自动扫描报告，排查未闭合标签与死链，确保公式 100% 本地内联渲染。
 
-AGH is built for Forward Deployed Engineering (FDE): working in users' environments to turn systems integration, a usable interface, and ongoing iteration into delivered software. Start through CLI and Web, integrate business systems with plugins, capture task methods in Skills, and combine them into your own agent application. [Explore FDE and application scenarios →](docs/guide/why-agh.md)
+### 4. 离线双栏交互学术报告与时序热跳转 (Hot Jump)
+系统自动将学术正文与底层执行记录编译为单个自包含的离线 HTML 网页：
+- **100% 离线可用**：公式与矢量图表完全内联，彻底杜绝外部网络 CDN 依赖；
+- **自由拖拽缩放**：右侧执行账本窗格支持手柄在 340 像素至 1100 像素以上自由拉伸宽度，提供四档快速预设及日志自动折行；
+- **正文蓝链热跳转**：读者点击正文中的任意数据结论或调试记录，右侧时序列表会自动平滑滚动居中并高亮定位至对应执行卡片，展示原始终端输入与回显。
 
-What it is not, so you can choose the right trial:
+### 5. 真实的面对异常自愈纠偏闭环
+在自动化执行过程中，若首轮计算结果暴露出非物理异常或未达到预期物理目标，系统如实记录机理偏差，主动扩展解题维度并重新编写代码计算，历经多次计算演进最终收敛输出客观科学结论。
 
-- **Not a hosted service.** AGH is a developer preview that you build from source and run in your own environment.
-- **Not a sandbox for arbitrary plugin code.** Ordinary backend plugins run as trusted in-process code; approvals and the command sandbox apply to the supported execution paths. See [security and trust](docs/guide/security.md).
-- **Not a certified device driver.** MHS is AGH's own device protocol, independent of MCP. Passing its conformance suite does not certify a device as safe, and device controllers keep real-time control and physical safety.
-- **Not finished.** APIs, configuration, and plugin interfaces are evolving and may change.
+### 6. 多环境多端口并行与数据完全隔离（Multi-Instance & Isolation）
+系统严格遵循官方 `AGH_HOME` 机制与数据物理隔离规范，支持在同一台机器上同时开启多个端口并行运行不同实例：
+- **会话历史与数据库彻底隔离**：不同环境（如物理科研区 4180、虚拟沙箱区 4182、系统默认区 4177 或自定义端口）独享专属的 SQLite 数据库、会话历史与模型配置，各自网页主页展示独立的会话列表，彻底杜绝会话串扰或数据库锁冲突；
+- **虚拟沙箱环境 vs 实际宿主环境自由选择**：
+  - *虚拟沙箱隔离环境*：使用独立的 `~/.agh-sandbox` 主目录，强制调用内置的便携式 Python 3.13 与预置 wheels，绝对不触碰、不污染宿主机操作系统的全局 Python 库；
+  - *实际宿主原生环境*：使用系统全局 Python 与本地工具链，支持与现有开发环境无缝结合。
 
-<a id="architecture"></a>
-<a id="a-runtime-built-to-extend"></a>
+---
 
-## Architecture: brain, cerebellum, memory and body
+## 三、 快速安装与上手指南
 
-The brain, cerebellum, memory and body describe AGH's vision: combine reasoning, structured decisions, persistent task context, and physical capabilities. The diagram shows where each role sits in one runtime.
+项目提供三档不同使用维度的部署方式，您可以根据本地环境自由选择：
 
-![AGH architecture: LLM as brain, Jev as cerebellum, Harness as memory, and MHS as body, in one runtime that serves enterprise FDE delivery and MHS device integration](docs/assets/architecture.svg)
+### 方式一：Windows 原生图形化安装向导（强烈推荐普通用户）
 
-| Role | What it means in AGH | Current scope |
-| --- | --- | --- |
-| **LLM / brain** | Understand requests, reason about the task, and propose actions | Model integration through AI providers |
-| **Jev / cerebellum** | Structured decisions such as routing and scoring to help coordinate execution | Integration in progress; main currently uses the built-in Core loop |
-| **Harness / memory** | Retain session history, task state, execution records, and reusable methods in Skills | Existing task context and recovery mechanisms; Harness also runs and governs execution |
-| **MHS / body** | Connect device capabilities so tasks can read physical state and request actions | MHS and MOS 1.0 specifications, device libraries, the `mhs-check` conformance suite, and AgnesHub as an optional plugin with device tools for the brain |
+从 GitHub Release 下载项目解压后，双击运行根目录下的 **`图形化安装.bat`**（或直接运行 `installer\AI_Physics_Agent_Setup.exe`）：
+- **实时环境查看与智能勾选**：向导实时检测 64 位操作系统、Node.js 运行时、pnpm、Python 核心科学库及内置离线便携包状态；若检测到缺少 Node.js，会自动勾选官方安装包下载与配置选项；
+- **自由选择安装目录与环境模式**：支持安装至任意磁盘分区（如 `D:\AIPhysicsAgent`），支持在界面上直接选择运行环境模式（独立物理专区、虚拟沙箱隔离或系统默认环境），并可自定义服务端口，自带端口空闲检测；
+- **生成快捷方式与正规注册**：自动生成桌面启动快捷方式、开始菜单程序组（包含启动、健康自检与卸载入口），并**正规注册至 Windows 注册表已安装应用列表**（可在 Windows 10/11 的“设置 ➔ 应用 ➔ 已安装的应用”及控制面板中直接看到并管理）；
+- **独立正规卸载程序 (`Uninstall.exe`)**：在安装目录部署独立的卸载器，卸载时贴心询问是否保留用户在工作区中自建的物理仿真成果与历史报告（`agh-workspace/`），干净清理快捷方式与注册表项。
 
-FDE is a delivery approach; MHS brings devices into the same work. Both build on the same foundation, and an FDE deployment can include devices.
+---
 
-| Shared module | Supports FDE today | What MHS integration reuses |
-| --- | --- | --- |
-| **App Server** | Shared sessions, task submission, event delivery, and approval routing for CLI, Web, and SDK clients | Task entry points, human confirmation, and status presentation |
-| **Agent Loop** | Model/tool execution, task state, event records, interruption handling, and recovery | High-level device task orchestration and result records |
-| **Sandbox / execution constraints** | Tool authorization and applicable command, file, network, and process constraints | Software execution boundaries; device controllers retain motion control, interlocks, and emergency stops |
-| **Plugins** | Backend tools/services, Web panels, Skills, hooks, and MCP connections, organized with Cordis and package governance | AgnesHub runs as an optional plugin: device tools for the brain and a Devices panel in the workbench |
+### 方式二：双击批处理一键安装（无交互自动化脚本）
 
-Business connectors and workbenches are built through these extension paths for each deployment. Devices connect through MHS; the repository includes sample devices and a development hub for trying them without hardware.
+如果您偏好直接通过轻量批处理运行：
 
-Follow the actual request path and source ownership in the [architecture guide](docs/develop/architecture.md), or explore the [source map](docs/develop/source-map.md).
+1. **第一步：环境检查与安装**  
+   双击运行根目录下的 **`一键安装.bat`**。  
+   *脚本将自动检查 Node.js 环境、通过 Corepack 启用 pnpm、安装底座依赖、配置 Python 科学库并编译本地模块。*
 
-## What AGH does for a deployment team
+2. **第二步：启动本地工作台**  
+   安装完成后，双击运行根目录下的 **`一键启动.bat`**。  
+   *服务启动后将自动调用默认浏览器打开工作台前台：`http://127.0.0.1:4180`。*
 
-### 1. Every customer's systems are different
+> **环境自检工具**：随时双击运行根目录下的 **`环境自检.bat`**，可对本地 Node.js、pnpm、Python 及各科学计算依赖库的可用状态进行一键只读诊断。
 
-The agent needs your order lookup, your knowledge base, your internal API. Writing that into the agent itself means forking it for every customer.
+---
 
-In AGH, a business capability is a plugin: register a tool through a [backend plugin](docs/develop/backend.md) or connect an existing service through [MCP](docs/guide/mcp.md). Installing one shows its version, source, integrity digest, capability hash, and license before anything runs; enabling it binds and verifies those hashes. The agent can then call it, and every call keeps its inputs and structured output.
+### 方式三：跨平台与终端手动安装（macOS / Linux / 通用终端）
 
-<p align="center">
-  <img src="docs/assets/readme/plugins.gif" alt="Installing a plugin in the Web workbench: inspect the source, review integrity, capabilities and license, confirm enabling, then the agent calls the new demo_text_stats tool and its inputs and structured output are recorded" width="100%" />
-</p>
+```bash
+# 1. 克隆代码仓库
+git clone https://github.com/VirtuwiseZ/agnes-harness.git
+cd agnes-harness
 
-### 2. Work starts on the Web and continues in the terminal
+# 2. 启用 pnpm 并安装底座依赖
+corepack enable
+corepack prepare pnpm@10.34.5 --activate
+pnpm install
 
-The analyst starts a task in the browser; the engineer picks it up from a terminal. Copying context between tools loses history and decisions.
+# 3. 安装 Python 核心科学计算库
+pip install -r physics-agent/hooks/requirements.txt
 
-CLI, Web, and SDK share the same backend sessions. Resume a Web session in the terminal with `/resume <id>` and the history, tool records, and results are already there; whatever you add in the terminal shows up in the Web thread. See [sessions and recovery](docs/guide/sessions.md).
+# 4. 编译本地 CLI 模块并启动服务
+pnpm --filter @agnes/cli run build:local
+node packages/cli/dist/index.js daemon start --port 4180
+```
+服务启动后，在浏览器中访问：`http://127.0.0.1:4180`。详细环境配置与故障排查请参阅 [完整安装指南](docs/INSTALL_GUIDE.md)。
 
-<p align="center">
-  <img src="docs/assets/readme/terminal.gif" alt="The terminal UI resumes a session started on the Web, shows its history, tool records and result table, answers a follow-up, and the same thread is up to date back on the Web" width="100%" />
-</p>
+---
 
-### 3. "What did the AI change, and who approved it?"
+## 四、 完整技术文档索引
 
-In a customer environment, a result is not enough: you need to show how it was produced.
+| 文档名称 | 对应路径 | 核心内容说明 |
+| :--- | :--- | :--- |
+| **[安装与快速入门指引](docs/INSTALL_GUIDE.md)** | `docs/INSTALL_GUIDE.md` | 涵盖系统要求、缺失依赖处理指引、自定义工作区配置与常见问题解答（FAQ）。 |
+| **[演示案例与运行指引](docs/DEMO_WALKTHROUGH.md)** | `docs/DEMO_WALKTHROUGH.md` | 提供开箱即用的天体轨道力学与经典波动光学演示题干，详述端到端实操与审批步骤。 |
+| **[系统架构与技术设计](docs/ARCHITECTURE.md)** | `docs/ARCHITECTURE.md` | 深入阐述五层架构设计、1+9 解耦技能机制、门禁工具链与数据流转生命周期。 |
+| **[物理核心资产模块说明](physics-agent/README.md)** | `physics-agent/README.md` | 详细介绍 `physics-agent/` 子树结构（hooks/knowledge/plugins/runtime/third_party）。 |
 
-Running a command waits for your approval by default: allow once, allow for the session, or deny. The Trace view keeps a timeline of model calls, tools, and approvals, step by step. Package trust, tool approvals, execution constraints, and session records give the integration explicit points of control. See [security and trust](docs/guide/security.md).
+---
 
-<p align="center">
-  <img src="docs/assets/readme/trajectory.png" alt="The Trace view: a timeline of input, model and tool activity, followed by step records that include the user request, file reads, the shell command and its approval record, and the final answer" width="100%" />
-</p>
+## 五、 演示案例快速预览
 
-### 4. Each role needs its own screen
+您可以在前台界面输入以下通用命题，体验工作站的自主分析与求解闭环（详细步骤见 [演示指引](docs/DEMO_WALKTHROUGH.md)）：
 
-A support lead and a warehouse operator do not want the same interface. Add [frontend panels](docs/develop/frontend.md) to the Web workbench and connect them to backend services through controlled calls with [full-stack plugins](docs/develop/fullstack.md).
+- **案例一（天体轨道力学与深空飞越）**：  
+  *“前往外太阳系的航天器通常会使用引力辅助机动。当航天器到达木星等外行星时，它必须减速才能进入轨道。有人认为可以利用卫星的引力辅助机动节省燃料。请评估对于一个以 20 公里/秒速度抵近木星系统的航天器，这个策略是否可以节省大量燃料。”*
+- **案例二（经典波动光学与仪器极限分辨率）**：  
+  *“请系统分析波动光学中衍射与光学分辨本领的核心问题，完成控制方程推导、量纲与极限验证、数值仿真作图，并形成严谨规范的研究报告（涵盖白光单缝衍射色散、圆孔衍射艾里斑与瑞利判据、空间对地观测极限辨析、显微镜阿贝极限）。”*
 
-### 5. The next deployment should start from the last one
+---
 
-Capture task methods in [Skills](docs/guide/skills.md) and package reusable business logic as plugins with a governed [lifecycle](docs/guide/packages.md): install, enable, update, roll back, and remove.
+## 六、 仓库目录结构概览
 
-### 6. The site also has devices
-
-From inspection to instrument coordination, field work connects device state, human judgment, and business workflows. Agnes MHS (Model Hardware Standard) is AGH's own open device protocol, independent of MCP and of vendor-specific SDKs: a device connects to AgnesHub over WebSocket, registers its state, tools, and data sources, and takes calls. Its companion MOS (Model Observation Standard) streams what the device observes, such as camera images, maps, and places. State reads, action requests, and results join the same task flow. [Try devices without hardware →](docs/guide/mhs.md)
-
-## Demo videos and reproduction
-
-### MHS Mars rescue: coordinating devices
-
-<p align="center">
-  <a href="https://youtu.be/absoBkphEHE">
-    <img src="docs/assets/readme/mars-rescue.svg" alt="Mars rescue video preview: the simulated base, device observations, and task execution records. Click the play button or cover to watch the English demo on YouTube." width="100%" />
-  </a>
-</p>
-
-Have the agent send the hopper to find an astronaut, then coordinate the robot and airlock to bring them back. AGH runs the task, AgnesHub calls devices through MHS, and MOS returns camera images, poses, and other observations.
-
-**What you need:** AGH, a model that supports images and tool calls, the `@agnes/mhs` plugin, and Mars World in a browser. The repository provides eleven virtual devices; no physical hardware is required. Follow the [Mars base guide](docs/guide/mars-world.md) to start them and give the agent a task.
-
-## Public benchmark
-
-On the public [Agents' Last Exam (ALE) leaderboard](https://agents-last-exam.org/leaderboard), which evaluates complete agent systems (model, harness, and tools) on professional tasks, Agnes Harness with Agnes 2.5 Pro Beta reaches a 21.7% overall pass rate and a 42.7 overall score.
-
-<p align="center">
-  <img src="docs/assets/readme/ale-leaderboard.png" alt="Agents' Last Exam results for Agnes Harness with Agnes 2.5 Pro Beta: 21.7% overall pass rate, 42.7% overall score, 31.3% near-term pass rate, 23.6% full-spectrum pass rate, 25.7% ALE-CLI pass rate and 50.2% ALE-CLI score, beside an excerpt of nearby leaderboard entries whose models and settings differ" width="100%" />
-</p>
-
-<p align="center"><sub>Results depend on model versions, settings, and tool configurations. See the leaderboard for current figures.</sub></p>
-
-## Who it is for
-
-- **FDE and solution engineers** delivering agents into customer systems and workflows
-- **Plugin developers** packaging business tools, services, and interfaces for reuse
-- **Teams that need oversight**: approvals before commands, records of every step, and explicit package trust
-- **Field and lab teams** bringing devices into tasks through MHS
-
-Not a fit yet if you need a hosted service, signed installers, or a production commitment today: AGH is a developer preview.
-
-## Start from an example
-
-The repository includes runnable examples for backend capabilities, custom interfaces, and full-stack integration. Each tutorial includes source code, steps, and expected results.
-
-| Example | What you will see | What you can build from it |
-| --- | --- | --- |
-| [A tool](docs/develop/backend.md) | Invoke `demo_text_stats` and receive character and word counts | Connect order lookup, data retrieval, or another business function |
-| [A panel](docs/develop/frontend.md) | Load your own sidebar panel and update its version | Show task information and business state for a particular role |
-| [A full-stack plugin](docs/develop/fullstack.md) | Read a backend result from a panel, then inspect updates and rollback | Package a business service together with its interface |
-
-**Choose an example, then add your business logic.** [Open the demo guide →](docs/guide/demo.md)
-
-## Run from source
-
-AGH is a **developer preview (pre-alpha)**, available through a source build. You need Node.js 24.10+, pnpm 10.34.5, and the native build tools for your platform. See [getting the source and installation](docs/guide/install.md).
-
-Before running AGH, read [security and trust](docs/guide/security.md) and choose the working directory and permissions. From the source repository root:
-
-```sh
-pnpm install --frozen-lockfile
-pnpm --filter @agnes/cli build:local
-node packages/cli/dist/local/agnes.mjs serve
+```
+agnes-harness/
+├── 一键安装.bat                  # Windows 首次部署向导
+├── 一键启动.bat                  # Windows 日常服务拉起程序
+├── 环境自检.bat                  # Windows 环境只读诊断程序
+├── README.md                     # 本说明文档（开源主页）
+├── docs/                         # 项目技术文档体系
+│   ├── INSTALL_GUIDE.md          # 详细安装与依赖指引
+│   ├── DEMO_WALKTHROUGH.md       # 演示案例与实操运行手册
+│   └── ARCHITECTURE.md           # 系统架构设计技术文档
+├── scripts/                      # 自动化部署核心脚本 (PowerShell)
+│   ├── doctor.ps1                # 环境诊断逻辑
+│   ├── setup.ps1                 # 安装与构建向导
+│   └── start.ps1                 # 服务管理与启动逻辑
+├── .agh/skills/                  # 10 个标准原生工作区技能
+├── physics-agent/                # 物理工作站核心业务资产
+│   ├── hooks/                    # 确定性门禁与报告编译程序 (Python)
+│   ├── knowledge/                # 方法论与公开发表参考基准数据
+│   ├── plugins/                  # 原生流程路由插件
+│   └── third_party/              # 免安装便携运行时规范
+└── packages/                     # Agnes Harness 官方平台源码
 ```
 
-Open the printed loopback URL, configure a model, create a task, and confirm its working directory. Try your first request:
+---
 
-> Read this project and explain the problem it solves and how its main directories are organized. Do not modify files.
+## 七、 开源协议与声明
 
-Leave the Web server running and open a second terminal in the same source directory. The CLI uses the same backend and configuration; if you set `AGH_HOME` or `AGNES_PROFILE`, use the same values in this terminal:
-
-```sh
-node packages/cli/dist/local/agnes.mjs -p "Briefly explain what this project does"
-```
-
-Follow the [quickstart](docs/guide/quickstart.md) to inspect results, find the session, and continue working. Without a model account, you can try the [local simulated-model demo](docs/guide/demo.md#run-locally-without-a-model-account) to explore plugins and task execution.
-
-The full documentation is available in [English](docs/README.md) and [简体中文](docs/README.zh-CN.md). Each page links to the same topic in the other language.
-
-## Current status
-
-AGH is a developer preview.
-
-| Area | State |
-| --- | --- |
-| Web workbench, CLI and terminal UI, SDK on shared sessions | Available in the developer preview |
-| Agent loop, tool approvals, trajectory records, recovery | Available |
-| Plugins: backend tools and services, Web panels, Skills, hooks, MCP | Available, with documented constraints |
-| Command sandbox and execution constraints | Platform-dependent |
-| Platforms | Recorded local checks on macOS with Node 24; Linux and Windows need separate acceptance |
-| Jev structured decisions | Integration in progress |
-| MHS device integration through AgnesHub | Available as an optional plugin |
-
-Use [supported scope and known limitations](docs/reference/limitations.md) to choose your trial environment, and the [verification guide](docs/maintainers/verification.md) for reproducible checks and their scope.
-
-## FAQ
-
-**Can I use AGH in production?**
-Not yet. AGH is a developer preview without a public package release, installer, or upgrade commitment. Validate deployment, audit, and isolation requirements in your own environment.
-
-**Are plugins sandboxed?**
-Ordinary backend plugins run as trusted in-process code, so install only packages you trust. Approvals and the command sandbox apply to the supported execution paths; they do not isolate arbitrary plugin code.
-
-**Which models can I use?**
-Models connect through AI providers, and each provider's catalog determines the available capabilities. The demos on this page were recorded with Agnes AI `agnes-3.0-flash`; quality and tool selection vary by model.
-
-**Can MHS control devices today?**
-Yes, through AgnesHub: the brain calls the tools a device declares, and AgnesHub checks every call against that declaration. The [MHS guide](docs/guide/mhs.md) starts with sample devices. Canceling an AGH task does not establish that a device stopped safely; device controllers keep interlocks and emergency stops.
-
-**Do you accept pull requests?**
-Code and documentation pull requests are currently limited to invited internal developers. Issues for bug reports and use-case suggestions are welcome; see the [feedback and development policy](CONTRIBUTING.md).
-
-## Follow AGH and bring your use case
-
-If you are exploring AI deployment in the field, **Star the project**, use **Watch to follow updates**, and share AGH with developers building agent applications and business integrations.
-
-- **Try it and give feedback:** Run an example and share your experience. Use Issues for ordinary bug reports and use-case suggestions.
-- **Build and reuse:** Develop plugins, connect tools, and create a workbench in your own project under the applicable licenses.
-
-Report vulnerabilities privately under the [security policy](SECURITY.md).
-
-## License
-
-Project-authored code is licensed under the [Apache License 2.0](LICENSE). Third-party components, adapted files, and some examples retain their own license terms; see [NOTICE](NOTICE) and [licensing details](docs/maintainers/provenance.md).
+1. **开源协议**：本项目依据 [Apache License 2.0](LICENSE) 协议开源分发；
+2. **免责与学术声明**：本项目产出的学术推导、数值积分曲线与研究报告均基于经典理论物理模型生成，旨在提供严谨的辅助分析与算法验证，相关结论供学术交流与学习参考。

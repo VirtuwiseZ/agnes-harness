@@ -138,3 +138,66 @@ window.addEventListener('agnes:locale-changed', (event) => {
   currentLocale = next
   paintLocale()
 })
+
+// Cross-tab zero-reload Trace jump bridge (allows external offline HTML reports to
+// switch an already-open AGH tab to the Trace view and target seq without reloading AGH).
+try {
+  const bc = typeof BroadcastChannel === 'function' ? new BroadcastChannel('agnes-trace-jump') : null
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('agh_bridge') === '1' && bc) {
+    const seq = params.get('seq') ?? ''
+    const session = params.get('session') ?? ''
+    let acked = false
+    bc.onmessage = (ev) => {
+      if (ev.data && ev.data.type === 'AGH_JUMP_ACK') {
+        acked = true
+        try {
+          window.stop()
+        } catch {}
+        window.close()
+      }
+    }
+    bc.postMessage({ type: 'AGH_JUMP_TRACE', seq, session })
+    setTimeout(() => {
+      if (!acked) {
+        params.delete('agh_bridge')
+        params.set('tab', 'trace')
+        window.location.replace(`${window.location.pathname}?${params.toString()}`)
+      }
+    }, 180)
+  } else if (bc) {
+    window.name = 'agnes-harness-main'
+    bc.onmessage = (ev) => {
+      if (!ev.data || ev.data.type !== 'AGH_JUMP_TRACE') return
+      bc.postMessage({ type: 'AGH_JUMP_ACK' })
+      const seq = ev.data.seq
+      const traceBtn = document.getElementById('view-trace')
+      if (traceBtn) traceBtn.click()
+      window.dispatchEvent(new CustomEvent('agnes:jump-trace-seq', { detail: { seq } }))
+      try {
+        window.focus()
+      } catch {}
+      if (typeof Notification === 'function' && Notification.permission === 'granted') {
+        const n = new Notification('AGH 轨迹已就绪', {
+          body: seq ? `已在当前打开的会话中定位到轨迹 seq #${seq}，点击立即切回窗口` : '已切换至轨迹视图，点击立即切回窗口',
+          tag: 'agnes-trace-jump',
+        })
+        n.onclick = () => {
+          window.focus()
+          n.close()
+        }
+      }
+    }
+    document.addEventListener(
+      'click',
+      () => {
+        if (typeof Notification === 'function' && Notification.permission === 'default') {
+          void Notification.requestPermission().catch(() => {})
+        }
+      },
+      { once: true },
+    )
+  }
+} catch {
+  // Ignore BroadcastChannel or Notification errors in restricted environments.
+}

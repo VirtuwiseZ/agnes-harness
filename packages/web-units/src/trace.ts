@@ -632,12 +632,21 @@ export const Trace = forwardRef<TraceHandle, TraceProps>(function Trace(
   ref: ForwardedRef<TraceHandle>,
 ) {
   const store = options.store ?? sessionStorage
-  const open = useRef(store.getItem(TRACE_PANEL_STORAGE_KEY) === 'open')
+  const initialUrlParams =
+    typeof window !== 'undefined' && typeof window.location?.search === 'string'
+      ? new URLSearchParams(window.location.search)
+      : null
+  const urlWantsTrace =
+    initialUrlParams?.get('tab') === 'trace' ||
+    initialUrlParams?.get('view') === 'trace' ||
+    initialUrlParams?.has('seq')
+  const open = useRef(Boolean(urlWantsTrace) || store.getItem(TRACE_PANEL_STORAGE_KEY) === 'open')
+  const urlSeqApplied = useRef<string | undefined>(undefined)
   type Snapshot = { nodes: readonly UINode[]; turns: readonly UITurn[]; meta?: TraceMeta | undefined }
   const [snapshot, setSnapshot] = useState<Snapshot>({ nodes: [], turns: [] })
   // While the panel is closed, render() only remembers the newest snapshot; opening shows it.
   const latest = useRef<Snapshot | undefined>(undefined)
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialUrlParams?.get('q') ?? '')
   const [selected, setSelected] = useState<string | undefined>(undefined)
   const [pane, setPane] = useState<InspectorPane>('overview')
   const [toolDetail, setToolDetail] = useState<ToolDetailState | undefined>(undefined)
@@ -690,6 +699,52 @@ export const Trace = forwardRef<TraceHandle, TraceProps>(function Trace(
     () => traceRowBuilder.build(snapshot.nodes, snapshot.turns),
     [snapshot.nodes, snapshot.turns, locale],
   )
+  useEffect(() => {
+    const selectBySeq = (rawSeq: string | number | null | undefined): boolean => {
+      if (rawSeq === null || rawSeq === undefined || rawSeq === '' || rows.length === 0) return false
+      const targetSeq = Number(rawSeq)
+      if (!Number.isFinite(targetSeq)) return false
+      const match =
+        rows.find((r) => r.seq === targetSeq) ??
+        rows.find((r) => r.kind === 'tool' && Math.abs(r.seq - targetSeq) <= 2)
+      if (!match) return false
+      setSelected(match.id)
+      queueMicrotask(() => {
+        const list = listRef.current
+        const layout = layoutRef.current
+        if (list && layout) {
+          const top = getTraceVirtualScrollTopForKey(
+            layout,
+            `row:${match.id}`,
+            list.scrollTop,
+            list.clientHeight || listViewportHeightRef.current,
+          )
+          if (top !== undefined) list.scrollTop = top
+        }
+      })
+      return true
+    }
+
+    const seqParam = initialUrlParams?.get('seq')
+    if (seqParam && rows.length > 0) {
+      const sessionKey = snapshot.meta?.sessionId ?? 'default'
+      if (urlSeqApplied.current !== `${sessionKey}:${seqParam}`) {
+        if (selectBySeq(seqParam)) {
+          urlSeqApplied.current = `${sessionKey}:${seqParam}`
+        }
+      }
+    }
+
+    const onJumpEvent = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ seq?: string | number }>).detail
+      applyOpenRef.current(true, true)
+      if (detail?.seq !== undefined) {
+        selectBySeq(detail.seq)
+      }
+    }
+    window.addEventListener('agnes:jump-trace-seq', onJumpEvent)
+    return () => window.removeEventListener('agnes:jump-trace-seq', onJumpEvent)
+  }, [initialUrlParams, rows, snapshot.meta?.sessionId])
   const toolHierarchy = useMemo(() => buildTraceToolHierarchy(snapshot.nodes), [snapshot.nodes])
   const selectedRow = selected ? rows.find((row) => row.id === selected) : undefined
   const requestMetrics = useMemo(

@@ -59,7 +59,7 @@ import { resolvedModelRecord, supportsComputerUse, toolNamesForModel, toolsForMo
 import { type OpStateObj, type ToolCallState, withPhase } from './op-state.js'
 import { runCoreReplacement, runSlot } from './reentry.js'
 import type { OpContext, SessionImpl, StepOutcome } from './session.js'
-import { toolArgumentError } from './tool-args.js'
+import { toolArgumentError, unwrapToolArgs } from './tool-args.js'
 
 /** Truncation reasons already reported per session in this process: one diagnostic row each. */
 const reportedMediaWindows = new WeakMap<SessionImpl, Set<RequestMediaScanTruncation['reason']>>()
@@ -1323,6 +1323,7 @@ export async function runInference(s: SessionImpl): Promise<StepOutcome> {
         else if (!offered.has(c.name))
           refusal = { code: 'TOOL_NOT_DISCLOSED', text: 'tool was not disclosed in this request' }
         else {
+          c.args = unwrapToolArgs(def.parameters, c.args)
           const argsError = toolArgumentError(def.parameters, c.args)
           if (argsError) refusal = { code: 'TOOL_ARGS_INVALID', text: argsError }
           else {

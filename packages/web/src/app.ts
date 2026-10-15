@@ -2355,11 +2355,13 @@ run(async () => {
       : await client.session.list({ q: { prefix: selected }, limit: 100 })
     if (candidates.items.some((item) => item.sessionId === selected)) await open(selected)
     else {
-      notice.textContent = t('app.session.notFound')
-      // 这条可能紧跟在首屏引导之后写入：不复位 kind，元素还带着 first-run-configure 标记，
-      // 用户随后保存设置时 clearFirstRunNotice 会把这条提示一并清掉。
-      notice.dataset.kind = ''
-      renderControls()
+      const fallback = page.items.find((item) => !item.archived)
+      if (fallback) await open(fallback.sessionId)
+      else {
+        notice.textContent = t('app.session.notFound')
+        notice.dataset.kind = ''
+        renderControls()
+      }
     }
   } else {
     const first = page.items.find((item) => !item.archived)

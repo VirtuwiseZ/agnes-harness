@@ -24,8 +24,10 @@ export const verifierT0: SeamFactory<VerifierSeam> = async (ctx) => {
       const x = input as VerifyInput
       const fail: string[] = []
       const revise: string[] = []
-      if (x.toolCalls.some((c) => !c.schemaOk)) fail.push('schema_invalid')
-      if (x.deviations > 0) fail.push('tool_call_as_text')
+      if (scope !== 'turn' && scope !== 'task') {
+        if (x.toolCalls.some((c) => !c.schemaOk)) fail.push('schema_invalid')
+        if (x.deviations > 0) fail.push('tool_call_as_text')
+      }
       if (x.lastFinishReason === 'length') fail.push('output_truncated')
       if (scope === 'turn' || scope === 'task') {
         const keys = x.recentToolKeys

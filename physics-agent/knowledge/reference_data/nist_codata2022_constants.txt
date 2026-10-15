@@ -1,0 +1,70 @@
+
+             Fundamental Physical Constants --- Complete Listing
+             2022 CODATA adjustment
+
+
+  From:  http://physics.nist.gov/constants
+
+
+
+  Quantity                                                       Value                 Uncertainty           Unit
+-----------------------------------------------------------------------------------------------------------------------------
+alpha particle-electron mass ratio                          7294.299 541 71          0.000 000 17             
+alpha particle mass                                         6.644 657 3450 e-27      0.000 000 0021 e-27      kg
+alpha particle mass energy equivalent                       5.971 920 1997 e-10      0.000 000 0019 e-10      J
+alpha particle mass energy equivalent in MeV                3727.379 4118            0.000 0012               MeV
+alpha particle mass in u                                    4.001 506 179 129        0.000 000 000 062        u
+alpha particle molar mass                                   4.001 506 1833 e-3       0.000 000 0012 e-3       kg mol^-1
+alpha particle-proton mass ratio                            3.972 599 690 252        0.000 000 000 070        
+alpha particle relative atomic mass                         4.001 506 179 129        0.000 000 000 062        
+alpha particle rms charge radius                            1.6785 e-15              0.0021 e-15              m
+Angstrom star                                               1.000 014 95 e-10        0.000 000 90 e-10        m
+atomic mass constant                                        1.660 539 068 92 e-27    0.000 000 000 52 e-27    kg
+atomic mass constant energy equivalent                      1.492 418 087 68 e-10    0.000 000 000 46 e-10    J
+atomic mass constant energy equivalent in MeV               931.494 103 72           0.000 000 29             MeV
+atomic mass unit-electron volt relationship                 9.314 941 0372 e8        0.000 000 0029 e8        eV
+atomic mass unit-hartree relationship                       3.423 177 6922 e7        0.000 000 0011 e7        E_h
+atomic mass unit-hertz relationship                         2.252 342 721 85 e23     0.000 000 000 70 e23     Hz
+atomic mass unit-inverse meter relationship                 7.513 006 6209 e14       0.000 000 0023 e14       m^-1
+atomic mass unit-joule relationship                         1.492 418 087 68 e-10    0.000 000 000 46 e-10    J
+atomic mass unit-kelvin relationship                        1.080 954 020 67 e13     0.000 000 000 34 e13     K
+atomic mass unit-kilogram relationship                      1.660 539 068 92 e-27    0.000 000 000 52 e-27    kg
+atomic unit of 1st hyperpolarizability                      3.206 361 2996 e-53      0.000 000 0015 e-53      C^3 m^3 J^-2
+atomic unit of 2nd hyperpolarizability                      6.235 379 9735 e-65      0.000 000 0039 e-65      C^4 m^4 J^-3
+atomic unit of action                                       1.054 571 817... e-34    (exact)                  J s
+atomic unit of charge                                       1.602 176 634 e-19       (exact)                  C
+atomic unit of charge density                               1.081 202 386 77 e12     0.000 000 000 51 e12     C m^-3
+atomic unit of current                                      6.623 618 237 5082 e-3   0.000 000 000 0072 e-3   A
+atomic unit of electric dipole mom.                         8.478 353 6198 e-30      0.000 000 0013 e-30      C m
+atomic unit of electric field                               5.142 206 751 12 e11     0.000 000 000 80 e11     V m^-1
+atomic unit of electric field gradient                      9.717 362 4424 e21       0.000 000 0030 e21       V m^-2
+atomic unit of electric polarizability                      1.648 777 272 12 e-41    0.000 000 000 51 e-41    C^2 m^2 J^-1
+atomic unit of electric potential                           27.211 386 245 981       0.000 000 000 030        V
+atomic unit of electric quadrupole mom.                     4.486 551 5185 e-40      0.000 000 0014 e-40      C m^2
+atomic unit of energy                                       4.359 744 722 2060 e-18  0.000 000 000 0048 e-18  J
+atomic unit of force                                        8.238 723 5038 e-8       0.000 000 0013 e-8       N
+atomic unit of length                                       5.291 772 105 44 e-11    0.000 000 000 82 e-11    m
+atomic unit of mag. dipole mom.                             1.854 802 013 15 e-23    0.000 000 000 58 e-23    J T^-1
+atomic unit of mag. flux density                            2.350 517 570 77 e5      0.000 000 000 73 e5      T
+atomic unit of magnetizability                              7.891 036 5794 e-29      0.000 000 0049 e-29      J T^-2
+atomic unit of mass                                         9.109 383 7139 e-31      0.000 000 0028 e-31      kg
+atomic unit of momentum                                     1.992 851 915 45 e-24    0.000 000 000 31 e-24    kg m s^-1
+atomic unit of permittivity                                 1.112 650 056 20 e-10    0.000 000 000 17 e-10    F m^-1
+atomic unit of time                                         2.418 884 326 5864 e-17  0.000 000 000 0026 e-17  s
+atomic unit of velocity                                     2.187 691 262 16 e6      0.000 000 000 34 e6      m s^-1
+Avogadro constant                                           6.022 140 76 e23         (exact)                  mol^-1
+Bohr magneton                                               9.274 010 0657 e-24      0.000 000 0029 e-24      J T^-1
+Bohr magneton in eV/T                                       5.788 381 7982 e-5       0.000 000 0018 e-5       eV T^-1
+Bohr magneton in Hz/T                                       1.399 624 491 71 e10     0.000 000 000 44 e10     Hz T^-1
+Bohr magneton in inverse meter per tesla                    46.686 447 719           0.000 000 015            m^-1 T^-1
+Bohr magneton in K/T                                        0.671 713 814 72         0.000 000 000 21         K T^-1
+Bohr radius                                                 5.291 772 105 44 e-11    0.000 000 000 82 e-11    m
+Boltzmann constant                                          1.380 649 e-23           (exact)                  J K^-1
+Boltzmann constant in eV/K                                  8.617 333 262... e-5     (exact)                  eV K^-1
+Boltzmann constant in Hz/K                                  2.083 661 912... e10     (exact)                  Hz K^-1
+Boltzmann constant in inverse meter per kelvin              69.503 480 04...         (exact)                  m^-1 K^-1
+characteristic impedance of vacuum                          376.730 313 412          0.000 000 059            ohm
+classical electron radius                                   2.817 940 3205 e-15      0.000 000 0013 e-15      m
+Compton wavelength                                          2.426 310 235 38 e-12    0.000 000 000 76 e-12    m
+conductance quantum                                         7.748 091 729... e-5     (exact)                  S
+conventional value of ampere-90                             1.000 000 088 87...      (exact)                  A

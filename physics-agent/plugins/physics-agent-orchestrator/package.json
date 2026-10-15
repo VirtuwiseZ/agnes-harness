@@ -1,0 +1,24 @@
+{
+  "name": "@agnes-examples/physics-agent-orchestrator",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "exports": "./index.mjs",
+  "files": [
+    "index.mjs"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "agnes": {
+    "plugins": [
+      {
+        "export": "physicsAgentOrchestrator",
+        "id": "ext:physics-agent-orchestrator/main",
+        "inject": [
+          "skills"
+        ]
+      }
+    ]
+  }
+}
