@@ -30,9 +30,17 @@ if (!isPublicIpAddress(entry.address)) {
   throw new WebError(`URL hostname "${hostname}" resolves to a non-public IP address`, 'WEB_BLOCKED_URL')
 }
 ```
-- **关键病灶**：主流代理软件（Clash, Sing-box, V2Ray 等）在 TUN / Fake-IP 模式下，将域名劫持解析为 RFC 2544 保留网段 `198.18.0.0/15`；
+- **关键病灶**：主流代理软件（Clash, Sing-box, V2Ray 等）在开启“覆写DNS / Fake-IP”时，会将所有域名强制劫持解析为 RFC 2544 保留网段 `198.18.0.0/15`；
 - 第三方库 `ipaddr.js` 将该网段归类为 `benchmarking` 或 `reserved`，**不等于 `unicast`**；
 - 因此 `isPublicIpAddress()` 返回 `false`，AGH 的 SSRF 防护机制**在真正发起任何网络连接前，就直接在 Node.js/Deno 适配层将请求硬性拦截抛出**！
+
+### 3. 实测关键配置定论（2026-10-15 实测验证与根因定性）
+- **实测验证结论**：代理软件开启虚拟网卡（TUN 模式）时，**只要关闭“覆写DNS”（即不使用 Fake-IP 模式，改用真实 DNS / Redir-Host 模式），AGH 原生 `web_fetch` 工具即可 100% 正常工作（HTTP 200 全通）！**
+- **底层技术原理解析**：
+  1. 过去常常误以为是 TUN 虚拟网卡本身引发的拦截，实测证明**真正的根因仅在于“覆写DNS（Fake-IP）”**；
+  2. 当关闭“覆写DNS”后，系统 DNS 客户端解析出的是目标服务器的**真实公网 Unicast IP**（如 GitHub 的 `185.199.x.x`）；
+  3. AGH 宿主执行 `isPublicIpAddress()` 校验时，`ipaddr.js` 判断该真实 IP 属于合法 `unicast` 公网地址，安全防护校验顺利放行；
+  4. 紧接着在 TCP 连接建立阶段，出站流量仍由操作系统的 TUN 虚拟网卡透明接管并送入加密隧道。由此**既保留了代理软件的海外科学网络访问能力，又彻底消除了 `WEB_BLOCKED_URL` 假 IP 拦截**，是目前最优雅、最兼容的官方工具配置方案。
 
 ---
 
@@ -56,9 +64,11 @@ def fetch_data_bypass_fake_ip(url):
         return resp.read().decode("utf-8")
 ```
 
-### 方案 2（向用户给出精准配置建议）：切换为系统代理模式
-若某些特殊环境连 Python 直连也受阻，AI 应向用户输出如下标准化指导：
-> “检测到当前网络请求被 AGH 的非公网 IP 防护拦截（本地代理开启了 TUN 虚拟网卡或 Fake-IP 模式，导致域名被解析为 198.18.x.x 保留地址）。建议您暂时关闭代理软件中的‘TUN 模式’和‘DNS 覆写’，改用标准的‘系统代理模式’，即可使 AGH 工具正常解析公网 IP。”
+### 方案 2（向用户给出精准配置建议）：推荐关闭“覆写DNS”或切换为系统代理
+若用户需要直接使用 AGH 官方的 `web_fetch` 工具进行公网检索，AI 应向用户输出如下专业精准的配置建议：
+> “检测到当前网络请求被 AGH 的非公网 IP 防护拦截（本地代理开启了‘DNS 覆写 / Fake-IP’模式，导致域名被解析为 198.18.x.x 保留地址）。  
+> **推荐解决方式**：您无需完全关闭代理或虚拟网卡，只需在代理客户端（如 Clash Verge / Sing-box / NekoBox 等）的设置中**关闭‘覆写DNS’（Overwrite DNS）开关**，或将 DNS 模式由 `fake-ip` 切换为 `redir-host`。此时系统会解析出真实公网 IP，`web_fetch` 工具即可立即恢复正常，同时依然享有虚拟网卡提供的代理加速。”  
+> *(备选方式：亦可将代理切换为标准的‘系统代理模式’。)*
 
 ### 方案 3（零网络安全保底）：自动降级至 Level 0 离线包与 Level 2 基准集
 若外部网络彻底断开，坚决执行确定性降级，严禁捏造伪造数据：
