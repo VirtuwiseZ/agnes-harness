@@ -3,7 +3,7 @@
 # Pure ASCII implementation to guarantee compatibility across Windows PowerShell 5.1 CP936 / UTF-8.
 
 param(
-    [string]$Version = "v1.0.0",
+    [string]$Version = "v0.1.0",
     [string]$OutputDir = ""
 )
 

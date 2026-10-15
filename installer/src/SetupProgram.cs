@@ -91,7 +91,7 @@ namespace AIPhysicsAgent.Installer
 
         private void InitializeComponent()
         {
-            this.Text = "AI 物理科研工作站 - 安装向导 (v1.0.0)";
+            this.Text = "AI 物理科研工作站 - 安装向导 (v0.1.0)";
             this.Size = new Size(720, 560);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -1084,7 +1084,7 @@ namespace AIPhysicsAgent.Installer
                             if (appKey != null)
                             {
                                 appKey.SetValue("DisplayName", "AI 物理科研工作站 (Physics Research Agent)");
-                                appKey.SetValue("DisplayVersion", "1.0.0");
+                                appKey.SetValue("DisplayVersion", "0.1.0");
                                 appKey.SetValue("Publisher", "AI Physics Research Team");
                                 appKey.SetValue("InstallLocation", installDir);
                                 appKey.SetValue("UninstallString", "\"" + uninstallerPath + "\"");
