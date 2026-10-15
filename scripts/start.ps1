@@ -17,7 +17,7 @@ Write-Host "   AI Physics Research Agent - Service Launcher (Port $Port)" -Foreg
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 # 1. Verify build artifact
-$cliDist = Join-Path $repoDir "packages\cli\dist\index.js"
+$cliDist = Join-Path $repoDir "packages\cli\dist\local\agnes.mjs"
 if (-not (Test-Path $cliDist)) {
     Write-Host "[NOTE] Build artifact not detected. Running setup wizard first..." -ForegroundColor Yellow
     & (Join-Path $PSScriptRoot "setup.ps1")
@@ -64,7 +64,7 @@ Write-Host "  -> Core assets synced successfully." -ForegroundColor Green
 # 5. Check and manage port
 Write-Host "[2/3] Checking port $Port and managing daemon..." -ForegroundColor Yellow
 try {
-    node packages/cli/dist/index.js daemon stop 2>$null | Out-Null
+    node packages/cli/dist/local/agnes.mjs daemon stop 2>$null | Out-Null
 } catch {}
 
 $occupied = $false
@@ -78,13 +78,13 @@ try {
 
 if ($occupied) {
     Write-Host "  -> Port $Port currently in use. Stopping old instance..." -ForegroundColor Yellow
-    node packages/cli/dist/index.js daemon stop 2>$null | Out-Null
+    node packages/cli/dist/local/agnes.mjs daemon stop 2>$null | Out-Null
     Start-Sleep -Seconds 1
 }
 
 # 6. Start daemon service
 Write-Host "[3/3] Starting AI Physics Research Agent service..." -ForegroundColor Yellow
-$startResult = node packages/cli/dist/index.js daemon start --port $Port 2>&1
+$startResult = node packages/cli/dist/local/agnes.mjs daemon start --port $Port 2>&1
 Write-Host "  -> $startResult" -ForegroundColor Green
 
 $url = "http://127.0.0.1:$Port"
@@ -102,4 +102,4 @@ if (-not $NoBrowser) {
     Start-Sleep -Milliseconds 600
     Start-Process $url
 }
-Write-Host "You can stop the service anytime by running: node packages/cli/dist/index.js daemon stop`n"
+Write-Host "You can stop the service anytime by running: node packages/cli/dist/local/agnes.mjs daemon stop`n"

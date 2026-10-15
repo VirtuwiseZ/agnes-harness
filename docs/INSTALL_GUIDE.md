@@ -83,7 +83,7 @@ pip install -r physics-agent/hooks/requirements.txt
 ### 5. 启动服务
 ```bash
 # 启动后台守护服务（指定端口 4180）
-node packages/cli/dist/index.js daemon start --port 4180
+node packages/cli/dist/local/agnes.mjs daemon start --port 4180
 ```
 启动完成后，在浏览器中访问：`http://127.0.0.1:4180`。
 
@@ -141,7 +141,8 @@ node packages/cli/dist/index.js daemon start --port 4180
 1. 在运行 `scripts/start.ps1` 时指定新端口，例如 `-Port 4188`；
 2. 或者在终端执行命令停止已存在的守护进程：
    ```bash
-   node packages/cli/dist/index.js daemon stop
+   node packages/cli/dist/local/agnes.mjs daemon stop
+   ```
    ```
 
 ### Q2: Windows 下执行 PowerShell 脚本提示“无法加载脚本，因为在此系统上禁止运行脚本”？

@@ -106,9 +106,9 @@ if ($hasPortable) {
 
 # 5. Build status check
 Write-Host "`n[5/5] Checking Agnes Harness Build Status..." -ForegroundColor Yellow
-$cliDist = Join-Path $repoDir "packages\cli\dist\index.js"
+$cliDist = Join-Path $repoDir "packages\cli\dist\local\agnes.mjs"
 if (Test-Path $cliDist) {
-    Write-Host "  -> CLI Build Artifact: Present"
+    Write-Host "  -> CLI Build Artifact: Present ($cliDist)"
     Write-Host "  [PASS] Local platform build is complete." -ForegroundColor Green
 } else {
     Write-Host "  [NOTE] Local build not detected yet." -ForegroundColor Yellow

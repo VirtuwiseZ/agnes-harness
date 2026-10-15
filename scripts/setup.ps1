@@ -113,7 +113,7 @@ if ($pyNeedsDeps) {
 
 # Step 5: Build local CLI module
 Write-Host "`n[Step 5/6] Building Agnes Harness CLI module..." -ForegroundColor Yellow
-$cliDist = Join-Path $repoDir "packages\cli\dist\index.js"
+$cliDist = Join-Path $repoDir "packages\cli\dist\local\agnes.mjs"
 if ($SkipBuild -and (Test-Path $cliDist)) {
     Write-Host "  -> Found existing build artifact. Skipping build (-SkipBuild)." -ForegroundColor Green
 } else {
