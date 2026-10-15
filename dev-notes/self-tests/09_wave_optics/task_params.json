@@ -1,0 +1,91 @@
+{
+  "description": "大学物理波动光学核心参数配置表（单缝衍射、圆孔衍射、人眼及航天轨道观测、显微镜极限）",
+  "problem_id": "wave-optics-diffraction-resolution",
+  "source_citation": "大学物理学波动光学教材、CODATA 基础物理常数、经典光学与人眼视觉生理学实验测定值",
+  "primary_target_quantity": "光强角分布 I(θ)、艾里斑角半宽度 θ_0、地面肉眼极限分辨距离 Δx(h)、显微镜阿贝极限 d_min",
+  "safety_or_acceptance_constraints": {
+    "values": "N/A",
+    "units": "N/A",
+    "rationale": "标准理论推导与定量教学分析任务，无工程失效或安全阈值约束。"
+  },
+  "named_parameters": {
+    "visible_wavelength_blue_m": {
+      "value": 4.5e-07,
+      "units": "m",
+      "description": "可见光标准蓝光波长 450 nm",
+      "origin": "标准激光谱线/光学教材典型蓝光"
+    },
+    "visible_wavelength_green_m": {
+      "value": 5.32e-07,
+      "units": "m",
+      "description": "可见光标准绿光波长 532 nm (Nd:YAG倍频激光)",
+      "origin": "光学实验室标准波长"
+    },
+    "visible_wavelength_red_m": {
+      "value": 6.33e-07,
+      "units": "m",
+      "description": "可见光标准红光波长 633 nm (He-Ne激光)",
+      "origin": "经典氦氖激光标准波长"
+    },
+    "visible_wavelength_center_m": {
+      "value": 5.5e-07,
+      "units": "m",
+      "description": "可见光平均/人眼明视觉最敏感波长 550 nm",
+      "origin": "CIE 标准明视觉光度函数峰值波长"
+    },
+    "visible_wavelength_violet_limit_m": {
+      "value": 4e-07,
+      "units": "m",
+      "description": "可见光短波极限（紫光） 400 nm",
+      "origin": "可见光谱边缘界限"
+    },
+    "slit_width_a_m": {
+      "value": 5e-05,
+      "units": "m",
+      "description": "单缝仿真公称宽度 a = 0.05 mm = 50 μm",
+      "origin": "典型大学物理单缝衍射实验装置参数"
+    },
+    "human_pupil_diameter_D_m": {
+      "value": 0.0025,
+      "units": "m",
+      "description": "人眼明视觉瞳孔公称直径 D = 2.5 mm",
+      "origin": "题干给定参数，符合生理明适应瞳孔测量统计均值"
+    },
+    "orbit_altitude_min_m": {
+      "value": 200000.0,
+      "units": "m",
+      "description": "近地轨道扫描下限高度 h = 200 km",
+      "origin": "题干指定近地轨道扫描区间下界"
+    },
+    "orbit_altitude_max_m": {
+      "value": 400000.0,
+      "units": "m",
+      "description": "近地轨道扫描上限高度 h = 400 km（国际空间站 ISS 典型轨道）",
+      "origin": "题干指定近地轨道扫描区间上界"
+    },
+    "great_wall_width_min_m": {
+      "value": 5.0,
+      "units": "m",
+      "description": "长城顶宽公称典型值 5 m",
+      "origin": "题干给定长城几何尺寸区间下界"
+    },
+    "great_wall_width_max_m": {
+      "value": 8.0,
+      "units": "m",
+      "description": "长城基底与关隘公称典型宽度 8 m",
+      "origin": "题干给定长城几何尺寸区间上界"
+    },
+    "microscope_max_NA": {
+      "value": 1.4,
+      "units": "dimensionless",
+      "description": "普通光学显微镜浸油物镜极限数值孔径 NA",
+      "origin": "题干给定参数，对应折射率 n=1.515 香柏油与最大孔径半角 α≈68°"
+    }
+  },
+  "candidate_verification_baseline": {
+    "name": "第一类贝塞尔函数零点解析积分验证、瑞利判据与斯帕罗/道威斯准则理论对照",
+    "expected_value": "第一零点 v1 ≈ 3.83170597，艾里斑第一暗环系数 1.21966989",
+    "units": "dimensionless",
+    "citation_or_source": "Abramowitz and Stegun (Handbook of Mathematical Functions), Born & Wolf (Principles of Optics)"
+  }
+}
