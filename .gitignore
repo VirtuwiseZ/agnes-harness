@@ -39,56 +39,15 @@ docs/task-records/
 __pycache__/
 *.pyc
 
-# 10/11 未跟踪文件处置（_untracked_triage.md）：B 区保留在磁盘/ignore 进 git + C 区定论忽略项
-dev-notes/self-tests/02/viz_from_pipe_capture.html
-dev-notes/self-tests/02/viz_full_report_space_diving.html
-dev-notes/self-tests/02/viz_via_formal_trace_capture.html
-dev-notes/self-tests/03/figures_2025A_sasando/
-dev-notes/self-tests/03/figures_2025B_artillery/
-dev-notes/self-tests/03/figures_edge_cases/
-dev-notes/self-tests/03/figures_synthetic_test/
-dev-notes/self-tests/03/regression_2025A_sasando.html
-dev-notes/self-tests/03/regression_2025B_artillery.html
-dev-notes/self-tests/03/regression_no_figures_dir.html
-dev-notes/self-tests/03/regression_with_figures_dir.html
-dev-notes/self-tests/03/research_report_2025A_sasando.html
-dev-notes/self-tests/03/research_report_2025B_artillery.html
-dev-notes/self-tests/03/problem_state_2025A_sasando.json
-dev-notes/self-tests/03/problem_state_2025A_sasando_nobom.json
-dev-notes/self-tests/03/problem_state_2025B_artillery.json
-dev-notes/self-tests/03/problem_state_2025B_artillery_nobom.json
-dev-notes/self-tests/03/figures_interactive_test/
-dev-notes/self-tests/03/测试3-1trace/
-dev-notes/self-tests/03/测试3-2trace/
-dev-notes/self-tests/04/
-dev-notes/self-tests/05/
-dev-notes/mineru-reference/
-dev-notes/reference-solutions/例题/2025AB/mineru_output/
-# 10/11 补充：正式文档引用的参考样例 HTML，保留磁盘不进历史（同 B 区处理方式）
-dev-notes/第三方数据/钢针侵彻仿真_V0.1_apfsds_fem_2d.html
+# 内部研发与竞赛档案目录（仅在开发分支 physics-agent 跟踪，Release 分支不包含）
+dev-notes/
 
-# 10/12 ④收尾 2 修订版：原计划这批"_*.txt 临时草稿 + _run_*.py 探针脚本 + 1009 占位文件"全部 ignore 不删；
-# 后来逐条看完文件内容后判断全部是 B 类（一次性、结论本体已在共识文档/git 历史里、不需要翻这个文件本身），
-# 已实际物理删除，不需要 ignore 规则兜底，这 22 行删掉。
-# （1009 系列 2 个 3 字节占位文件是否也删，待开发者确认，见共识文档④收尾 2 执行记录末尾的待拍板项。）
-
-# 10/12 C 类：1009 系列 2 个 3 字节占位文件（保留在磁盘、不进 git 历史，处置见共识文档④收尾 2 的 C 类订正）
-dev-notes/项目架构设计说明1009.md
-dev-notes/项目架构设计说明1009（开发者原文）.md
-
-# 10/12 开发者定论：49 包 portable-runtime 整体不进 git 历史（git rm --cached 已执行，磁盘文件保留不动）
+# 49 包 portable-runtime 整体不进 git 历史（磁盘文件保留，不进版本库）
 physics-agent/third_party/portable-runtime/
 
-# 10/13 C 类：测试 6 历史诊断大体积日志包与原始快照目录（保留在磁盘供复盘参考，不进 git 历史）
-dev-notes/self-tests/06/测试6-1agh-diagnostics-*/
-dev-notes/self-tests/06/测试生成文件/
-
-# 10/14 C 类：测试 8 历史诊断大体积日志包与运行时题目产物（保留在磁盘供复盘参考，不进 git 历史）
-dev-notes/self-tests/08/测试8日志agh-diagnostics-*/
-dev-notes/self-tests/08-3/
-physics-agent/runtime/historical-artillery-ballistics/
+# 任务运行时产生的工作区目录
+agh-workspace/
 physics-agent/runtime/jupiter-moon-gravity-assist-*/
+physics-agent/runtime/historical-artillery-ballistics/
 
-# 10/15 C 类：视频演示会话大体积诊断包（保留在磁盘供复查，不进 git 历史）
-dev-notes/self-tests/视频演示会话-日志agh-diagnostics-*/
 
