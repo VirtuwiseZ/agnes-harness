@@ -3,6 +3,7 @@
 
 param(
     [string]$WorkspaceDir = "",
+    [switch]$Rebuild = $false,
     [switch]$SkipBuild = $false,
     [switch]$AutoInstallPip = $true
 )
@@ -112,12 +113,27 @@ if ($pyNeedsDeps) {
 }
 
 # Step 5: Build local CLI module
-Write-Host "`n[Step 5/6] Building Agnes Harness CLI module..." -ForegroundColor Yellow
+Write-Host "`n[Step 5/6] Checking Agnes Harness CLI compilation status..." -ForegroundColor Yellow
 $cliDist = Join-Path $repoDir "packages\cli\dist\local\agnes.mjs"
-if ($SkipBuild -and (Test-Path $cliDist)) {
-    Write-Host "  -> Found existing build artifact. Skipping build (-SkipBuild)." -ForegroundColor Green
+$isHealthy = (Test-Path $cliDist) -and ((Get-Item $cliDist).Length -gt 1000000)
+
+if ($isHealthy -and -not $Rebuild) {
+    $cliSizeMb = [math]::Round((Get-Item $cliDist).Length / 1MB, 2)
+    Write-Host "  -> Found existing compiled CLI bundle: $cliDist ($cliSizeMb MB)" -ForegroundColor Green
+    Write-Host "  -> Skipping compilation to avoid Windows file-lock conflicts. (Pass -Rebuild to force recompilation)." -ForegroundColor DarkGreen
 } else {
-    Write-Host "  -> Compiling local bundle (pnpm run build:local)..."
+    Write-Host "  -> Preparing to compile local bundle (pnpm run build:local)..." -ForegroundColor Yellow
+    # Pre-build lock hygiene: check if any daemon is holding locks
+    try {
+        node $cliDist daemon stop 2>$null | Out-Null
+    } catch {}
+
+    $lockDir = Join-Path $repoDir "packages\cli\dist\local.build-lock"
+    if (Test-Path $lockDir) {
+        Write-Host "  -> Cleaning stale build lock: $lockDir" -ForegroundColor Yellow
+        try { Remove-Item -Path $lockDir -Recurse -Force -ErrorAction SilentlyContinue } catch {}
+    }
+
     try {
         pnpm --filter @agnes/cli run build:local
         Write-Host "  -> Local build completed successfully!" -ForegroundColor Green

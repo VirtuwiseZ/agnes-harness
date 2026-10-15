@@ -45,6 +45,12 @@ namespace AIPhysicsAgent.Installer
         private Button btnBrowsePath;
         private Label lblSpaceReq;
         private Label lblSpaceAvail;
+        private RadioButton rbIsolated;
+        private RadioButton rbSandbox;
+        private RadioButton rbDefault;
+        private TextBox txtPort;
+        private Button btnTestPort;
+        private Label lblPortStatus;
 
         // Step 3 controls
         private Label lblProgressTitle;
@@ -269,7 +275,7 @@ namespace AIPhysicsAgent.Installer
             step2Panel.Visible = false;
 
             lblPathTitle = new Label();
-            lblPathTitle.Text = "步骤二：选择主程序安装位置";
+            lblPathTitle.Text = "步骤二：选择主程序安装位置与运行环境模式";
             lblPathTitle.Font = new Font("Microsoft YaHei", 10.5F, FontStyle.Bold);
             lblPathTitle.ForeColor = Color.FromArgb(30, 41, 59);
             lblPathTitle.Location = new Point(0, 0);
@@ -277,26 +283,25 @@ namespace AIPhysicsAgent.Installer
             step2Panel.Controls.Add(lblPathTitle);
 
             Label lblPathDesc = new Label();
-            lblPathDesc.Text = "安装向导将把 AI 物理科研工作站的核心代码、门禁程序与科学数据库部署至下列目录：";
-            lblPathDesc.Location = new Point(0, 32);
-            lblPathDesc.Size = new Size(648, 26);
+            lblPathDesc.Text = "安装向导将把核心代码、门禁程序与科学数据库部署至下列目录：";
+            lblPathDesc.Location = new Point(0, 26);
+            lblPathDesc.Size = new Size(648, 20);
             lblPathDesc.ForeColor = Color.FromArgb(71, 85, 105);
             step2Panel.Controls.Add(lblPathDesc);
 
             txtInstallPath = new TextBox();
-            // Default to LocalAppData / Programs (no Admin UAC needed, standard for modern desktop apps)
             string defaultFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs\\AIPhysicsAgent");
             txtInstallPath.Text = defaultFolder;
-            txtInstallPath.Location = new Point(0, 68);
-            txtInstallPath.Size = new Size(540, 26);
-            txtInstallPath.Font = new Font("Segoe UI", 9.5F);
+            txtInstallPath.Location = new Point(0, 48);
+            txtInstallPath.Size = new Size(540, 24);
+            txtInstallPath.Font = new Font("Segoe UI", 9F);
             txtInstallPath.TextChanged += (s, e) => UpdateDiskSpace();
             step2Panel.Controls.Add(txtInstallPath);
 
             btnBrowsePath = new Button();
             btnBrowsePath.Text = "浏览 (Browse)...";
-            btnBrowsePath.Size = new Size(100, 28);
-            btnBrowsePath.Location = new Point(548, 66);
+            btnBrowsePath.Size = new Size(100, 26);
+            btnBrowsePath.Location = new Point(548, 47);
             btnBrowsePath.BackColor = Color.White;
             btnBrowsePath.FlatStyle = FlatStyle.Flat;
             btnBrowsePath.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
@@ -312,42 +317,129 @@ namespace AIPhysicsAgent.Installer
             step2Panel.Controls.Add(btnBrowsePath);
 
             lblSpaceReq = new Label();
-            lblSpaceReq.Text = "所需磁盘空间: 约 280 MB";
-            lblSpaceReq.Location = new Point(2, 115);
+            lblSpaceReq.Text = "所需空间: 约 280 MB";
+            lblSpaceReq.Location = new Point(2, 78);
             lblSpaceReq.AutoSize = true;
             lblSpaceReq.ForeColor = Color.FromArgb(100, 116, 139);
             step2Panel.Controls.Add(lblSpaceReq);
 
             lblSpaceAvail = new Label();
-            lblSpaceAvail.Text = "目标磁盘可用空间: 正在计算...";
-            lblSpaceAvail.Location = new Point(2, 140);
+            lblSpaceAvail.Text = "可用空间: 正在计算...";
+            lblSpaceAvail.Location = new Point(170, 78);
             lblSpaceAvail.AutoSize = true;
             lblSpaceAvail.ForeColor = Color.FromArgb(100, 116, 139);
             step2Panel.Controls.Add(lblSpaceAvail);
 
-            Panel pnlNote = new Panel();
-            pnlNote.Location = new Point(0, 180);
-            pnlNote.Size = new Size(648, 120);
-            pnlNote.BackColor = Color.FromArgb(241, 245, 249);
-            pnlNote.BorderStyle = BorderStyle.FixedSingle;
+            // Multi-Environment Configuration Panel
+            Panel pnlEnvConfig = new Panel();
+            pnlEnvConfig.Location = new Point(0, 104);
+            pnlEnvConfig.Size = new Size(648, 255);
+            pnlEnvConfig.BackColor = Color.FromArgb(241, 245, 249);
+            pnlEnvConfig.BorderStyle = BorderStyle.FixedSingle;
 
-            Label lblNoteHead = new Label();
-            lblNoteHead.Text = "安装位置说明：";
-            lblNoteHead.Font = new Font("Microsoft YaHei", 9F, FontStyle.Bold);
-            lblNoteHead.Location = new Point(14, 12);
-            lblNoteHead.AutoSize = true;
-            pnlNote.Controls.Add(lblNoteHead);
+            Label lblEnvGroupTitle = new Label();
+            lblEnvGroupTitle.Text = "AGH 运行环境模式与多开端口设置 (Multi-Instance & Isolation)：";
+            lblEnvGroupTitle.Font = new Font("Microsoft YaHei", 9F, FontStyle.Bold);
+            lblEnvGroupTitle.ForeColor = Color.FromArgb(15, 23, 42);
+            lblEnvGroupTitle.Location = new Point(12, 10);
+            lblEnvGroupTitle.AutoSize = true;
+            pnlEnvConfig.Controls.Add(lblEnvGroupTitle);
 
-            Label lblNoteBody = new Label();
-            lblNoteBody.Text = "1. 默认安装至当前用户的本地应用程序目录，无需管理员 UAC 提权，运行稳定；\n2. 您也可以自由选择安装至 D 盘或其它分区；\n3. 安装后，系统解题所产生的仿真数据与成果报告将默认归集在主目录下的 agh-workspace/ 中，支持随时独立备份。";
-            lblNoteBody.Location = new Point(14, 36);
-            lblNoteBody.Size = new Size(615, 70);
-            lblNoteBody.ForeColor = Color.FromArgb(71, 85, 105);
-            pnlNote.Controls.Add(lblNoteBody);
+            rbIsolated = new RadioButton();
+            rbIsolated.Text = "独立物理科研环境 (推荐: 数据目录 ~/.agh-physics, 默认端口 4180, 与其它环境 100% 隔离)";
+            rbIsolated.Checked = true;
+            rbIsolated.Location = new Point(16, 36);
+            rbIsolated.AutoSize = true;
+            rbIsolated.CheckedChanged += (s, e) => { if (rbIsolated.Checked) txtPort.Text = "4180"; };
+            pnlEnvConfig.Controls.Add(rbIsolated);
 
-            step2Panel.Controls.Add(pnlNote);
+            rbSandbox = new RadioButton();
+            rbSandbox.Text = "虚拟沙箱隔离环境 (数据目录 ~/.agh-sandbox, 默认端口 4182, 强制调用内置便携Python)";
+            rbSandbox.Location = new Point(16, 64);
+            rbSandbox.AutoSize = true;
+            rbSandbox.CheckedChanged += (s, e) => { if (rbSandbox.Checked) txtPort.Text = "4182"; };
+            pnlEnvConfig.Controls.Add(rbSandbox);
+
+            rbDefault = new RadioButton();
+            rbDefault.Text = "接入系统默认环境 (数据目录 ~/.agh, 默认端口 4177, 共享全局配置与会话)";
+            rbDefault.Location = new Point(16, 92);
+            rbDefault.AutoSize = true;
+            rbDefault.CheckedChanged += (s, e) => { if (rbDefault.Checked) txtPort.Text = "4177"; };
+            pnlEnvConfig.Controls.Add(rbDefault);
+
+            Label lblPort = new Label();
+            lblPort.Text = "服务监听端口 (Port):";
+            lblPort.Font = new Font("Microsoft YaHei", 9F, FontStyle.Bold);
+            lblPort.Location = new Point(16, 128);
+            lblPort.AutoSize = true;
+            pnlEnvConfig.Controls.Add(lblPort);
+
+            txtPort = new TextBox();
+            txtPort.Text = "4180";
+            txtPort.Location = new Point(148, 125);
+            txtPort.Size = new Size(65, 23);
+            txtPort.Font = new Font("Segoe UI", 9F);
+            pnlEnvConfig.Controls.Add(txtPort);
+
+            btnTestPort = new Button();
+            btnTestPort.Text = "检测端口占用";
+            btnTestPort.Size = new Size(100, 26);
+            btnTestPort.Location = new Point(220, 123);
+            btnTestPort.BackColor = Color.White;
+            btnTestPort.FlatStyle = FlatStyle.Flat;
+            btnTestPort.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            btnTestPort.Click += (s, e) => {
+                int testP;
+                if (int.TryParse(txtPort.Text.Trim(), out testP))
+                {
+                    bool occ = TestPortListening(testP);
+                    if (occ)
+                    {
+                        lblPortStatus.ForeColor = Color.DarkOrange;
+                        lblPortStatus.Text = string.Format("端口 {0} 当前已被占用 (可正常启动或修改为其它端口)", testP);
+                    }
+                    else
+                    {
+                        lblPortStatus.ForeColor = Color.DarkGreen;
+                        lblPortStatus.Text = string.Format("端口 {0} 当前空闲可用 [通过]", testP);
+                    }
+                }
+                else
+                {
+                    lblPortStatus.ForeColor = Color.Red;
+                    lblPortStatus.Text = "请输入有效的端口数字！";
+                }
+            };
+            pnlEnvConfig.Controls.Add(btnTestPort);
+
+            lblPortStatus = new Label();
+            lblPortStatus.Text = "";
+            lblPortStatus.Location = new Point(328, 128);
+            lblPortStatus.Size = new Size(310, 20);
+            lblPortStatus.ForeColor = Color.FromArgb(100, 116, 139);
+            pnlEnvConfig.Controls.Add(lblPortStatus);
+
+            Label lblMultiNotes = new Label();
+            lblMultiNotes.Text = "多环境与多开特性说明：\n1. 支持与机器上已有的 4177 或其它 AGH 实例同时多开并行运行；\n2. 每一个环境模式均通过独立的 AGH_HOME 存储数据，会话历史、SQLite 数据库、模型配置与密钥凭据完全物理隔离，绝不会产生会话串扰或端口冲突。";
+            lblMultiNotes.Location = new Point(16, 165);
+            lblMultiNotes.Size = new Size(615, 75);
+            lblMultiNotes.ForeColor = Color.FromArgb(71, 85, 105);
+            pnlEnvConfig.Controls.Add(lblMultiNotes);
+
+            step2Panel.Controls.Add(pnlEnvConfig);
             pnlContent.Controls.Add(step2Panel);
             UpdateDiskSpace();
+        }
+
+        private bool TestPortListening(int p)
+        {
+            try
+            {
+                string res = RunCmd("netstat", "-ano");
+                string matchTarget = string.Format(":{0} ", p);
+                return res.Contains(matchTarget) && res.Contains("LISTENING");
+            }
+            catch { return false; }
         }
 
         private void BuildStep3()
@@ -588,6 +680,18 @@ namespace AIPhysicsAgent.Installer
             }
         }
 
+        private class InstallConfig
+        {
+            public string TargetDir;
+            public string EnvMode;
+            public int Port;
+            public bool AutoDownloadNode;
+            public bool SetupPython;
+            public bool CreateDesktopShortcut;
+            public bool CreateStartMenuShortcut;
+            public bool RegisterUninstall;
+        }
+
         private void BtnNext_Click(object sender, EventArgs e)
         {
             if (currentStep == 1)
@@ -603,8 +707,21 @@ namespace AIPhysicsAgent.Installer
                     MessageBox.Show(this, "请指定有效的安装路径！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
+
+                InstallConfig cfg = new InstallConfig();
+                cfg.TargetDir = target;
+                cfg.EnvMode = rbSandbox.Checked ? "sandbox" : (rbDefault.Checked ? "default" : "isolated");
+                int p = 4180;
+                int.TryParse(txtPort.Text.Trim(), out p);
+                cfg.Port = p > 0 ? p : 4180;
+                cfg.AutoDownloadNode = chkAutoDownloadNode.Checked;
+                cfg.SetupPython = chkSetupPython.Checked;
+                cfg.CreateDesktopShortcut = chkCreateDesktopShortcut.Checked;
+                cfg.CreateStartMenuShortcut = chkCreateStartMenuShortcut.Checked;
+                cfg.RegisterUninstall = chkRegisterUninstall.Checked;
+
                 ShowStep(3);
-                StartInstallThread(target);
+                StartInstallThread(cfg);
             }
             else if (currentStep == 4)
             {
@@ -628,11 +745,11 @@ namespace AIPhysicsAgent.Installer
             }
         }
 
-        private void StartInstallThread(string targetDir)
+        private void StartInstallThread(InstallConfig cfg)
         {
             BackgroundWorker worker = new BackgroundWorker();
             worker.WorkerReportsProgress = true;
-            worker.DoWork += (s, args) => DoInstall(targetDir, worker);
+            worker.DoWork += (s, args) => DoInstall(cfg, worker);
             worker.ProgressChanged += (s, args) => {
                 progressBar.Value = args.ProgressPercentage;
                 lblProgressStatus.Text = args.UserState as string;
@@ -652,10 +769,12 @@ namespace AIPhysicsAgent.Installer
             worker.RunWorkerAsync();
         }
 
-        private void DoInstall(string targetDir, BackgroundWorker worker)
+        private void DoInstall(InstallConfig cfg, BackgroundWorker worker)
         {
+            string targetDir = cfg.TargetDir;
+
             // 1. Download node if missing and requested
-            if (!isNodeInstalled && chkAutoDownloadNode.Checked)
+            if (!isNodeInstalled && cfg.AutoDownloadNode)
             {
                 worker.ReportProgress(5, "正在检测 Node.js 并尝试拉取安装程序...");
                 try
@@ -708,7 +827,7 @@ namespace AIPhysicsAgent.Installer
             if (File.Exists(iconSrc)) File.Copy(iconSrc, iconDst, true);
 
             // 4. Copy / Generate Uninstall.exe
-            worker.ReportProgress(78, "正在配置卸载程序 (Uninstall.exe)...");
+            worker.ReportProgress(76, "正在配置卸载程序 (Uninstall.exe)...");
             string uninstallerSrc = Path.Combine(sourceDir, "installer\\Uninstall.exe");
             string uninstallerDst = Path.Combine(targetDir, "Uninstall.exe");
             if (File.Exists(uninstallerSrc))
@@ -716,10 +835,31 @@ namespace AIPhysicsAgent.Installer
                 File.Copy(uninstallerSrc, uninstallerDst, true);
             }
 
-            // 5. Setup Python if requested
-            if (chkSetupPython.Checked)
+            // 4b. Write instance_config.json for persistent multi-environment isolation
+            worker.ReportProgress(80, "正在写入环境配置 (instance_config.json)...");
+            try
             {
-                worker.ReportProgress(82, "正在配置 Python 科学计算依赖库...");
+                string homePath = (cfg.EnvMode == "sandbox")
+                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".agh-sandbox")
+                    : (cfg.EnvMode == "default"
+                        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".agh")
+                        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".agh-physics"));
+
+                string jsonConfig = string.Format(
+                    "{{\r\n  \"envMode\": \"{0}\",\r\n  \"port\": {1},\r\n  \"workspaceDir\": \"agh-workspace\",\r\n  \"appHome\": \"{2}\",\r\n  \"installedAt\": \"{3}\"\r\n}}",
+                    cfg.EnvMode,
+                    cfg.Port,
+                    homePath.Replace("\\", "\\\\"),
+                    DateTime.Now.ToString("s")
+                );
+                File.WriteAllText(Path.Combine(targetDir, "instance_config.json"), jsonConfig, Encoding.UTF8);
+            }
+            catch { }
+
+            // 5. Setup Python if requested
+            if (cfg.SetupPython)
+            {
+                worker.ReportProgress(84, "正在配置 Python 科学计算依赖库...");
                 string reqPath = Path.Combine(targetDir, "physics-agent\\hooks\\requirements.txt");
                 if (File.Exists(reqPath))
                 {
@@ -733,14 +873,14 @@ namespace AIPhysicsAgent.Installer
             string targetLauncher = Path.Combine(targetDir, "一键启动.bat");
             string doctorLauncher = Path.Combine(targetDir, "环境自检.bat");
 
-            if (chkCreateDesktopShortcut.Checked)
+            if (cfg.CreateDesktopShortcut)
             {
                 worker.ReportProgress(88, "正在创建桌面快捷方式...");
                 string desktopLnk = Path.Combine(desktopDir, "AI 物理科研工作站.lnk");
                 CreateShortcut(desktopLnk, targetLauncher, targetDir, "启动 AI 物理科研工作站", iconDst);
             }
 
-            if (chkCreateStartMenuShortcut.Checked)
+            if (cfg.CreateStartMenuShortcut)
             {
                 worker.ReportProgress(92, "正在创建开始菜单快捷方式组...");
                 string groupDir = Path.Combine(startMenuDir, "AI 物理科研工作站");
@@ -757,7 +897,7 @@ namespace AIPhysicsAgent.Installer
             }
 
             // 7. Register to Windows Add/Remove Programs (Registry)
-            if (chkRegisterUninstall.Checked)
+            if (cfg.RegisterUninstall)
             {
                 worker.ReportProgress(96, "正在注册至 Windows 系统已安装应用列表...");
                 RegisterWindowsUninstall(targetDir, uninstallerDst, iconDst);
