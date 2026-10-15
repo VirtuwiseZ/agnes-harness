@@ -918,6 +918,10 @@ def _build_datasource_entry(state, task_dir, runlog_base_dir):
         return None
     mod_src = ds.get("modeling_input_source") or {}
     ver_src = ds.get("verification_baseline") or {}
+    if isinstance(mod_src, str):
+        mod_src = {"name": mod_src}
+    if isinstance(ver_src, str):
+        ver_src = {"name": ver_src}
     params_text = _read_candidate_file("task_params.json", task_dir, runlog_base_dir)
 
     lines = [
