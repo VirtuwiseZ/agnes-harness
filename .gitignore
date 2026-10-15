@@ -39,6 +39,9 @@ docs/task-records/
 __pycache__/
 *.pyc
 
+# 打包发布的二进制发行包目录
+release/
+
 # 内部研发与竞赛档案目录（仅在开发分支 physics-agent 跟踪，Release 分支不包含）
 dev-notes/
 

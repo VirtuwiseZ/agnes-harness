@@ -611,6 +611,21 @@ namespace AIPhysicsAgent.Installer
             {
                 AppendLog(txtEnvStatus, "便携运行时目录就绪\n", Color.DarkGreen, false);
             }
+
+            // 6. Check source assets availability
+            string localCli = Path.Combine(sourceDir, "packages\\cli\\dist\\local");
+            string localAgent = Path.Combine(sourceDir, "physics-agent");
+            bool hasLocalAssets = Directory.Exists(localCli) || Directory.Exists(localAgent);
+            AppendLog(txtEnvStatus, "[6] 安装资源模式: ", Color.Black, true);
+            if (hasLocalAssets)
+            {
+                AppendLog(txtEnvStatus, "完整离线发行包模式 (本地资源完备，秒级部署) [通过]\n", Color.DarkGreen, false);
+            }
+            else
+            {
+                AppendLog(txtEnvStatus, "独立安装器单文件模式 (安装时将自动拉取预构建包) [提示]\n", Color.DarkCyan, false);
+            }
+
             // Dynamically adapt checkboxes to detected environment state
             if (chkAutoDownloadNode != null) chkAutoDownloadNode.Checked = !isNodeInstalled;
             if (chkSetupPython != null) chkSetupPython.Checked = !isPythonReady;
@@ -773,22 +788,63 @@ namespace AIPhysicsAgent.Installer
         {
             string targetDir = cfg.TargetDir;
 
-            // 1. Download node if missing and requested
+            // 1. Download & Install Node.js if missing and requested
             if (!isNodeInstalled && cfg.AutoDownloadNode)
             {
-                worker.ReportProgress(5, "正在检测 Node.js 并尝试拉取安装程序...");
+                worker.ReportProgress(4, "正在检测 Node.js 运行时...");
+                bool nodeInstalledSuccess = false;
+
+                // Priority 1: Try winget if available
                 try
                 {
-                    // Attempt winget first
+                    worker.ReportProgress(6, "尝试通过 Windows 包管理器 (winget) 安装 Node.js LTS...");
                     string wingetRes = RunCmd("winget", "install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements --silent");
-                    if (wingetRes.Contains("Successfully") || wingetRes.Contains("成功"))
+                    if (wingetRes.Contains("Successfully") || wingetRes.Contains("成功") || wingetRes.Contains("已安装"))
                     {
-                        worker.ReportProgress(12, "Node.js 自动部署成功。");
+                        nodeInstalledSuccess = true;
+                        worker.ReportProgress(12, "Node.js 运行时通过 winget 部署成功。");
                     }
-                    else
+                }
+                catch { }
+
+                // Priority 2: Fallback to direct official MSI download (essential for clean Win10/Win11 without winget)
+                if (!nodeInstalledSuccess)
+                {
+                    try
                     {
-                        worker.ReportProgress(8, "提示: 请在安装完成后根据提示安装 Node.js 24 LTS。");
+                        worker.ReportProgress(7, "正在从官方镜像直连拉取 Node.js 24 LTS 独立安装包 (约 30 MB)...");
+                        string tempMsi = Path.Combine(Path.GetTempPath(), "nodejs_lts_x64_setup.msi");
+                        using (WebClient client = new WebClient())
+                        {
+                            // Official Node.js 24 LTS x64 MSI
+                            client.DownloadFile("https://nodejs.org/dist/v24.10.0/node-v24.10.0-x64.msi", tempMsi);
+                        }
+
+                        if (File.Exists(tempMsi))
+                        {
+                            worker.ReportProgress(10, "正在静默安装 Node.js 24 LTS 运行时...");
+                            ProcessStartInfo psiMsi = new ProcessStartInfo("msiexec.exe", "/i \"" + tempMsi + "\" /passive /norestart");
+                            psiMsi.UseShellExecute = false;
+                            using (Process p = Process.Start(psiMsi))
+                            {
+                                if (p != null) p.WaitForExit();
+                            }
+                            nodeInstalledSuccess = true;
+                            worker.ReportProgress(12, "Node.js 24 LTS 官方安装包部署完成！");
+                        }
                     }
+                    catch (Exception exNode)
+                    {
+                        worker.ReportProgress(10, "提示: 自动安装 Node.js 遇到网络限制 (" + exNode.Message + ")，请安装后按指引手动下载。");
+                    }
+                }
+
+                // Refresh PATH in current process
+                try
+                {
+                    string sysPath = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine) + ";" +
+                                     Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User);
+                    Environment.SetEnvironmentVariable("PATH", sysPath, EnvironmentVariableTarget.Process);
                 }
                 catch { }
             }
@@ -796,29 +852,93 @@ namespace AIPhysicsAgent.Installer
             worker.ReportProgress(15, "正在创建目标安装目录: " + targetDir);
             if (!Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
 
-            // 2. Copy application directories
-            string[] copyDirs = new string[] { ".agh", "physics-agent", "packages", "docs", "scripts" };
-            int stepVal = 20;
-            foreach (string d in copyDirs)
-            {
-                string srcSub = Path.Combine(sourceDir, d);
-                string dstSub = Path.Combine(targetDir, d);
-                if (Directory.Exists(srcSub))
-                {
-                    worker.ReportProgress(stepVal, "正在复制目录: " + d + " ...");
-                    CopyDirectory(srcSub, dstSub);
-                }
-                stepVal += 10;
-            }
+            // 2. Locate source assets (Support both local extracted directory & standalone installer mode)
+            string localCli = Path.Combine(sourceDir, "packages\\cli\\dist\\local");
+            string localAgent = Path.Combine(sourceDir, "physics-agent");
+            bool hasLocalAssets = Directory.Exists(localCli) || Directory.Exists(localAgent);
 
-            // 3. Copy root scripts and files
-            worker.ReportProgress(70, "正在配置启动脚本与说明文档...");
-            string[] copyFiles = new string[] { "README.md", "一键启动.bat", "一键安装.bat", "环境自检.bat", "package.json", "pnpm-workspace.yaml" };
-            foreach (string f in copyFiles)
+            if (hasLocalAssets)
             {
-                string srcFile = Path.Combine(sourceDir, f);
-                string dstFile = Path.Combine(targetDir, f);
-                if (File.Exists(srcFile)) File.Copy(srcFile, dstFile, true);
+                // Local extracted package mode: copy directly from sourceDir (2-3 seconds)
+                string[] copyDirs = new string[] { ".agh", "physics-agent", "packages", "docs", "scripts" };
+                int stepVal = 20;
+                foreach (string d in copyDirs)
+                {
+                    string srcSub = Path.Combine(sourceDir, d);
+                    string dstSub = Path.Combine(targetDir, d);
+                    if (Directory.Exists(srcSub))
+                    {
+                        worker.ReportProgress(stepVal, "正在复制目录: " + d + " ...");
+                        CopyDirectory(srcSub, dstSub);
+                    }
+                    stepVal += 10;
+                }
+
+                worker.ReportProgress(70, "正在配置启动脚本与说明文档...");
+                string[] copyFiles = new string[] { "README.md", "一键启动.bat", "一键安装.bat", "环境自检.bat", "图形化安装.bat", "package.json", "pnpm-workspace.yaml" };
+                foreach (string f in copyFiles)
+                {
+                    string srcFile = Path.Combine(sourceDir, f);
+                    string dstFile = Path.Combine(targetDir, f);
+                    if (File.Exists(srcFile)) File.Copy(srcFile, dstFile, true);
+                }
+            }
+            else
+            {
+                // Standalone installer mode (Setup.exe downloaded alone): Look for local zip or fetch from GitHub Release
+                worker.ReportProgress(22, "检测到独立安装器模式，正在查找资源包...");
+                string foundZip = null;
+                try
+                {
+                    string[] zips = Directory.GetFiles(sourceDir, "*.zip");
+                    foreach (string z in zips)
+                    {
+                        if (z.IndexOf("physics", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            z.IndexOf("agent", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            foundZip = z;
+                            break;
+                        }
+                    }
+                }
+                catch { }
+
+                if (foundZip != null && File.Exists(foundZip))
+                {
+                    worker.ReportProgress(30, "在当前目录下找到预构建包: " + Path.GetFileName(foundZip) + "，正在解压...");
+                    UnzipToDirectory(foundZip, targetDir);
+                }
+                else
+                {
+                    // Attempt online pull from GitHub Release
+                    worker.ReportProgress(25, "正在连接 GitHub Releases 拉取最新预构建发行包 (约 25 MB)...");
+                    string downloadZip = Path.Combine(Path.GetTempPath(), "ai_physics_agent_release.zip");
+                    bool downloadOk = false;
+                    try
+                    {
+                        using (WebClient client = new WebClient())
+                        {
+                            client.Headers.Add("User-Agent", "AIPhysicsAgent-Installer/1.0");
+                            // Fallback release archive URL
+                            client.DownloadFile("https://github.com/VirtuwiseZ/physics-agent-based-on-agnes-harness/archive/refs/heads/main.zip", downloadZip);
+                        }
+                        if (File.Exists(downloadZip) && new FileInfo(downloadZip).Length > 100000)
+                        {
+                            downloadOk = true;
+                        }
+                    }
+                    catch { }
+
+                    if (downloadOk)
+                    {
+                        worker.ReportProgress(55, "下载完成，正在解压部署至目标目录...");
+                        UnzipToDirectory(downloadZip, targetDir);
+                    }
+                    else
+                    {
+                        throw new Exception("未在当前目录下找到程序资产包，且自动网络下载未完成。\n请下载预构建完整发行包 (AI_Physics_Agent_v1.0.0_Windows_x64.zip)，解压后再运行安装程序。");
+                    }
+                }
             }
 
             // Copy app.ico
@@ -859,10 +979,25 @@ namespace AIPhysicsAgent.Installer
             // 5. Setup Python if requested
             if (cfg.SetupPython)
             {
-                worker.ReportProgress(84, "正在配置 Python 科学计算依赖库...");
+                worker.ReportProgress(83, "正在检测并配置 Python 科学计算依赖库...");
+                string pyVer = RunCmd("python", "--version");
+                bool hasPy = !string.IsNullOrEmpty(pyVer) && pyVer.Contains("Python");
+
+                // If no python on clean Win10/Win11, attempt automated lightweight setup
+                if (!hasPy)
+                {
+                    worker.ReportProgress(84, "未检测到系统 Python，正在尝试通过包管理器安装 Python 3.13...");
+                    try
+                    {
+                        RunCmd("winget", "install Python.Python.3.13 --accept-package-agreements --accept-source-agreements --silent");
+                    }
+                    catch { }
+                }
+
                 string reqPath = Path.Combine(targetDir, "physics-agent\\hooks\\requirements.txt");
                 if (File.Exists(reqPath))
                 {
+                    worker.ReportProgress(86, "正在安装核心科学计算依赖 (sympy, pint, numpy, scipy, matplotlib)...");
                     RunCmd("pip", "install -r \"" + reqPath + "\"");
                 }
             }
@@ -905,6 +1040,35 @@ namespace AIPhysicsAgent.Installer
 
             worker.ReportProgress(100, "安装全部完成！");
             Thread.Sleep(400);
+        }
+
+        private static void UnzipToDirectory(string zipPath, string extractPath)
+        {
+            try
+            {
+                // Try .NET 4.5+ ZipFile reflection to avoid requiring external references
+                Type zipType = Type.GetType("System.IO.Compression.ZipFile, System.IO.Compression.FileSystem");
+                if (zipType != null)
+                {
+                    MethodInfo mi = zipType.GetMethod("ExtractToDirectory", new Type[] { typeof(string), typeof(string) });
+                    if (mi != null)
+                    {
+                        mi.Invoke(null, new object[] { zipPath, extractPath });
+                        return;
+                    }
+                }
+            }
+            catch { }
+
+            // Fallback to PowerShell Expand-Archive
+            ProcessStartInfo psi = new ProcessStartInfo("powershell.exe",
+                string.Format("-NoProfile -Command \"Expand-Archive -Path '{0}' -DestinationPath '{1}' -Force\"", zipPath, extractPath));
+            psi.CreateNoWindow = true;
+            psi.UseShellExecute = false;
+            using (Process p = Process.Start(psi))
+            {
+                if (p != null) p.WaitForExit();
+            }
         }
 
         private void RegisterWindowsUninstall(string installDir, string uninstallerPath, string iconPath)
