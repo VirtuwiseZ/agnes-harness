@@ -1,0 +1,12 @@
+﻿{
+    "baseVersion":  "0.0.0",
+    "gitHead":  "a32dfb959",
+    "hasToolArgsUnwrap":  true,
+    "installedSkillsCount":  10,
+    "hasPrebuiltCli":  true,
+    "installedAt":  "2026-10-16T14:02:40",
+    "baseName":  "agnes-harness",
+    "hasTraceDeepLink":  true,
+    "preservedThirdPartySkillsCount":  0,
+    "hasVerifierFix":  true
+}
