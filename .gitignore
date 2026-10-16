@@ -39,6 +39,9 @@ docs/task-records/
 __pycache__/
 *.pyc
 
+# 打包发布的二进制发行包目录
+release/
+
 # 10/11 未跟踪文件处置（_untracked_triage.md）：B 区保留在磁盘/ignore 进 git + C 区定论忽略项
 dev-notes/self-tests/02/viz_from_pipe_capture.html
 dev-notes/self-tests/02/viz_full_report_space_diving.html
@@ -91,4 +94,9 @@ physics-agent/runtime/jupiter-moon-gravity-assist-*/
 
 # 10/15 C 类：视频演示会话大体积诊断包（保留在磁盘供复查，不进 git 历史）
 dev-notes/self-tests/视频演示会话-日志agh-diagnostics-*/
+
+# 任务运行时产生的工作区目录
+agh-workspace/
+physics-agent/runtime/jupiter-moon-gravity-assist-*/
+physics-agent/runtime/historical-artillery-ballistics/
 
